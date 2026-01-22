@@ -1,0 +1,59 @@
+import { expect, test } from '@playwright/test';
+
+const players = [
+  { id: 1001, name: 'Player 1' },
+  { id: 1002, name: 'Player 2' },
+  { id: 1003, name: 'Player 3' },
+  { id: 1004, name: 'Player 4' },
+];
+
+test('4 players can place bets and reach playing phase', async ({ browser }) => {
+  test.setTimeout(60000);
+  const contexts = await Promise.all(players.map(() => browser.newContext()));
+  const pages = await Promise.all(contexts.map((context) => context.newPage()));
+
+  try {
+    for (let i = 0; i < pages.length; i += 1) {
+      const player = players[i];
+      const page = pages[i];
+      await page.goto(`/?devUserId=${player.id}&devUserName=${encodeURIComponent(player.name)}`);
+      await Promise.race([
+        page.getByRole('heading', { name: 'Joker' }).waitFor({ state: 'visible', timeout: 15000 }),
+        page.getByText('Round').first().waitFor({ state: 'visible', timeout: 15000 }),
+      ]);
+
+      const findGameButton = page.getByRole('button', { name: 'Find Game' });
+      if (await findGameButton.isVisible()) {
+        await findGameButton.click();
+      }
+    }
+
+    const betPlaced = new Set<number>();
+    const start = Date.now();
+
+    while (betPlaced.size < pages.length && Date.now() - start < 45000) {
+      for (let i = 0; i < pages.length; i += 1) {
+        if (betPlaced.has(i)) continue;
+        const page = pages[i];
+        const modal = page.getByText('Make Your Bet');
+        const visible = await modal.isVisible();
+        if (!visible) continue;
+
+        await page.locator('button', { hasText: '0' }).first().click();
+        await page.getByRole('button', { name: 'Confirm Bet' }).click();
+        await expect(modal).toBeHidden({ timeout: 10000 });
+        betPlaced.add(i);
+      }
+
+      if (betPlaced.size < pages.length) {
+        await pages[0].waitForTimeout(500);
+      }
+    }
+
+    expect(betPlaced.size).toBe(pages.length);
+    await expect(pages[0].getByText('playing')).toBeVisible({ timeout: 20000 });
+  } finally {
+    await Promise.all(pages.map((page) => page.close()));
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});

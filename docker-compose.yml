@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: joker-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: joker-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-joker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-joker_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-joker_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U joker -d joker_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend service (uncomment for production)
+  # backend:
+  #   build:
+  #     context: ./apps/backend
+  #     dockerfile: Dockerfile
+  #   container_name: joker-backend
+  #   ports:
+  #     - '3000:3000'
+  #   environment:
+  #     - NODE_ENV=production
+  #     - REDIS_URL=redis://redis:6379
+  #     - DATABASE_URL=postgresql://joker:joker_secret@postgres:5432/joker_db
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  redis_data:
+  postgres_data:

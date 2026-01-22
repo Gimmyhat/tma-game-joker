@@ -5,6 +5,7 @@ import {
   Card,
   GamePhase,
   GAME_CONSTANTS,
+  GameState,
   JokerOption,
   Rank,
   StandardCard,
@@ -17,6 +18,8 @@ import { StateMachineService } from '../src/game/services/state-machine.service'
 import { RoomManager } from '../src/gateway/room.manager';
 
 describe('App (e2e)', () => {
+  jest.setTimeout(20000);
+
   let app: INestApplication;
   let gameEngine: GameEngineService;
   let stateMachine: StateMachineService;
@@ -75,6 +78,9 @@ describe('App (e2e)', () => {
       socket.once('error', onError);
       socket.once('connect_error', onConnectError);
     });
+
+  const waitForState = (socket: Socket, timeoutMs = socketTimeoutMs) =>
+    waitForEvent<{ state: GameState }>(socket, 'game_state', timeoutMs);
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -135,8 +141,9 @@ describe('App (e2e)', () => {
       clients.forEach((client) => client.emit('find_game'));
 
       const started = await Promise.all(startedPromises);
-      roomId = started[0].roomId;
-      started.forEach((payload) => expect(payload.roomId).toBe(roomId));
+      const activeRoomId = started[0].roomId;
+      roomId = activeRoomId;
+      started.forEach((payload) => expect(payload.roomId).toBe(activeRoomId));
 
       const states = await Promise.all(statePromises);
       states.forEach(({ state }) => {
@@ -144,6 +151,115 @@ describe('App (e2e)', () => {
         expect(state.players).toHaveLength(4);
         expect(state.round).toBe(1);
       });
+    } finally {
+      if (roomId) {
+        roomManager.cleanupRoom(roomId);
+      }
+      clients.forEach((client) => client.disconnect());
+    }
+  });
+
+  it('plays bets and a trick via websocket flow', async () => {
+    let roomId: string | null = null;
+    const clients = players.map((playerId, index) =>
+      io(serverUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: playerId,
+          userName: names[index],
+        },
+      }),
+    );
+
+    const playerHands = new Map<string, Card[]>();
+
+    clients.forEach((client, index) => {
+      const playerId = players[index];
+      client.on('game_state', (payload: { state: GameState }) => {
+        const player = payload.state.players.find((item) => item.id === playerId);
+        if (player) {
+          playerHands.set(playerId, player.hand);
+        }
+      });
+    });
+
+    try {
+      const connectPromises = clients.map((client) => waitForEvent<void>(client, 'connect'));
+      clients.forEach((client) => client.connect());
+      await Promise.all(connectPromises);
+
+      const startedPromises = clients.map((client) =>
+        waitForEvent<{ roomId: string }>(client, 'game_started'),
+      );
+      const initialStatePromises = clients.map((client) => waitForState(client));
+      clients.forEach((client) => client.emit('find_game'));
+
+      const started = await Promise.all(startedPromises);
+      const activeRoomId = started[0].roomId;
+      roomId = activeRoomId;
+      started.forEach((payload) => expect(payload.roomId).toBe(activeRoomId));
+
+      const initialStates = await Promise.all(initialStatePromises);
+      let currentState = initialStates[0].state;
+      expect(currentState.phase).toBe(GamePhase.Betting);
+
+      for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+        const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
+        const socketIndex = players.indexOf(currentPlayerId);
+        const currentSocket = clients[socketIndex];
+        if (!currentSocket) {
+          throw new Error(`Missing socket for player ${currentPlayerId}`);
+        }
+
+        const nextStatePromise = waitForState(clients[0]);
+        currentSocket.emit('make_bet', { roomId: activeRoomId, amount: 0 });
+        currentState = (await nextStatePromise).state;
+      }
+
+      expect(currentState.phase).toBe(GamePhase.Playing);
+
+      for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+        const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
+        const socketIndex = players.indexOf(currentPlayerId);
+        const currentSocket = clients[socketIndex];
+        if (!currentSocket) {
+          throw new Error(`Missing socket for player ${currentPlayerId}`);
+        }
+        const hand = playerHands.get(currentPlayerId) ?? [];
+        const card = hand[0];
+
+        if (!card) {
+          throw new Error(`No card available for player ${currentPlayerId}`);
+        }
+
+        const payload: {
+          roomId: string;
+          cardId: string;
+          jokerOption?: JokerOption;
+          requestedSuit?: Suit;
+        } = {
+          roomId: activeRoomId,
+          cardId: card.id,
+        };
+
+        if (card.type === 'joker') {
+          if (currentState.table.length === 0) {
+            payload.jokerOption = JokerOption.High;
+            payload.requestedSuit = Suit.Hearts;
+          } else {
+            payload.jokerOption = JokerOption.Top;
+          }
+        }
+
+        const nextStatePromise = waitForState(clients[0]);
+        currentSocket.emit('throw_card', payload);
+        currentState = (await nextStatePromise).state;
+      }
+
+      expect(currentState.round).toBe(2);
+      expect(currentState.phase).toBe(GamePhase.Betting);
     } finally {
       if (roomId) {
         roomManager.cleanupRoom(roomId);

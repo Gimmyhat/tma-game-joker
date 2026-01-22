@@ -1,0 +1,36 @@
+name: e2e
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @joker/frontend exec playwright install --with-deps
+
+      - name: Run backend e2e
+        run: pnpm --filter @joker/backend test:e2e
+
+      - name: Run frontend e2e
+        run: pnpm --filter @joker/frontend test:e2e

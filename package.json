@@ -1,0 +1,31 @@
+{
+  "name": "tma-joker-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram Mini App - Joker Card Game",
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "dev:backend": "pnpm --filter @joker/backend dev",
+    "dev:frontend": "pnpm --filter @joker/frontend dev",
+    "build": "pnpm run --parallel build",
+    "build:backend": "pnpm --filter @joker/backend build",
+    "build:frontend": "pnpm --filter @joker/frontend build",
+    "test": "pnpm run --parallel test",
+    "test:backend": "pnpm --filter @joker/backend test",
+    "lint": "pnpm run --parallel lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "clean": "pnpm run --parallel clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prettier": "^3.2.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

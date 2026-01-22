@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Joker - Test Client</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #1a5a32;
+        color: white;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .panel {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+      }
+      .panel h2 {
+        margin-bottom: 10px;
+        font-size: 16px;
+        opacity: 0.8;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: 0.2s;
+      }
+      button:hover {
+        transform: translateY(-2px);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-primary {
+        background: #4caf50;
+        color: white;
+      }
+      .btn-secondary {
+        background: #2196f3;
+        color: white;
+      }
+      .btn-danger {
+        background: #f44336;
+        color: white;
+      }
+
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+      }
+      .status.connected {
+        background: rgba(76, 175, 80, 0.3);
+      }
+      .status.disconnected {
+        background: rgba(244, 67, 54, 0.3);
+      }
+
+      .game-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .info-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px;
+        border-radius: 5px;
+      }
+      .info-item label {
+        font-size: 12px;
+        opacity: 0.7;
+        display: block;
+      }
+      .info-item span {
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .hand {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 15px 0;
+        min-height: 80px;
+      }
+      .card {
+        width: 50px;
+        height: 70px;
+        background: white;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        transition: 0.2s;
+        color: black;
+        border: 2px solid transparent;
+      }
+      .card:hover {
+        transform: translateY(-5px);
+        border-color: gold;
+      }
+      .card.selected {
+        border-color: gold;
+        transform: translateY(-10px);
+      }
+      .card.hearts,
+      .card.diamonds {
+        color: red;
+      }
+      .card.joker {
+        background: linear-gradient(135deg, #9c27b0, #673ab7);
+        color: white;
+        font-size: 14px;
+      }
+
+      .table {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 20px;
+        min-height: 120px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .table-card {
+        text-align: center;
+      }
+      .table-card .player-name {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 5px;
+      }
+
+      .players {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .player {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+      }
+      .player.current {
+        border: 2px solid gold;
+      }
+      .player.dealer {
+        background: rgba(255, 193, 7, 0.2);
+      }
+      .player .name {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .player .stats {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      .bet-controls {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin: 10px 0;
+      }
+      .bet-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+      }
+
+      .joker-options {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .joker-options button {
+        flex: 1;
+      }
+
+      .suit-selector {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+      .suit-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        border-radius: 5px;
+        background: white;
+      }
+      .suit-btn.hearts,
+      .suit-btn.diamonds {
+        color: red;
+      }
+
+      #log {
+        height: 300px;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .log-entry {
+        margin: 2px 0;
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+      .log-entry.error {
+        background: rgba(244, 67, 54, 0.3);
+      }
+      .log-entry.success {
+        background: rgba(76, 175, 80, 0.3);
+      }
+      .log-entry.info {
+        background: rgba(33, 150, 243, 0.3);
+      }
+      .log-entry.event {
+        background: rgba(156, 39, 176, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🃏 Joker Test Client</h1>
+
+      <div class="controls">
+        <button class="btn-primary" id="btnConnect">Connect</button>
+        <button class="btn-secondary" id="btnFindGame" disabled>Find Game</button>
+        <button class="btn-danger" id="btnDisconnect" disabled>Disconnect</button>
+        <input
+          type="text"
+          id="playerName"
+          placeholder="Your name"
+          value="TestPlayer"
+          style="padding: 10px; border-radius: 5px; border: none"
+        />
+      </div>
+
+      <div id="status" class="status disconnected">Disconnected</div>
+
+      <div class="panels">
+        <div class="panel">
+          <h2>Game State</h2>
+
+          <div class="game-info">
+            <div class="info-item"><label>Phase</label><span id="infoPhase">-</span></div>
+            <div class="info-item"><label>Round</label><span id="infoRound">-</span></div>
+            <div class="info-item"><label>Trump</label><span id="infoTrump">-</span></div>
+            <div class="info-item"><label>Cards</label><span id="infoCards">-</span></div>
+          </div>
+
+          <h2>Players</h2>
+          <div class="players" id="players"></div>
+
+          <h2>Table</h2>
+          <div class="table" id="table">
+            <span style="opacity: 0.5">No cards on table</span>
+          </div>
+
+          <h2>Your Hand</h2>
+          <div class="hand" id="hand">
+            <span style="opacity: 0.5">No cards yet</span>
+          </div>
+
+          <div id="betControls" style="display: none">
+            <h2>Make Bet</h2>
+            <div class="bet-controls" id="betButtons"></div>
+          </div>
+
+          <div id="jokerControls" style="display: none">
+            <h2>Joker Option</h2>
+            <div class="joker-options">
+              <button class="btn-secondary" onclick="selectJokerOption('high')">High</button>
+              <button class="btn-secondary" onclick="selectJokerOption('low')">Low</button>
+              <button class="btn-secondary" onclick="selectJokerOption('top')">Top</button>
+              <button class="btn-secondary" onclick="selectJokerOption('bottom')">Bottom</button>
+            </div>
+            <div class="suit-selector" id="suitSelector" style="display: none">
+              <button class="suit-btn hearts" onclick="selectSuit('hearts')">♥</button>
+              <button class="suit-btn diamonds" onclick="selectSuit('diamonds')">♦</button>
+              <button class="suit-btn" onclick="selectSuit('clubs')">♣</button>
+              <button class="suit-btn" onclick="selectSuit('spades')">♠</button>
+            </div>
+          </div>
+
+          <div id="trumpControls" style="display: none">
+            <h2>Select Trump</h2>
+            <div class="suit-selector">
+              <button class="suit-btn hearts" onclick="selectTrump('hearts')">♥</button>
+              <button class="suit-btn diamonds" onclick="selectTrump('diamonds')">♦</button>
+              <button class="suit-btn" onclick="selectTrump('clubs')">♣</button>
+              <button class="suit-btn" onclick="selectTrump('spades')">♠</button>
+              <button class="btn-secondary" onclick="selectTrump(null)">No Trump</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Event Log</h2>
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let gameState = null;
+      let myId = null;
+      let roomId = null;
+      let selectedCard = null;
+      let selectedJokerOption = null;
+
+      const SUIT_SYMBOLS = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+      const RANK_SYMBOLS = {
+        6: '6',
+        7: '7',
+        8: '8',
+        9: '9',
+        10: '10',
+        11: 'J',
+        12: 'Q',
+        13: 'K',
+        14: 'A',
+      };
+
+      function log(message, type = '') {
+        const logEl = document.getElementById('log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry ' + type;
+        entry.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function updateStatus(connected) {
+        const el = document.getElementById('status');
+        el.className = 'status ' + (connected ? 'connected' : 'disconnected');
+        el.textContent = connected ? 'Connected as ' + myId : 'Disconnected';
+        document.getElementById('btnConnect').disabled = connected;
+        document.getElementById('btnDisconnect').disabled = !connected;
+        document.getElementById('btnFindGame').disabled = !connected;
+      }
+
+      function renderCard(card) {
+        if (card.type === 'joker') {
+          return `<div class="card joker" data-id="${card.id}">🃏 J${card.jokerId}</div>`;
+        }
+        const suit = card.suit;
+        const rank = RANK_SYMBOLS[card.rank];
+        const symbol = SUIT_SYMBOLS[suit];
+        return `<div class="card ${suit}" data-id="${card.id}">${rank}${symbol}</div>`;
+      }
+
+      function renderHand(cards) {
+        const handEl = document.getElementById('hand');
+        if (!cards || cards.length === 0) {
+          handEl.innerHTML = '<span style="opacity: 0.5;">No cards</span>';
+          return;
+        }
+        handEl.innerHTML = cards.map((c) => renderCard(c)).join('');
+        handEl.querySelectorAll('.card').forEach((el) => {
+          el.onclick = () => selectCard(el.dataset.id);
+        });
+      }
+
+      function renderTable(table) {
+        const tableEl = document.getElementById('table');
+        if (!table || table.length === 0) {
+          tableEl.innerHTML = '<span style="opacity: 0.5;">No cards on table</span>';
+          return;
+        }
+        tableEl.innerHTML = table
+          .map((tc) => {
+            const player = gameState?.players?.find((p) => p.id === tc.playerId);
+            const jokerInfo = tc.jokerOption ? ` (${tc.jokerOption})` : '';
+            return `<div class="table-card">${renderCard(tc.card)}<div class="player-name">${player?.name || tc.playerId}${jokerInfo}</div></div>`;
+          })
+          .join('');
+      }
+
+      function renderPlayers(players, currentIdx, dealerIdx) {
+        const el = document.getElementById('players');
+        el.innerHTML = players
+          .map((p, i) => {
+            const classes = ['player'];
+            if (i === currentIdx) classes.push('current');
+            if (i === dealerIdx) classes.push('dealer');
+            const betStr = p.bet !== null ? `Bet: ${p.bet}` : 'No bet';
+            return `<div class="${classes.join(' ')}">
+          <div class="name">${p.name}${p.id === myId ? ' (You)' : ''}${p.isBot ? ' 🤖' : ''}</div>
+          <div class="stats">${betStr} | Tricks: ${p.tricks} | Score: ${p.totalScore}</div>
+        </div>`;
+          })
+          .join('');
+      }
+
+      function renderBetControls(cardsPerPlayer, forbiddenBet) {
+        const el = document.getElementById('betButtons');
+        el.innerHTML = '';
+        for (let i = 0; i <= cardsPerPlayer; i++) {
+          const btn = document.createElement('button');
+          btn.className = 'btn-secondary bet-btn';
+          btn.textContent = i;
+          btn.disabled = i === forbiddenBet;
+          btn.onclick = () => makeBet(i);
+          el.appendChild(btn);
+        }
+      }
+
+      function updateGameUI() {
+        if (!gameState) return;
+
+        document.getElementById('infoPhase').textContent = gameState.phase;
+        document.getElementById('infoRound').textContent =
+          `${gameState.round}/24 (Pulka ${gameState.pulka})`;
+        document.getElementById('infoTrump').textContent = gameState.trump
+          ? SUIT_SYMBOLS[gameState.trump]
+          : 'None';
+        document.getElementById('infoCards').textContent = gameState.cardsPerPlayer;
+
+        renderPlayers(gameState.players, gameState.currentPlayerIndex, gameState.dealerIndex);
+        renderTable(gameState.table);
+
+        const me = gameState.players.find((p) => p.id === myId);
+        if (me) {
+          renderHand(me.hand);
+        }
+
+        // Show/hide controls based on phase and turn
+        const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myId;
+
+        document.getElementById('betControls').style.display =
+          gameState.phase === 'betting' && isMyTurn ? 'block' : 'none';
+
+        document.getElementById('trumpControls').style.display =
+          gameState.phase === 'trump_selection' && isMyTurn ? 'block' : 'none';
+
+        if (gameState.phase === 'betting' && isMyTurn) {
+          // Calculate forbidden bet for dealer
+          const bets = gameState.players.map((p) => p.bet);
+          const sum = bets.filter((b) => b !== null).reduce((a, b) => a + b, 0);
+          const meIdx = gameState.players.findIndex((p) => p.id === myId);
+          const forbidden = meIdx === gameState.dealerIndex ? gameState.cardsPerPlayer - sum : null;
+          renderBetControls(gameState.cardsPerPlayer, forbidden);
+        }
+      }
+
+      function selectCard(cardId) {
+        selectedCard = cardId;
+        document.querySelectorAll('.hand .card').forEach((el) => {
+          el.classList.toggle('selected', el.dataset.id === cardId);
+        });
+
+        const me = gameState?.players?.find((p) => p.id === myId);
+        const card = me?.hand?.find((c) => c.id === cardId);
+
+        if (card?.type === 'joker') {
+          document.getElementById('jokerControls').style.display = 'block';
+        } else {
+          document.getElementById('jokerControls').style.display = 'none';
+          // Play card directly if it's player's turn
+          const isMyTurn = gameState.players[gameState.currentPlayerIndex]?.id === myId;
+          if (isMyTurn && gameState.phase === 'playing') {
+            playCard(cardId);
+          }
+        }
+      }
+
+      function selectJokerOption(option) {
+        selectedJokerOption = option;
+        if (option === 'high' || option === 'low') {
+          document.getElementById('suitSelector').style.display = 'flex';
+        } else {
+          document.getElementById('suitSelector').style.display = 'none';
+          playCard(selectedCard, option);
+        }
+      }
+
+      function selectSuit(suit) {
+        playCard(selectedCard, selectedJokerOption, suit);
+        document.getElementById('jokerControls').style.display = 'none';
+        document.getElementById('suitSelector').style.display = 'none';
+      }
+
+      function selectTrump(suit) {
+        socket.emit('select_trump', { roomId, trump: suit });
+        log(`Selected trump: ${suit ? SUIT_SYMBOLS[suit] : 'None'}`, 'info');
+      }
+
+      function makeBet(amount) {
+        socket.emit('make_bet', { roomId, amount });
+        log(`Made bet: ${amount}`, 'info');
+      }
+
+      function playCard(cardId, jokerOption, requestedSuit) {
+        const payload = { roomId, cardId };
+        if (jokerOption) payload.jokerOption = jokerOption;
+        if (requestedSuit) payload.requestedSuit = requestedSuit;
+        socket.emit('throw_card', payload);
+        log(`Played card: ${cardId}` + (jokerOption ? ` (${jokerOption})` : ''), 'info');
+        selectedCard = null;
+      }
+
+      // Button handlers
+      document.getElementById('btnConnect').onclick = () => {
+        const name = document.getElementById('playerName').value || 'TestPlayer';
+        myId = 'user-' + Math.random().toString(36).substr(2, 9);
+
+        socket = io('http://localhost:3000', {
+          query: { userId: myId, userName: name },
+        });
+
+        socket.on('connect', () => {
+          log('Connected to server', 'success');
+          updateStatus(true);
+        });
+
+        socket.on('disconnect', () => {
+          log('Disconnected from server', 'error');
+          updateStatus(false);
+          gameState = null;
+        });
+
+        socket.on('error', (data) => {
+          log('Error: ' + data.message, 'error');
+        });
+
+        socket.on('game_started', (data) => {
+          roomId = data.roomId;
+          log('Game started! Room: ' + roomId, 'success');
+        });
+
+        socket.on('game_state', (data) => {
+          gameState = data.state;
+          log('Game state updated: ' + gameState.phase, 'event');
+          updateGameUI();
+        });
+
+        socket.on('turn_timer_started', (data) => {
+          const player = gameState?.players?.find((p) => p.id === data.playerId);
+          log(`Turn timer: ${player?.name || data.playerId} has 30s`, 'info');
+        });
+
+        socket.on('player_replaced_by_bot', (data) => {
+          log(`${data.playerName} replaced by bot`, 'event');
+        });
+      };
+
+      document.getElementById('btnDisconnect').onclick = () => {
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+      };
+
+      document.getElementById('btnFindGame').onclick = () => {
+        socket.emit('find_game');
+        log('Looking for game...', 'info');
+      };
+    </script>
+  </body>
+</html>
