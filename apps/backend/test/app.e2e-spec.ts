@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { io, Socket } from 'socket.io-client';
 import {
   Card,
   GamePhase,
@@ -13,11 +14,16 @@ import {
 import { AppModule } from '../src/app.module';
 import { GameEngineService } from '../src/game/services/game-engine.service';
 import { StateMachineService } from '../src/game/services/state-machine.service';
+import { RoomManager } from '../src/gateway/room.manager';
 
 describe('App (e2e)', () => {
   let app: INestApplication;
   let gameEngine: GameEngineService;
   let stateMachine: StateMachineService;
+  let roomManager: RoomManager;
+  let serverUrl: string;
+
+  const socketTimeoutMs = 8000;
 
   const players = ['p1', 'p2', 'p3', 'p4'];
   const names = ['Alice', 'Boris', 'Chen', 'Dana'];
@@ -35,6 +41,41 @@ describe('App (e2e)', () => {
     jokerId: id,
   });
 
+  const waitForEvent = <T>(socket: Socket, event: string, timeoutMs = socketTimeoutMs) =>
+    new Promise<T>((resolve, reject) => {
+      const onEvent = (payload: T) => {
+        cleanup();
+        resolve(payload);
+      };
+      const onError = (payload: { message?: string } | Error) => {
+        cleanup();
+        if (payload instanceof Error) {
+          reject(payload);
+        } else {
+          reject(new Error(payload?.message ?? 'socket error'));
+        }
+      };
+      const onConnectError = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timeout waiting for ${event}`));
+      }, timeoutMs);
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        socket.off(event, onEvent);
+        socket.off('error', onError);
+        socket.off('connect_error', onConnectError);
+      };
+
+      socket.once(event, onEvent);
+      socket.once('error', onError);
+      socket.once('connect_error', onConnectError);
+    });
+
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
@@ -42,6 +83,14 @@ describe('App (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    await app.listen(0);
+
+    const address = app.getHttpServer().address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Failed to resolve test server address');
+    }
+    serverUrl = `http://127.0.0.1:${address.port}`;
+    roomManager = app.get(RoomManager);
     gameEngine = app.get(GameEngineService);
     stateMachine = app.get(StateMachineService);
   });
@@ -52,6 +101,55 @@ describe('App (e2e)', () => {
 
   it('initializes the application', () => {
     expect(app).toBeDefined();
+  });
+
+  it('creates a room via websocket matchmaking', async () => {
+    let roomId: string | null = null;
+    const clients = players.map((playerId, index) =>
+      io(serverUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: playerId,
+          userName: names[index],
+        },
+      }),
+    );
+
+    try {
+      const connectPromises = clients.map((client) => waitForEvent<void>(client, 'connect'));
+      clients.forEach((client) => client.connect());
+      await Promise.all(connectPromises);
+
+      const startedPromises = clients.map((client) =>
+        waitForEvent<{ roomId: string }>(client, 'game_started'),
+      );
+      const statePromises = clients.map((client) =>
+        waitForEvent<{ state: { phase: GamePhase; players: unknown[]; round: number } }>(
+          client,
+          'game_state',
+        ),
+      );
+
+      clients.forEach((client) => client.emit('find_game'));
+
+      const started = await Promise.all(startedPromises);
+      roomId = started[0].roomId;
+      started.forEach((payload) => expect(payload.roomId).toBe(roomId));
+
+      const states = await Promise.all(statePromises);
+      states.forEach(({ state }) => {
+        expect(state.phase).toBe(GamePhase.Betting);
+        expect(state.players).toHaveLength(4);
+        expect(state.round).toBe(1);
+      });
+    } finally {
+      if (roomId) {
+        roomManager.cleanupRoom(roomId);
+      }
+      clients.forEach((client) => client.disconnect());
+    }
   });
 
   it('rejects forbidden dealer bet in opening round', () => {
@@ -153,6 +251,53 @@ describe('App (e2e)', () => {
     expect(state.history.length).toBe(1);
     expect(state.players.find((player) => player.id === players[1])?.roundScores[0]).toBe(10);
     state.players.forEach((player) => expect(player.hand.length).toBe(2));
+  });
+
+  it('handles multi-trick round with trump and lead suit winners', () => {
+    let state = gameEngine.createGame(players, names);
+    state.phase = GamePhase.Playing;
+    state.round = 1;
+    state.pulka = 1;
+    state.cardsPerPlayer = 2;
+    state.trump = Suit.Spades;
+    state.table = [] as TableCard[];
+    state.currentPlayerIndex = 0;
+
+    const hands: Card[][] = [
+      [createCard(Suit.Hearts, Rank.Seven), createCard(Suit.Hearts, Rank.Nine)],
+      [createCard(Suit.Hearts, Rank.Eight), createCard(Suit.Spades, Rank.Six)],
+      [createCard(Suit.Hearts, Rank.Ace), createCard(Suit.Hearts, Rank.Queen)],
+      [createCard(Suit.Hearts, Rank.King), createCard(Suit.Hearts, Rank.Ten)],
+    ];
+
+    state.players = state.players.map((player, index) => ({
+      ...player,
+      hand: hands[index],
+      bet: 0,
+      tricks: 0,
+    }));
+
+    state = gameEngine.playCard(state, players[0], hands[0][0].id);
+    state = gameEngine.playCard(state, players[1], hands[1][0].id);
+    state = gameEngine.playCard(state, players[2], hands[2][0].id);
+    state = gameEngine.playCard(state, players[3], hands[3][0].id);
+    expect(state.phase).toBe(GamePhase.TrickComplete);
+
+    state = gameEngine.completeTrick(state);
+    expect(state.phase).toBe(GamePhase.Playing);
+    expect(state.currentPlayerIndex).toBe(2);
+    expect(state.players[2].tricks).toBe(1);
+
+    state = gameEngine.playCard(state, players[2], hands[2][1].id);
+    state = gameEngine.playCard(state, players[3], hands[3][1].id);
+    state = gameEngine.playCard(state, players[0], hands[0][1].id);
+    state = gameEngine.playCard(state, players[1], hands[1][1].id);
+    expect(state.phase).toBe(GamePhase.TrickComplete);
+
+    state = gameEngine.completeTrick(state);
+    expect(state.phase).toBe(GamePhase.RoundComplete);
+    expect(state.currentPlayerIndex).toBe(1);
+    expect(state.players[1].tricks).toBe(1);
   });
 
   it('applies shtanga penalty when player misses with positive bet', () => {
