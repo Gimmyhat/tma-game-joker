@@ -28,6 +28,19 @@ RUN pnpm --filter @joker/shared build
 RUN pnpm --filter @joker/backend deploy /app/pruned
 
 WORKDIR /app/pruned
+
+# FIX: Remove paths mapping for @joker/shared so TS looks in node_modules instead of ../../packages
+# We use a simple node script to modify tsconfig.json because sed is risky with JSON
+RUN node -e " \
+    const fs = require('fs'); \
+    const tsconfig = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8')); \
+    if (tsconfig.compilerOptions && tsconfig.compilerOptions.paths) { \
+        delete tsconfig.compilerOptions.paths['@joker/shared']; \
+    } \
+    fs.writeFileSync('tsconfig.json', JSON.stringify(tsconfig, null, 2)); \
+    console.log('Fixed tsconfig.json paths'); \
+"
+
 # Build the backend inside the isolated directory
 RUN pnpm run build
 # Remove dev dependencies to keep image small
