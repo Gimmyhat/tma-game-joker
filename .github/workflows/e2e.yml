@@ -8,6 +8,32 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: joker
+          POSTGRES_PASSWORD: joker_secret
+          POSTGRES_DB: joker_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +60,12 @@ jobs:
 
       - name: Run backend e2e
         run: pnpm --filter @joker/backend test:e2e
+        env:
+          POSTGRES_USER: joker
+          POSTGRES_PASSWORD: joker_secret
+          POSTGRES_DB: joker_db
+          DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
+          REDIS_URL: redis://localhost:6379
 
       - name: Run frontend e2e
         run: pnpm --filter @joker/frontend test:e2e

@@ -26,7 +26,7 @@ describe('App (e2e)', () => {
   let roomManager: RoomManager;
   let serverUrl: string;
 
-  const socketTimeoutMs = 8000;
+  const socketTimeoutMs = 15000;
 
   const players = ['p1', 'p2', 'p3', 'p4'];
   const names = ['Alice', 'Boris', 'Chen', 'Dana'];
