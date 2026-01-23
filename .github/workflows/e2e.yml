@@ -61,6 +61,7 @@ jobs:
       - name: Run backend e2e
         run: pnpm --filter @joker/backend test:e2e
         env:
+          SKIP_AUTH: true
           POSTGRES_USER: joker
           POSTGRES_PASSWORD: joker_secret
           POSTGRES_DB: joker_db
