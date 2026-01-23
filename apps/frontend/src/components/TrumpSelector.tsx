@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Suit } from '@joker/shared';
+import { SuitIcon } from './SuitIcon';
 
 interface TrumpSelectorProps {
   isOpen: boolean;
@@ -24,10 +25,10 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
   if (!isOpen) return null;
 
   const suits = [
-    { type: Suit.Hearts, symbol: '♥', color: 'text-red-500', label: 'Hearts' },
-    { type: Suit.Diamonds, symbol: '♦', color: 'text-red-500', label: 'Diamonds' },
-    { type: Suit.Clubs, symbol: '♣', color: 'text-slate-200', label: 'Clubs' },
-    { type: Suit.Spades, symbol: '♠', color: 'text-slate-200', label: 'Spades' },
+    { type: Suit.Hearts, color: 'text-red-500', label: 'Hearts' },
+    { type: Suit.Diamonds, color: 'text-red-500', label: 'Diamonds' },
+    { type: Suit.Clubs, color: 'text-slate-200', label: 'Clubs' },
+    { type: Suit.Spades, color: 'text-slate-200', label: 'Spades' },
   ];
 
   return (
@@ -55,7 +56,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
                   }
                 `}
               >
-                <span className={`text-6xl mb-2 leading-none ${suit.color}`}>{suit.symbol}</span>
+                <SuitIcon suit={suit.type} className={`w-16 h-16 mb-2 ${suit.color}`} />
                 <span
                   className={`text-xs font-medium uppercase tracking-wider ${selectedSuit === suit.type ? 'text-amber-500' : 'text-slate-400'}`}
                 >

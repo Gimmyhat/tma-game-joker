@@ -1,5 +1,6 @@
 import React, { CSSProperties } from 'react';
 import { Card as CardType, Suit, Rank } from '@joker/shared';
+import { SuitIcon } from './SuitIcon';
 
 interface CardProps {
   card?: CardType;
@@ -18,37 +19,6 @@ const suitColors = {
   [Suit.Diamonds]: 'text-red-600',
   [Suit.Clubs]: 'text-gray-900',
   [Suit.Spades]: 'text-gray-900',
-};
-
-const SuitIcon = ({ suit, className }: { suit: Suit; className?: string }) => {
-  switch (suit) {
-    case Suit.Hearts:
-      return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      );
-    case Suit.Diamonds:
-      return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-          <path d="M19 12L12 22 5 12 12 2z" />
-        </svg>
-      );
-    case Suit.Clubs:
-      return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-          <path d="M12 2C9 2 7 4.5 7 7c0 1.1.9 2 2 2 0-2 2.5-4 5-4s5 2 5 4c1.1 0 2-.9 2-2 0-2.5-2-5-5-5zm0 10c-2.8 0-5 2.2-5 5 0 1.2.4 2.3 1.09 3.21L6 22h12l-2.09-1.79c.69-.91 1.09-2.01 1.09-3.21 0-2.8-2.2-5-5-5z" />
-        </svg>
-      );
-    case Suit.Spades:
-      return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-          <path d="M12 2C9 2 5 8 5 12c0 2.2 1.8 4 4 4 1.5 0 2.8-.8 3.5-2 .7 1.2 2 2 3.5 2 2.2 0 4-1.8 4-4 0-4-4-10-7-10zm0 15c-1.1 0-2 .9-2 2v3h4v-3c0-1.1-.9-2-2-2z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
 };
 
 const JokerIcon = ({ className }: { className?: string }) => (
