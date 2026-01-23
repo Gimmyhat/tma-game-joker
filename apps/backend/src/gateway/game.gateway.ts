@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   GamePhase,
   MakeBetPayload,
@@ -48,6 +49,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private gameEngine: GameEngineService,
     private roomManager: RoomManager,
     private botService: BotService,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -185,6 +187,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (this.botFillTimer) {
       clearTimeout(this.botFillTimer);
       this.botFillTimer = null;
+      this.logger.log('Bot fill timer cleared (queue empty or game started)');
     }
   }
 
@@ -194,6 +197,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private startBotFillTimer(): void {
     this.clearBotFillTimer();
 
+    const timeoutMs =
+      Number(this.configService.get('MATCHMAKING_TIMEOUT_MS')) ||
+      GAME_CONSTANTS.MATCHMAKING_TIMEOUT_MS;
+
     this.botFillTimer = setTimeout(async () => {
       // Fill with bots if still waiting
       if (this.roomManager.getQueueLength() > 0) {
@@ -201,9 +208,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.startGameWithBots();
       }
       this.botFillTimer = null;
-    }, GAME_CONSTANTS.MATCHMAKING_TIMEOUT_MS);
+    }, timeoutMs);
 
-    this.logger.log(`Bot fill timer started (${GAME_CONSTANTS.MATCHMAKING_TIMEOUT_MS / 1000}s)`);
+    this.logger.log(`Bot fill timer started (${timeoutMs / 1000}s)`);
   }
 
   /**
