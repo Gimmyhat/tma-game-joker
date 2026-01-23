@@ -27,7 +27,8 @@ RUN pnpm prune --prod
 
 FROM base AS deploy
 WORKDIR /app
-COPY --from=build /app/apps/backend/dist ./apps/backend/dist
+# Copy build output to a simpler path
+COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=build /app/apps/backend/node_modules ./apps/backend/node_modules
@@ -35,4 +36,4 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/apps/backend/package.json ./apps/backend/package.json
 
 EXPOSE 3000
-CMD [ "node", "apps/backend/dist/main" ]
+CMD [ "node", "dist/main" ]
