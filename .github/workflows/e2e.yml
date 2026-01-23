@@ -74,20 +74,29 @@ jobs:
 
       - name: Start Backend for Frontend tests
         run: |
-          echo "Debug: Backend contents:"
-          ls -R apps/backend/dist || echo "No dist in backend dir"
-
-          # Go to backend dir to run
+          # Go to backend dir
           cd apps/backend
 
-          echo "Starting backend from $(pwd)..."
-          # Explicitly export env vars just in case
+          echo "Debug: Listing dist structure..."
+          ls -R dist || echo "No dist folder found"
+
+          # Find main.js recursively in dist
+          MAIN_FILE=$(find dist -name main.js | head -n 1)
+
+          if [ -z "$MAIN_FILE" ]; then
+            echo "FATAL: main.js not found in dist folder!"
+            exit 1
+          fi
+
+          echo "Found entrypoint at: $MAIN_FILE"
+
+          # Explicitly export env vars
           export SKIP_AUTH=true
           export REDIS_URL=redis://localhost:6379
           export DATABASE_URL=postgresql://joker:joker_secret@localhost:5432/joker_db
 
-          # Run node directly
-          node dist/main &
+          # Run node with the found file
+          node "$MAIN_FILE" &
 
           # Wait for backend to be ready
           echo "Waiting for backend to start..."
