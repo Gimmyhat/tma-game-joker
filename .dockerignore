@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Git
+.git
+.gitignore
+
+# Env
+.env
+.env.*
+
+# Build outputs
+dist
+build
+coverage
+
+# IDE
+.idea
+.vscode
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# Misc
+.serena
+.sisyphus
+scripts
+test
+*.md

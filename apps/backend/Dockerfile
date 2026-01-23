@@ -25,9 +25,17 @@ COPY --from=dependencies /app/apps/backend/node_modules ./apps/backend/node_modu
 RUN pnpm --filter @joker/backend build
 RUN pnpm prune --prod
 
+# DEBUG: List build output structure to fix path issue
+RUN echo "Checking build output locations:" && \
+    ls -la /app/apps/backend/ && \
+    (ls -la /app/apps/backend/dist || echo "No dist in app dir") && \
+    (ls -la /app/dist || echo "No dist in root")
+
 FROM base AS deploy
 WORKDIR /app
-# Copy build output to a simpler path
+# Try to find where main.js is. 
+# If previous build passed COPY, then /app/apps/backend/dist existed.
+# Maybe main.js is in a subdirectory?
 COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/node_modules ./packages/shared/node_modules
@@ -36,4 +44,5 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/apps/backend/package.json ./apps/backend/package.json
 
 EXPOSE 3000
-CMD [ "node", "dist/main" ]
+# Add ls -R to see what we actually copied
+CMD ["sh", "-c", "ls -R /app/dist && node dist/main"]
