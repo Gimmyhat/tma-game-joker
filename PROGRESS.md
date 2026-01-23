@@ -1,7 +1,15 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-01-22
+**Последнее обновление:** 2026-01-23
 **Текущий статус:** 🚧 Sprint 3: Frontend (In Progress)
+
+---
+
+## 🏗️ Инфраструктура (Infrastructure)
+
+1. ✅ **Server**: SSH access configured for `203.31.40.28` (alias `hosting-vds`)
+2. ✅ **Security**: Password authentication disabled (key-only access)
+
 
 ---
 

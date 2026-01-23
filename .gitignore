@@ -42,3 +42,4 @@ apps/frontend/test-results/
 apps/frontend/playwright-report/
 node_modules/
 nul
+*.kilocode*
