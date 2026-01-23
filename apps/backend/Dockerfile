@@ -27,6 +27,10 @@ RUN pnpm --filter @joker/shared build
 # Create a deployed directory with all dependencies (including dev)
 RUN pnpm --filter @joker/backend deploy /app/pruned
 
+# FIX: Manually copy built shared library to the deployed node_modules
+# pnpm deploy might miss the 'dist' folder if it's gitignored
+RUN cp -r packages/shared/dist /app/pruned/node_modules/@joker/shared/ || echo "Shared dist copy failed"
+
 WORKDIR /app/pruned
 
 # FIX: Remove paths mapping for @joker/shared so TS looks in node_modules instead of ../../packages
