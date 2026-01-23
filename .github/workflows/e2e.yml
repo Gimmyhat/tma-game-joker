@@ -74,12 +74,20 @@ jobs:
 
       - name: Start Backend for Frontend tests
         run: |
-          echo "Checking dist folder..."
-          ls -R apps/backend/dist || echo "Dist folder missing!"
+          echo "Debug: Backend contents:"
+          ls -R apps/backend/dist || echo "No dist in backend dir"
 
-          echo "Starting backend with node..."
-          # Run directly with node to avoid nest start path issues
-          node apps/backend/dist/main &
+          # Go to backend dir to run
+          cd apps/backend
+
+          echo "Starting backend from $(pwd)..."
+          # Explicitly export env vars just in case
+          export SKIP_AUTH=true
+          export REDIS_URL=redis://localhost:6379
+          export DATABASE_URL=postgresql://joker:joker_secret@localhost:5432/joker_db
+
+          # Run node directly
+          node dist/main &
 
           # Wait for backend to be ready
           echo "Waiting for backend to start..."
