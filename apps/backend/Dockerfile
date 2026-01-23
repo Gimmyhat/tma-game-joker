@@ -21,19 +21,23 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=dependencies /app/apps/backend/node_modules ./apps/backend/node_modules
 
-# Build shared package first if needed, then backend
-RUN pnpm --filter @joker/backend build
+# Build shared package first if needed
+# We don't build in root anymore, we use pnpm deploy to isolate
+
+# Create a deployed directory with all dependencies (including dev)
+RUN pnpm --filter @joker/backend deploy /app/pruned
+
+WORKDIR /app/pruned
+# Build the backend inside the isolated directory
+RUN pnpm run build
+# Remove dev dependencies to keep image small
 RUN pnpm prune --prod
 
 FROM base AS deploy
 WORKDIR /app
-# NestJS monorepo build structure preserves path: apps/backend/src/main.js
-COPY --from=build /app/apps/backend/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=build /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/apps/backend/package.json ./apps/backend/package.json
+# Copy the completely self-contained application
+COPY --from=build /app/pruned ./
 
 EXPOSE 3000
-CMD [ "node", "dist/apps/backend/src/main" ]
+# Check structure for debugging if needed, but standard nest build goes to dist/main
+CMD [ "node", "dist/main" ]
