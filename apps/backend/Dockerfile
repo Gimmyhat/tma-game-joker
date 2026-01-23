@@ -50,4 +50,4 @@ COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/apps/backend/package.json ./package.json
 
 EXPOSE 3000
-CMD [ "node", "dist/main" ]
+CMD ["sh", "-c", "echo '--- DIST CONTENTS ---'; ls -R /app/dist; echo '--- END DIST ---'; node dist/main"]
