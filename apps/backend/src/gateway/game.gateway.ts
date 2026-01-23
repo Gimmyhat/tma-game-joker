@@ -67,6 +67,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.socketToPlayer.set(client.id, { id: userId, name: userName });
 
+    // DEBUG: Log all incoming events
+    client.onAny((event, ...args) => {
+      this.logger.log(`[DEBUG] Received event: ${event} from ${client.id}`);
+    });
+
     // Check if player was in a game (reconnection)
     const room = await this.roomManager.getRoomByPlayerId(userId);
     if (room) {
