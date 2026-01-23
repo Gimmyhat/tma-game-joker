@@ -33,7 +33,7 @@ RUN pnpm --filter @joker/backend deploy --prod /app/pruned
 # 4. CRITICAL FIX: The deployed node_modules will contain the raw source of @joker/shared.
 # We must replace it with the BUILT version (dist) so Node.js can execute it.
 # We verify destination exists, then copy dist and package.json
-RUN ls -la /app/pruned/node_modules/@joker/shared && \
+RUN mkdir -p /app/pruned/node_modules/@joker/shared && \
     cp -r packages/shared/dist /app/pruned/node_modules/@joker/shared/ && \
     cp packages/shared/package.json /app/pruned/node_modules/@joker/shared/
 
