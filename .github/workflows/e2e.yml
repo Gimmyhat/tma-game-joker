@@ -12,19 +12,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8.15.0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@8.15.0 --activate
-
       - name: Install dependencies
         run: pnpm install
+
+      - name: Build shared library
+        run: pnpm --filter @joker/shared build
 
       - name: Install Playwright browsers
         run: pnpm --filter @joker/frontend exec playwright install --with-deps
