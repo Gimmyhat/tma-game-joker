@@ -43,18 +43,18 @@ export const BetModal: React.FC<BetModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-[60] flex items-center justify-center pb-24 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
       {/* Backdrop - reduced opacity for visibility */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" onClick={() => {}} />
-
-      {/* Bottom Sheet Content */}
       <div
-        className={`relative w-full max-w-md mx-auto bg-slate-900 border-t border-x border-slate-700/80 rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.5)] overflow-hidden transform transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
-      >
-        {/* Drag Handle */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-slate-600/30 rounded-full" />
+        className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-transparent backdrop-blur-[1px]"
+        onClick={() => {}}
+      />
 
+      {/* Centered Content */}
+      <div
+        className={`relative w-[96%] max-w-md mx-auto bg-slate-900 border border-slate-700/80 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.6)] overflow-hidden transform transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95'}`}
+      >
         {/* Header */}
         <div className="bg-gradient-to-b from-slate-900 to-slate-800 pt-7 pb-4 px-6 text-center border-b border-slate-700">
           <h2 className="text-2xl font-bold text-white mb-1">{t('game.makeBet')}</h2>

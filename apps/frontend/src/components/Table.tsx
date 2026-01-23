@@ -14,7 +14,15 @@ interface TableProps {
   isJokerTrump?: boolean;
 }
 
-type Position = 'bottom-left' | 'top-left' | 'top-center' | 'top-right' | 'bottom-right';
+type Position =
+  | 'bottom-center'
+  | 'bottom-left'
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-right'
+  | 'left-center'
+  | 'right-center';
 
 export const Table: React.FC<TableProps> = ({
   players,
@@ -39,27 +47,28 @@ export const Table: React.FC<TableProps> = ({
 
   // Map relative index (0=Me) to physical table slots based on player count
   const getPosition = (index: number, total: number): Position => {
-    if (index === 0) return 'bottom-left'; // Me
+    if (index === 0) return 'bottom-center'; // Me
 
     if (total === 2) {
-      return 'top-right'; // Head to head
+      return 'top-center'; // Head to head
     }
     if (total === 3) {
-      if (index === 1) return 'top-center';
-      return 'bottom-right';
+      if (index === 1) return 'top-left';
+      return 'top-right';
     }
     if (total === 4) {
-      if (index === 1) return 'top-left';
-      if (index === 2) return 'top-right';
-      return 'bottom-right';
+      // 4 Players: Me (bottom), Left, Top, Right
+      if (index === 1) return 'left-center';
+      if (index === 2) return 'top-center';
+      return 'right-center';
     }
-    // 5+ players
+    // 5+ players (fallback to original circular spread or adjust)
     const positions: Position[] = [
-      'bottom-left',
+      'bottom-center',
+      'left-center',
       'top-left',
-      'top-center',
       'top-right',
-      'bottom-right',
+      'right-center',
     ];
     return positions[index % positions.length];
   };
@@ -67,7 +76,7 @@ export const Table: React.FC<TableProps> = ({
   // Helper to find visual position of a specific playerId
   const getPlayerPosition = (pid: string): Position => {
     const index = orderedPlayers.findIndex((p) => p.id === pid);
-    if (index === -1) return 'bottom-left';
+    if (index === -1) return 'bottom-center';
     return getPosition(index, orderedPlayers.length);
   };
 
@@ -79,11 +88,14 @@ export const Table: React.FC<TableProps> = ({
     // Absolute positioning styles around the oval
     // We push them outward from the table edge
     const posStyles: Record<Position, string> = {
+      'bottom-center': '-bottom-12 left-1/2 -translate-x-1/2 translate-y-0',
       'bottom-left': '-bottom-8 left-[20%] translate-y-full',
-      'top-left': 'top-[15%] -left-12 -translate-x-full', // moved up slightly
-      'top-center': '-top-12 left-1/2 -translate-x-1/2 -translate-y-full',
-      'top-right': 'top-[15%] -right-12 translate-x-full', // moved up slightly
       'bottom-right': '-bottom-8 right-[20%] translate-y-full',
+      'top-left': 'top-[15%] -left-12 -translate-x-full',
+      'top-center': '-top-16 left-1/2 -translate-x-1/2 translate-y-0',
+      'top-right': 'top-[15%] -right-12 translate-x-full',
+      'left-center': 'top-1/2 -left-16 -translate-x-full -translate-y-1/2',
+      'right-center': 'top-1/2 -right-16 translate-x-full -translate-y-1/2',
     };
 
     return (
@@ -98,11 +110,6 @@ export const Table: React.FC<TableProps> = ({
           onScoreClick={
             player.id === myPlayerId
               ? () => {
-                  // Dispatch event or callback to open modal
-                  // We need to pass this up or use context.
-                  // Since Table doesn't have the callback, we need to add it or hack it.
-                  // Wait, Table doesn't have onOpenScoring prop.
-                  // I need to add onOpenScoring to Table props.
                   const event = new CustomEvent('openScoringModal');
                   window.dispatchEvent(event);
                 }
@@ -122,11 +129,14 @@ export const Table: React.FC<TableProps> = ({
       // Calculate offsets based on position to create a "pile" in the center but clear who played what
       // Oval center is 0,0
       const offsets: Record<Position, string> = {
+        'bottom-center': 'translate-y-12 translate-x-0 rotate-0',
         'bottom-left': 'translate-y-8 -translate-x-12 rotate-[-10deg]',
+        'bottom-right': 'translate-y-8 translate-x-12 rotate-[10deg]',
         'top-left': '-translate-y-4 -translate-x-16 rotate-[-5deg]',
         'top-center': '-translate-y-12 translate-x-0',
         'top-right': '-translate-y-4 translate-x-16 rotate-[5deg]',
-        'bottom-right': 'translate-y-8 translate-x-12 rotate-[10deg]',
+        'left-center': '-translate-y-0 -translate-x-20 rotate-[-90deg]',
+        'right-center': '-translate-y-0 translate-x-20 rotate-[90deg]',
       };
 
       return (
@@ -139,8 +149,8 @@ export const Table: React.FC<TableProps> = ({
             card={tc.card}
             size="md"
             className="shadow-2xl border-none"
-            // Apply slight random rotation for realism
-            style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}
+            // Apply slight random rotation for realism (except mostly straight for N/S/E/W)
+            style={{ transform: `rotate(${Math.random() * 2 - 1}deg)` }}
           />
           {/* Show Joker Request */}
           {tc.requestedSuit && (
