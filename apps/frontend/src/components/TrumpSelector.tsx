@@ -4,13 +4,19 @@ import { Suit } from '@joker/shared';
 interface TrumpSelectorProps {
   isOpen: boolean;
   onSelect: (suit: Suit | null) => void;
+  isJokerTrump?: boolean;
 }
 
-export const TrumpSelector: React.FC<TrumpSelectorProps> = ({ isOpen, onSelect }) => {
+export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
+  isOpen,
+  onSelect,
+  isJokerTrump = false,
+}) => {
   const [selectedSuit, setSelectedSuit] = useState<Suit | null | 'none'>('none');
 
   useEffect(() => {
     if (isOpen) {
+      // If Joker is trump, default to No Trump is natural, but we explicitly set it
       setSelectedSuit('none');
     }
   }, [isOpen]);
@@ -70,7 +76,8 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({ isOpen, onSelect }
               }
             `}
           >
-            <span className="mr-2">Ø</span> No Trump
+            <span className="mr-2">Ø</span>
+            {isJokerTrump ? 'No Trump (Joker Revealed)' : 'No Trump'}
           </button>
 
           <button

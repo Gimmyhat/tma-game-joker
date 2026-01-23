@@ -10,6 +10,7 @@ interface TableProps {
   currentPlayerId?: string;
   myPlayerId: string;
   className?: string;
+  isJokerTrump?: boolean;
 }
 
 type Position = 'bottom-left' | 'top-left' | 'top-center' | 'top-right' | 'bottom-right';
@@ -21,6 +22,7 @@ export const Table: React.FC<TableProps> = ({
   currentPlayerId,
   myPlayerId,
   className = '',
+  isJokerTrump = false,
 }) => {
   // 1. Calculate Positions
   const orderedPlayers = useMemo(() => {
@@ -87,7 +89,24 @@ export const Table: React.FC<TableProps> = ({
         key={player.id}
         className={`absolute ${posStyles[position]} z-30 transition-all duration-500`}
       >
-        <PlayerInfo player={player} position={position} isCurrentTurn={isTurn} />
+        <PlayerInfo
+          player={player}
+          position={position}
+          isCurrentTurn={isTurn}
+          onScoreClick={
+            player.id === myPlayerId
+              ? () => {
+                  // Dispatch event or callback to open modal
+                  // We need to pass this up or use context.
+                  // Since Table doesn't have the callback, we need to add it or hack it.
+                  // Wait, Table doesn't have onOpenScoring prop.
+                  // I need to add onOpenScoring to Table props.
+                  const event = new CustomEvent('openScoringModal');
+                  window.dispatchEvent(event);
+                }
+              : undefined
+          }
+        />
       </div>
     );
   };
@@ -133,22 +152,36 @@ export const Table: React.FC<TableProps> = ({
   };
 
   const TrumpIndicator = () => {
-    if (!trump) return null;
-    return (
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
-        <div
-          className={`
-          text-9xl font-black
-          ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-900' : 'text-slate-900'}
-        `}
-        >
-          {trump === Suit.Hearts && '♥'}
-          {trump === Suit.Diamonds && '♦'}
-          {trump === Suit.Clubs && '♣'}
-          {trump === Suit.Spades && '♠'}
+    if (trump) {
+      return (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
+          <div
+            className={`
+            text-9xl font-black
+            ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-900' : 'text-slate-900'}
+          `}
+          >
+            {trump === Suit.Hearts && '♥'}
+            {trump === Suit.Diamonds && '♦'}
+            {trump === Suit.Clubs && '♣'}
+            {trump === Suit.Spades && '♠'}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    if (isJokerTrump) {
+      return (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
+          <div className="text-8xl font-black text-slate-900 flex flex-col items-center">
+            <span>JOKER</span>
+            <span className="text-4xl mt-2">NO TRUMP</span>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -203,19 +236,23 @@ export const Table: React.FC<TableProps> = ({
       {orderedPlayers.map((p, i) => renderPlayer(p, i))}
 
       {/* Current Trump Bubble (Small, UI) - Floating near table edge top-right */}
-      {trump && (
+      {(trump || isJokerTrump) && (
         <div className="absolute -top-4 -right-4 z-40 flex flex-col items-center bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
           <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold">
             Trump
           </span>
-          <span
-            className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
-          >
-            {trump === Suit.Hearts && '♥'}
-            {trump === Suit.Diamonds && '♦'}
-            {trump === Suit.Clubs && '♣'}
-            {trump === Suit.Spades && '♠'}
-          </span>
+          {trump ? (
+            <span
+              className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
+            >
+              {trump === Suit.Hearts && '♥'}
+              {trump === Suit.Diamonds && '♦'}
+              {trump === Suit.Clubs && '♣'}
+              {trump === Suit.Spades && '♠'}
+            </span>
+          ) : (
+            <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
+          )}
         </div>
       )}
     </div>

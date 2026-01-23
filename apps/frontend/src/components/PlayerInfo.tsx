@@ -3,9 +3,10 @@ import { Player } from '@joker/shared';
 
 interface PlayerInfoProps {
   player: Player;
-  position: string; // Relaxed type to allow fine-grained positioning classes
+  position: string;
   isCurrentTurn?: boolean;
   className?: string;
+  onScoreClick?: () => void;
 }
 
 const UserIcon = ({ className }: { className?: string }) => (
@@ -25,6 +26,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   position,
   isCurrentTurn = false,
   className = '',
+  onScoreClick,
 }) => {
   // Determine layout orientation based on position
   const isRight = position.includes('right');
@@ -139,8 +141,21 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           <div className="w-px h-6 bg-white/10" />
 
           {/* Score */}
-          <div className="flex flex-col leading-none">
-            <span className="text-slate-400 mb-0.5">Score</span>
+          <div className="flex flex-col leading-none relative group/score">
+            <div className="flex items-center gap-1 mb-0.5">
+              <span className="text-slate-400">Score</span>
+              {onScoreClick && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onScoreClick();
+                  }}
+                  className="w-3 h-3 rounded-full border border-slate-500 flex items-center justify-center text-[8px] text-slate-400 hover:text-white hover:border-white transition-colors"
+                >
+                  ?
+                </button>
+              )}
+            </div>
             <span className="font-bold text-lg text-green-400">{player.totalScore}</span>
           </div>
         </div>

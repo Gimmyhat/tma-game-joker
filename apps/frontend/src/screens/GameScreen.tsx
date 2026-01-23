@@ -11,12 +11,15 @@ import Table from '../components/Table';
 import Hand from '../components/Hand';
 import { BetModal } from '../components/BetModal';
 import { TrumpSelector } from '../components/TrumpSelector';
+import { GameProgressPanel } from '../components/GameProgressPanel';
+import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 
 export const GameScreen: React.FC = () => {
   // Store Hooks
   const {
     gameState,
+
     myHand,
     myPlayerId,
     makeBet,
@@ -36,7 +39,15 @@ export const GameScreen: React.FC = () => {
   // Local State
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
+  const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+
+  // Event listener for scoring modal
+  useEffect(() => {
+    const handleOpenScoring = () => setIsScoringModalOpen(true);
+    window.addEventListener('openScoringModal', handleOpenScoring);
+    return () => window.removeEventListener('openScoringModal', handleOpenScoring);
+  }, []);
 
   // Error Auto-Clear
   useEffect(() => {
@@ -131,6 +142,15 @@ export const GameScreen: React.FC = () => {
   const myPlayer = gameState.players.find((p) => p.id === myPlayerId) || null;
   const hasPlacedBet = myPlayer?.bet !== null;
 
+  const otherPlayersBetsSum = useMemo(() => {
+    if (gameState.phase !== 'betting') return undefined;
+    return gameState.players
+      .filter((p) => p.id !== myPlayerId)
+      .map((p) => p.bet)
+      .filter((bet): bet is number => bet !== null)
+      .reduce((acc, bet) => acc + bet, 0);
+  }, [gameState, myPlayerId]);
+
   const forbiddenBet = useMemo(() => {
     if (gameState.phase !== 'betting') return undefined;
     const myIndex = gameState.players.findIndex((p) => p.id === myPlayerId);
@@ -152,6 +172,88 @@ export const GameScreen: React.FC = () => {
 
   // Determine current turn player name
   const currentTurnPlayer = gameState.players[gameState.currentPlayerIndex];
+
+  // Card Validation Logic
+  // Memoize playable cards to avoid recalculating on every render
+  const playableCards = useMemo(() => {
+    if (!canThrowCard || !myHand.length) return [];
+
+    // If I am leading (table is empty), all cards are playable
+    if (gameState.table.length === 0) return myHand;
+
+    // Logic for following suit
+    const leadCard = gameState.table[0];
+    let leadSuit: Suit | undefined;
+
+    // @ts-ignore - Assuming type property exists
+    if (leadCard.card.type === 'joker') {
+      leadSuit = leadCard.requestedSuit;
+    } else {
+      leadSuit = leadCard.card.suit;
+    }
+
+    if (!leadSuit) return myHand; // Should not happen if table not empty
+
+    // Check if I have lead suit (excluding Joker)
+    // @ts-ignore
+    const hasLeadSuit = myHand.some((c) => c.type !== 'joker' && c.suit === leadSuit);
+
+    if (hasLeadSuit) {
+      // Must play lead suit or Joker
+      // @ts-ignore
+      return myHand.filter((c) => c.type === 'joker' || c.suit === leadSuit);
+    }
+
+    // If I don't have lead suit, check for Trump
+    const trump = gameState.trump;
+    if (trump) {
+      // @ts-ignore
+      const hasTrump = myHand.some((c) => c.type !== 'joker' && c.suit === trump);
+      if (hasTrump) {
+        // Must play trump or Joker
+        // @ts-ignore
+        return myHand.filter((c) => c.type === 'joker' || c.suit === trump);
+      }
+    }
+
+    // If no lead suit and no trump (or no trump in hand), can play anything
+    return myHand;
+  }, [canThrowCard, myHand, gameState.table, gameState.trump]);
+
+  // Validation Message Helper
+  const getValidationMessage = (card: CardType): string | undefined => {
+    if (!canThrowCard) return undefined;
+
+    // If card is in playable list, it's valid
+    if (playableCards.some((c) => c.id === card.id)) return undefined;
+
+    // Analyze why it's invalid
+    if (gameState.table.length > 0) {
+      const leadCard = gameState.table[0];
+      let leadSuit: Suit | undefined;
+      // @ts-ignore
+      if (leadCard.card.type === 'joker') leadSuit = leadCard.requestedSuit;
+      else leadSuit = leadCard.card.suit;
+
+      // @ts-ignore
+      const hasLeadSuit = myHand.some((c) => c.type !== 'joker' && c.suit === leadSuit);
+
+      // @ts-ignore
+      if (hasLeadSuit && card.suit !== leadSuit && card.type !== 'joker') {
+        return `Must follow ${leadSuit}`;
+      }
+
+      const trump = gameState.trump;
+      // @ts-ignore
+      const hasTrump = trump && myHand.some((c) => c.type !== 'joker' && c.suit === trump);
+      // @ts-ignore
+      if (!hasLeadSuit && hasTrump && card.suit !== trump && card.type !== 'joker') {
+        return `Must play Trump (${trump})`;
+      }
+    }
+
+    return 'Invalid card';
+  };
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
@@ -218,28 +320,8 @@ export const GameScreen: React.FC = () => {
 
       {/* Top Bar / HUD */}
       <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-4 pointer-events-none">
-        {/* Game Info */}
-        <div className="flex flex-col gap-1 rounded-xl bg-black/40 p-3 backdrop-blur-sm border border-white/10 shadow-lg pointer-events-auto">
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/80">
-              Round
-            </span>
-            <span className="text-xl font-bold text-white font-mono">
-              {gameState.round}
-              <span className="text-white/40 text-sm">/24</span>
-            </span>
-          </div>
-          <div className="h-px w-full bg-white/10" />
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/80">
-              Pool
-            </span>
-            <span className="text-xl font-bold text-white font-mono">
-              {gameState.pulka}
-              <span className="text-white/40 text-sm">/4</span>
-            </span>
-          </div>
-        </div>
+        {/* Game Info - REPLACED with GameProgressPanel */}
+        <GameProgressPanel currentRound={gameState.round} />
 
         {/* Timer & Phase */}
         <div className="flex flex-col items-end gap-3 pointer-events-auto">
@@ -299,6 +381,8 @@ export const GameScreen: React.FC = () => {
             currentPlayerId={currentTurnPlayer?.id}
             myPlayerId={myPlayerId}
             className="w-[85%] h-[65%] z-10" // Sizing relative to container
+            // @ts-ignore - gameState.trumpCard might not exist in type but standard joker has it
+            isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
           />
         </div>
       </div>
@@ -309,8 +393,9 @@ export const GameScreen: React.FC = () => {
           <Hand
             cards={myHand}
             onCardClick={handleCardClick}
-            playableCards={canThrowCard ? myHand : []}
+            playableCards={playableCards}
             disabled={!canThrowCard}
+            getValidationMessage={getValidationMessage}
             className={!canThrowCard ? 'opacity-80 saturate-50 scale-95' : ''}
           />
         </div>
@@ -329,6 +414,9 @@ export const GameScreen: React.FC = () => {
 
       {/* Modals */}
 
+      {/* Scoring Info Modal */}
+      <ScoringInfoModal isOpen={isScoringModalOpen} onClose={() => setIsScoringModalOpen(false)} />
+
       {/* Betting Modal */}
       <BetModal
         isOpen={canMakeBet && !hasPlacedBet}
@@ -337,10 +425,16 @@ export const GameScreen: React.FC = () => {
         forbiddenBet={forbiddenBet}
         roundNumber={gameState.round}
         cardsInHand={gameState.cardsPerPlayer}
+        otherPlayersBetsSum={otherPlayersBetsSum}
       />
 
       {/* Trump Selector */}
-      <TrumpSelector isOpen={canSelectTrump} onSelect={selectTrump} />
+      <TrumpSelector
+        isOpen={canSelectTrump}
+        onSelect={selectTrump}
+        // @ts-ignore
+        isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
+      />
 
       {/* Joker Options */}
       <JokerOptionModal

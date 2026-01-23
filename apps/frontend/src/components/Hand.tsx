@@ -8,6 +8,7 @@ interface HandProps {
   playableCards?: CardType[];
   className?: string;
   disabled?: boolean;
+  getValidationMessage?: (card: CardType) => string | undefined;
 }
 
 export const Hand: React.FC<HandProps> = ({
@@ -16,6 +17,7 @@ export const Hand: React.FC<HandProps> = ({
   playableCards,
   className = '',
   disabled = false,
+  getValidationMessage,
 }) => {
   const isPlayable = (card: CardType) => {
     if (!playableCards) return true;
@@ -49,17 +51,26 @@ export const Hand: React.FC<HandProps> = ({
 
         const canPlay = isPlayable(card);
         const isInteractable = !disabled && canPlay;
+        const validationMessage =
+          !canPlay && !disabled && getValidationMessage ? getValidationMessage(card) : undefined;
 
         return (
           <div
             key={card.id}
-            className="transition-all duration-300 ease-out origin-bottom hover:z-50 hover:scale-110"
+            className="transition-all duration-300 ease-out origin-bottom hover:z-50 hover:scale-110 group/card relative"
             style={{
               marginLeft: index === 0 ? 0 : `${overlap}px`,
               transform: `translateX(${translateX}px) rotate(${rotateDeg}deg) translateY(${translateY}px)`,
               zIndex: index,
             }}
           >
+            {validationMessage && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-32 bg-slate-900/95 backdrop-blur text-white text-[10px] text-center p-2 rounded-lg border border-red-500/30 shadow-xl opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none z-[100]">
+                {validationMessage}
+                <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900/95 rotate-45 border-r border-b border-red-500/30" />
+              </div>
+            )}
+
             <Card
               card={card}
               size="lg" // Larger cards as requested
@@ -69,7 +80,7 @@ export const Hand: React.FC<HandProps> = ({
               onClick={() => isInteractable && onCardClick?.(card)}
               className={`
                 shadow-xl 
-                ${isInteractable ? 'hover:-translate-y-12 cursor-pointer' : 'cursor-default'}
+                ${isInteractable ? 'hover:-translate-y-12 cursor-pointer' : 'cursor-default opacity-60 saturate-50'}
               `}
               style={{
                 // Subtle shadow instead of gradient mask

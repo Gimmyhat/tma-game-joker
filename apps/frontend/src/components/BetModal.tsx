@@ -6,7 +6,8 @@ interface BetModalProps {
   maxBet: number;
   forbiddenBet?: number;
   roundNumber: number;
-  cardsInHand?: number; // Optional as per prompt context, but useful for display
+  cardsInHand?: number;
+  otherPlayersBetsSum?: number;
 }
 
 export const BetModal: React.FC<BetModalProps> = ({
@@ -16,6 +17,7 @@ export const BetModal: React.FC<BetModalProps> = ({
   forbiddenBet,
   roundNumber,
   cardsInHand,
+  otherPlayersBetsSum,
 }) => {
   const [selectedBet, setSelectedBet] = useState<number | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -63,6 +65,27 @@ export const BetModal: React.FC<BetModalProps> = ({
               </>
             )}
           </div>
+
+          {/* Dealer Restriction Info */}
+          {forbiddenBet !== undefined && (
+            <div className="mt-3 bg-red-900/20 border border-red-500/20 rounded-lg p-2 text-xs text-red-200">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="font-bold uppercase tracking-wider text-red-400">
+                  Dealer Restriction
+                </span>
+              </div>
+              <p>
+                You are the dealer. You cannot bet{' '}
+                <span className="font-bold text-white">{forbiddenBet}</span>.
+              </p>
+              {otherPlayersBetsSum !== undefined && cardsInHand !== undefined && (
+                <p className="mt-1 text-red-300/70">
+                  Others bet {otherPlayersBetsSum} of {cardsInHand} cards. Total bets cannot equal
+                  total cards.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Body */}
