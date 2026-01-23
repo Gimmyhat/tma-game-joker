@@ -21,6 +21,7 @@ services:
   backend:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest
     restart: always
+    env_file: .env
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
