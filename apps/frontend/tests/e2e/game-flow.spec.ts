@@ -18,11 +18,16 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
       const page = pages[i];
       await page.goto(`/?devUserId=${player.id}&devUserName=${encodeURIComponent(player.name)}`);
       await Promise.race([
-        page.getByRole('heading', { name: 'Joker' }).waitFor({ state: 'visible', timeout: 15000 }),
-        page.getByText('Round').first().waitFor({ state: 'visible', timeout: 15000 }),
+        page
+          .getByRole('heading', { name: /Joker|Джокер/i })
+          .waitFor({ state: 'visible', timeout: 15000 }),
+        page
+          .getByText(/Round|Раунд/i)
+          .first()
+          .waitFor({ state: 'visible', timeout: 15000 }),
       ]);
 
-      const findGameButton = page.getByRole('button', { name: 'Find Game' });
+      const findGameButton = page.getByRole('button', { name: /Find Game|Найти игру/i });
       if (await findGameButton.isVisible()) {
         await findGameButton.click();
       }
@@ -35,12 +40,12 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
       for (let i = 0; i < pages.length; i += 1) {
         if (betPlaced.has(i)) continue;
         const page = pages[i];
-        const modal = page.getByText('Make Your Bet');
+        const modal = page.getByText(/Make Your Bet|Ваша ставка/i);
         const visible = await modal.isVisible();
         if (!visible) continue;
 
         await page.locator('button', { hasText: '0' }).first().click();
-        await page.getByRole('button', { name: 'Confirm Bet' }).click();
+        await page.getByRole('button', { name: /Confirm Bet|Подтвердить/i }).click();
         await expect(modal).toBeHidden({ timeout: 10000 });
         betPlaced.add(i);
       }
@@ -51,7 +56,10 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     }
 
     expect(betPlaced.size).toBe(pages.length);
-    await expect(pages[0].getByText('playing')).toBeVisible({ timeout: 20000 });
+    // Updated to match "Play a Card" (en) or "Сделайте ход" (ru) or "playing" (legacy/fallback)
+    await expect(pages[0].getByText(/Play a Card|Сделайте ход|playing/i)).toBeVisible({
+      timeout: 20000,
+    });
   } finally {
     await Promise.all(pages.map((page) => page.close()));
     await Promise.all(contexts.map((context) => context.close()));
