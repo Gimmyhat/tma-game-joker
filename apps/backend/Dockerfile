@@ -22,7 +22,7 @@ COPY --from=dependencies /app/packages/shared/node_modules ./packages/shared/nod
 COPY --from=dependencies /app/apps/backend/node_modules ./apps/backend/node_modules
 
 # Build shared package first if needed
-# We don't build in root anymore, we use pnpm deploy to isolate
+RUN pnpm --filter @joker/shared build
 
 # Create a deployed directory with all dependencies (including dev)
 RUN pnpm --filter @joker/backend deploy /app/pruned
