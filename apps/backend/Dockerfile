@@ -5,56 +5,49 @@ RUN corepack enable
 
 FROM base AS dependencies
 WORKDIR /app
-COPY pnpm-lock.yaml ./
-COPY package.json ./
-COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
 
-# Install dependencies needed for build
+# Install all dependencies (workspace mode) to allow building with tsconfig paths
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
 COPY . .
 COPY --from=dependencies /app/node_modules ./node_modules
+# Ensure nested node_modules are present if any (usually pnpm hoists to root)
 COPY --from=dependencies /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=dependencies /app/apps/backend/node_modules ./apps/backend/node_modules
 
-# Build shared package first if needed
+# 1. Build shared library (generates dist)
 RUN pnpm --filter @joker/shared build
 
-# Create a deployed directory with all dependencies (including dev)
-RUN pnpm --filter @joker/backend deploy /app/pruned
+# 2. Build backend (using workspace context, so tsconfig paths work fine)
+RUN pnpm --filter @joker/backend build
 
-# FIX: Manually copy built shared library to the deployed node_modules
-# pnpm deploy might miss the 'dist' folder if it's gitignored
-RUN cp -r packages/shared/dist /app/pruned/node_modules/@joker/shared/ || echo "Shared dist copy failed"
+# 3. Create isolated production node_modules using deploy
+RUN pnpm --filter @joker/backend deploy --prod /app/pruned
 
-WORKDIR /app/pruned
-
-# FIX: Remove paths mapping for @joker/shared so TS looks in node_modules instead of ../../packages
-# We use a simple node script to modify tsconfig.json because sed is risky with JSON
-RUN node -e " \
-    const fs = require('fs'); \
-    const tsconfig = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8')); \
-    if (tsconfig.compilerOptions && tsconfig.compilerOptions.paths) { \
-        delete tsconfig.compilerOptions.paths['@joker/shared']; \
-    } \
-    fs.writeFileSync('tsconfig.json', JSON.stringify(tsconfig, null, 2)); \
-    console.log('Fixed tsconfig.json paths'); \
-"
-
-# Build the backend inside the isolated directory
-RUN pnpm run build
-# Remove dev dependencies to keep image small
-RUN pnpm prune --prod
+# 4. CRITICAL FIX: The deployed node_modules will contain the raw source of @joker/shared.
+# We must replace it with the BUILT version (dist) so Node.js can execute it.
+# We verify destination exists, then copy dist and package.json
+RUN ls -la /app/pruned/node_modules/@joker/shared && \
+    cp -r packages/shared/dist /app/pruned/node_modules/@joker/shared/ && \
+    cp packages/shared/package.json /app/pruned/node_modules/@joker/shared/
 
 FROM base AS deploy
 WORKDIR /app
-# Copy the completely self-contained application
-COPY --from=build /app/pruned ./
+
+# Copy production node_modules (patched with built shared lib)
+COPY --from=build /app/pruned/node_modules ./node_modules
+
+# Copy built backend app
+# Since pnpm runs 'nest build' inside apps/backend directory, output is in apps/backend/dist
+COPY --from=build /app/apps/backend/dist ./dist
+
+COPY --from=build /app/apps/backend/package.json ./package.json
 
 EXPOSE 3000
-# Check structure for debugging if needed, but standard nest build goes to dist/main
 CMD [ "node", "dist/main" ]
