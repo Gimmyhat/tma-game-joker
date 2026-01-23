@@ -9,10 +9,13 @@ export class TelegramAuthGuard implements CanActivate {
   constructor(private configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const skipAuth = this.configService.get('SKIP_AUTH');
     // For development, allow skipping auth if enabled
-    if (this.configService.get('SKIP_AUTH') === 'true') {
+    if (skipAuth === 'true') {
       return true;
     }
+
+    console.log('Auth check failed. SKIP_AUTH:', skipAuth); // Debug log
 
     const client: Socket = context.switchToWs().getClient();
     const initData = client.handshake.query.initData as string;
