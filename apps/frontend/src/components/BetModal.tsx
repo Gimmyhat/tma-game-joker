@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface BetModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const BetModal: React.FC<BetModalProps> = ({
   cardsInHand,
   otherPlayersBetsSum,
 }) => {
+  const { t } = useTranslation();
   const [selectedBet, setSelectedBet] = useState<number | null>(null);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -55,13 +57,17 @@ export const BetModal: React.FC<BetModalProps> = ({
 
         {/* Header */}
         <div className="bg-gradient-to-b from-slate-900 to-slate-800 pt-7 pb-4 px-6 text-center border-b border-slate-700">
-          <h2 className="text-2xl font-bold text-white mb-1">Make Your Bet</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">{t('game.makeBet')}</h2>
           <div className="flex justify-center space-x-4 text-sm text-slate-400">
-            <span>Round {roundNumber}</span>
+            <span>
+              {t('game.round')} {roundNumber}
+            </span>
             {cardsInHand !== undefined && (
               <>
                 <span>•</span>
-                <span>{cardsInHand} Cards</span>
+                <span>
+                  {cardsInHand} {t('game.cards')}
+                </span>
               </>
             )}
           </div>
@@ -71,17 +77,19 @@ export const BetModal: React.FC<BetModalProps> = ({
             <div className="mt-3 bg-red-900/20 border border-red-500/20 rounded-lg p-2 text-xs text-red-200">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <span className="font-bold uppercase tracking-wider text-red-400">
-                  Dealer Restriction
+                  {t('game.dealerRestriction')}
                 </span>
               </div>
               <p>
-                You are the dealer. You cannot bet{' '}
+                {t('game.dealerRestrictionText')}{' '}
                 <span className="font-bold text-white">{forbiddenBet}</span>.
               </p>
               {otherPlayersBetsSum !== undefined && cardsInHand !== undefined && (
                 <p className="mt-1 text-red-300/70">
-                  Others bet {otherPlayersBetsSum} of {cardsInHand} cards. Total bets cannot equal
-                  total cards.
+                  {t('game.dealerRestrictionDetail', {
+                    otherBets: otherPlayersBetsSum,
+                    totalCards: cardsInHand,
+                  })}
                 </p>
               )}
             </div>
@@ -136,7 +144,7 @@ export const BetModal: React.FC<BetModalProps> = ({
               }
             `}
           >
-            Confirm Bet
+            {t('game.confirmBet')}
           </button>
         </div>
       </div>

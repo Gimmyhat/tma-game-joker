@@ -1,0 +1,105 @@
+{
+  "lobby": {
+    "title": "Joker",
+    "subtitle": "Card Game",
+    "playingAs": "Playing as",
+    "devMode": "(Development Mode)",
+    "findGame": "Find Game",
+    "searching": "Searching for players...",
+    "waiting": "Waiting for players",
+    "leaveQueue": "Leave Queue",
+    "starting": "Game starting...",
+    "initializing": "Initializing...",
+    "leaveGameConfirm": "Are you sure you want to leave the game?",
+    "leaveGame": "Leave Game"
+  },
+  "game": {
+    "loading": "Loading Game...",
+    "yourAction": "Your Action",
+    "waitingFor": "Waiting for",
+    "yourTurn": "YOUR TURN",
+    "opponent": "OPPONENT",
+    "phase": {
+      "betting": "Place Your Bet",
+      "trump_selection": "Choose Trump",
+      "playing": "Play a Card",
+      "finished": "Finished",
+      "waiting": "Waiting"
+    },
+    "dealerRestriction": "Dealer Restriction",
+    "dealerRestrictionText": "You are the dealer. You cannot bet",
+    "dealerRestrictionDetail": "Others bet {{otherBets}} of {{totalCards}} cards. Total bets cannot equal total cards.",
+    "makeBet": "Make Your Bet",
+    "confirmBet": "Confirm Bet",
+    "round": "Round",
+    "cards": "Cards",
+    "pulka": {
+      "title": "Pulka {{id}}",
+      "ascending": "Ascending",
+      "maximum": "Maximum",
+      "descending": "Descending",
+      "final": "Final"
+    },
+    "scoring": {
+      "title": "Scoring Rules",
+      "subtitle": "How points are calculated",
+      "madeContract": "Made Contract",
+      "madeContractDesc": "If you take exactly the number of tricks you bet:",
+      "madeContractPoints": "Bet × 50 points",
+      "tookEverything": "Took Everything",
+      "tookEverythingDesc": "If you bet and win ALL tricks in the round:",
+      "tookEverythingPoints": "Bet × 100 points",
+      "overUnderBet": "Over/Under Bet",
+      "overUnderBetDesc": "Penalty for difference between bet and tricks:",
+      "overUnderBetPoints": "Difference × 10 points",
+      "shtanga": "Shtanga (Penalty)",
+      "shtangaDesc": "If you take 0 tricks as Dealer or during special rounds:",
+      "shtangaPoints": "-200 points",
+      "footer": "Highest score after 24 rounds wins the game."
+    },
+    "trump": {
+      "choose": "Choose Trump",
+      "subtitle": "Select a suit or play No Trump",
+      "hearts": "Hearts",
+      "diamonds": "Diamonds",
+      "clubs": "Clubs",
+      "spades": "Spades",
+      "noTrump": "No Trump",
+      "noTrumpJoker": "No Trump (Joker Revealed)",
+      "confirm": "Confirm",
+      "label": "Trump"
+    },
+    "joker": {
+      "ability": "Joker Ability",
+      "selectSuit": "Select Suit",
+      "chooseHow": "Choose how to play the Joker",
+      "forRequest": "For {{request}} Request",
+      "lead": "Lead",
+      "highRequest": "High Request",
+      "requestHighest": "Request Highest Card",
+      "lowRequest": "Low Request",
+      "requestLowest": "Request Lowest Card",
+      "takeHigh": "Take High",
+      "beatsHighest": "Beats Highest",
+      "takeLow": "Take Low",
+      "beatsLowest": "Beats Lowest",
+      "back": "Back"
+    },
+    "errors": {
+      "mustFollow": "Must follow {{suit}}",
+      "mustPlayTrump": "Must play Trump ({{trump}})",
+      "invalidCard": "Invalid card"
+    },
+    "player": {
+      "bot": "Bot",
+      "bet": "Bet",
+      "tricks": "Tricks",
+      "score": "Score",
+      "turn": "Turn"
+    },
+    "table": {
+      "currentTurn": "Current Turn",
+      "req": "Req"
+    }
+  }
+}

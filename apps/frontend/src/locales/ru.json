@@ -1,0 +1,105 @@
+{
+  "lobby": {
+    "title": "Джокер",
+    "subtitle": "Карточная игра",
+    "playingAs": "Вы играете как",
+    "devMode": "(Режим разработки)",
+    "findGame": "Найти игру",
+    "searching": "Поиск игроков...",
+    "waiting": "Ожидание игроков",
+    "leaveQueue": "Покинуть очередь",
+    "starting": "Игра начинается...",
+    "initializing": "Инициализация...",
+    "leaveGameConfirm": "Вы уверены, что хотите покинуть игру?",
+    "leaveGame": "Выйти"
+  },
+  "game": {
+    "loading": "Загрузка игры...",
+    "yourAction": "Ваш ход",
+    "waitingFor": "Ожидание",
+    "yourTurn": "ВАШ ХОД",
+    "opponent": "ОППОНЕНТ",
+    "phase": {
+      "betting": "Сделайте ставку",
+      "trump_selection": "Выберите козырь",
+      "playing": "Сделайте ход",
+      "finished": "Завершено",
+      "waiting": "Ожидание"
+    },
+    "dealerRestriction": "Ограничение дилера",
+    "dealerRestrictionText": "Вы дилер. Вы не можете поставить",
+    "dealerRestrictionDetail": "Другие поставили {{otherBets}} из {{totalCards}}. Сумма ставок не может быть равна количеству карт.",
+    "makeBet": "Ваша ставка",
+    "confirmBet": "Подтвердить",
+    "round": "Раунд",
+    "cards": "Карты",
+    "pulka": {
+      "title": "Пулька {{id}}",
+      "ascending": "По возрастанию",
+      "maximum": "Максимум",
+      "descending": "По убыванию",
+      "final": "Финал"
+    },
+    "scoring": {
+      "title": "Правила подсчета",
+      "subtitle": "Как считаются очки",
+      "madeContract": "Сыграл",
+      "madeContractDesc": "Если вы взяли ровно столько взяток, сколько заказали:",
+      "madeContractPoints": "Ставка × 50 очков",
+      "tookEverything": "Взял все",
+      "tookEverythingDesc": "Если вы заказали и выиграли ВСЕ взятки в раунде:",
+      "tookEverythingPoints": "Ставка × 100 очков",
+      "overUnderBet": "Недобор/Перебор",
+      "overUnderBetDesc": "Штраф за разницу между заказом и взятками:",
+      "overUnderBetPoints": "Разница × 10 очков",
+      "shtanga": "Штанга (Штраф)",
+      "shtangaDesc": "Если вы взяли 0 взяток будучи Дилером или в специальных раундах:",
+      "shtangaPoints": "-200 очков",
+      "footer": "Побеждает тот, кто наберет больше всего очков после 24 раундов."
+    },
+    "trump": {
+      "choose": "Выбор козыря",
+      "subtitle": "Выберите масть или игру без козыря",
+      "hearts": "Червы",
+      "diamonds": "Бубны",
+      "clubs": "Трефы",
+      "spades": "Пики",
+      "noTrump": "Без козыря",
+      "noTrumpJoker": "Без козыря (Джокер)",
+      "confirm": "Подтвердить",
+      "label": "Козырь"
+    },
+    "joker": {
+      "ability": "Свойство Джокера",
+      "selectSuit": "Выберите масть",
+      "chooseHow": "Выберите как сыграть Джокером",
+      "forRequest": "Для требования {{request}}",
+      "lead": "Заход",
+      "highRequest": "По старшей",
+      "requestHighest": "Требовать старшую карту",
+      "lowRequest": "По младшей",
+      "requestLowest": "Требовать младшую карту",
+      "takeHigh": "Забрать по старшей",
+      "beatsHighest": "Бьет старшую",
+      "takeLow": "Забрать по младшей",
+      "beatsLowest": "Бьет младшую",
+      "back": "Назад"
+    },
+    "errors": {
+      "mustFollow": "Нужно ходить в {{suit}}",
+      "mustPlayTrump": "Нужно ходить козырем ({{trump}})",
+      "invalidCard": "Неверная карта"
+    },
+    "player": {
+      "bot": "Бот",
+      "bet": "Заказ",
+      "tricks": "Взятки",
+      "score": "Счет",
+      "turn": "Ход"
+    },
+    "table": {
+      "currentTurn": "Сейчас ходит",
+      "req": "Треб"
+    }
+  }
+}

@@ -23,8 +23,10 @@ export const SuitIcon: React.FC<SuitIconProps> = ({ suit, className }) => {
     case Suit.Clubs:
       return (
         <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-          {/* Fixed Clubs path */}
-          <path d="M21.9 16.5c0-2.3-1.8-4.2-4.1-4.4-.3-1.7-1.3-3.1-2.7-4.1.7-1.1 1.1-2.3 1.1-3.6 0-3.3-2.7-6-6-6s-6 2.7-6 6c0 1.3.4 2.5 1.1 3.6-1.4.9-2.4 2.3-2.7 4.1-2.3.2-4.1 2.1-4.1 4.4 0 2.5 2 4.5 4.5 4.5.6 0 1.2-.1 1.7-.3.5.9 1.1 1.7 1.7 2.3H8v1h8v-1h-1.4c.7-.6 1.2-1.4 1.7-2.3.5.2 1.1.3 1.7.3 2.5 0 4.5-2 4.5-4.5z" />
+          <circle cx="12" cy="7.5" r="4" />
+          <circle cx="8" cy="12.5" r="4" />
+          <circle cx="16" cy="12.5" r="4" />
+          <path d="M11 14h2v5h3l-4 5-4-5h3z" />
         </svg>
       );
     case Suit.Spades:

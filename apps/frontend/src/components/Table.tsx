@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Player, TableCard, Suit } from '@joker/shared';
 import Card from './Card';
 import PlayerInfo from './PlayerInfo';
@@ -24,6 +25,7 @@ export const Table: React.FC<TableProps> = ({
   className = '',
   isJokerTrump = false,
 }) => {
+  const { t } = useTranslation();
   // 1. Calculate Positions
   const orderedPlayers = useMemo(() => {
     if (!players.length) return [];
@@ -143,7 +145,7 @@ export const Table: React.FC<TableProps> = ({
           {/* Show Joker Request */}
           {tc.requestedSuit && (
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-yellow-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full whitespace-nowrap border border-yellow-500/50 shadow-md">
-              Req: {tc.requestedSuit}
+              {t('game.table.req')}: {tc.requestedSuit}
             </div>
           )}
         </div>
@@ -175,7 +177,7 @@ export const Table: React.FC<TableProps> = ({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
           <div className="text-8xl font-black text-slate-900 flex flex-col items-center">
             <span>JOKER</span>
-            <span className="text-4xl mt-2">NO TRUMP</span>
+            <span className="text-4xl mt-2">{t('game.trump.noTrump')}</span>
           </div>
         </div>
       );
@@ -210,13 +212,13 @@ export const Table: React.FC<TableProps> = ({
           {currentPlayerId && (
             <div className="absolute z-10 text-center">
               <div className="text-[10px] text-yellow-500 uppercase tracking-[0.2em] mb-1 font-bold opacity-80">
-                Current Turn
+                {t('game.table.currentTurn')}
               </div>
               <div className="text-2xl font-bold text-white tracking-widest drop-shadow-md">
                 {players.find((p) => p.id === currentPlayerId)?.name ===
                 players.find((p) => p.id === myPlayerId)?.name
-                  ? 'YOUR TURN'
-                  : 'WAITING...'}
+                  ? t('game.yourTurn')
+                  : t('game.waitingFor').toUpperCase() + '...'}
               </div>
             </div>
           )}
@@ -239,7 +241,7 @@ export const Table: React.FC<TableProps> = ({
       {(trump || isJokerTrump) && (
         <div className="absolute -top-4 -right-4 z-40 flex flex-col items-center bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
           <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold">
-            Trump
+            {t('game.trump.label')}
           </span>
           {trump ? (
             <span

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface GameProgressPanelProps {
   currentRound: number;
@@ -9,20 +10,21 @@ interface PulkaInfo {
   id: number;
   range: [number, number];
   cardsPattern: string;
-  description: string;
+  translationKey: string;
 }
 
 const PULKAS: PulkaInfo[] = [
-  { id: 1, range: [1, 8], cardsPattern: '1 → 8', description: 'Ascending' },
-  { id: 2, range: [9, 12], cardsPattern: '9', description: 'Maximum' },
-  { id: 3, range: [13, 20], cardsPattern: '8 → 1', description: 'Descending' },
-  { id: 4, range: [21, 24], cardsPattern: '9', description: 'Final' },
+  { id: 1, range: [1, 8], cardsPattern: '1 → 8', translationKey: 'ascending' },
+  { id: 2, range: [9, 12], cardsPattern: '9', translationKey: 'maximum' },
+  { id: 3, range: [13, 20], cardsPattern: '8 → 1', translationKey: 'descending' },
+  { id: 4, range: [21, 24], cardsPattern: '9', translationKey: 'final' },
 ];
 
 export const GameProgressPanel: React.FC<GameProgressPanelProps> = ({
   currentRound,
   totalRounds = 24,
 }) => {
+  const { t } = useTranslation();
   // Determine current pulka
   const currentPulka = useMemo(() => {
     return PULKAS.find((p) => currentRound >= p.range[0] && currentRound <= p.range[1]);
@@ -76,13 +78,15 @@ export const GameProgressPanel: React.FC<GameProgressPanelProps> = ({
                   ${isActive ? 'text-amber-400' : isPast ? 'text-green-400' : 'text-slate-500'}
                 `}
                 >
-                  Pulka {pulka.id}
+                  {t('game.pulka.title', { id: pulka.id })}
                 </span>
               </div>
 
               <div className="flex flex-col items-center gap-0.5 w-full">
                 <div className="flex justify-between w-full px-1">
-                  <span className="text-[8px] text-slate-400 uppercase tracking-wide">Rounds</span>
+                  <span className="text-[8px] text-slate-400 uppercase tracking-wide">
+                    {t('game.round')}s
+                  </span>
                   <span
                     className={`text-[8px] font-mono ${isActive ? 'text-white font-bold' : 'text-slate-500'}`}
                   >
@@ -91,7 +95,9 @@ export const GameProgressPanel: React.FC<GameProgressPanelProps> = ({
                 </div>
                 <div className="w-full h-px bg-white/5 my-0.5" />
                 <div className="flex justify-between w-full px-1">
-                  <span className="text-[8px] text-slate-400 uppercase tracking-wide">Cards</span>
+                  <span className="text-[8px] text-slate-400 uppercase tracking-wide">
+                    {t('game.cards')}
+                  </span>
                   <span
                     className={`text-[8px] font-mono ${isActive ? 'text-white font-bold' : 'text-slate-500'}`}
                   >

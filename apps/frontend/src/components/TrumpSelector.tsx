@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Suit } from '@joker/shared';
 import { SuitIcon } from './SuitIcon';
 
@@ -13,6 +14,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
   onSelect,
   isJokerTrump = false,
 }) => {
+  const { t } = useTranslation();
   const [selectedSuit, setSelectedSuit] = useState<Suit | null | 'none'>('none');
 
   useEffect(() => {
@@ -25,10 +27,10 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
   if (!isOpen) return null;
 
   const suits = [
-    { type: Suit.Hearts, color: 'text-red-500', label: 'Hearts' },
-    { type: Suit.Diamonds, color: 'text-red-500', label: 'Diamonds' },
-    { type: Suit.Clubs, color: 'text-slate-200', label: 'Clubs' },
-    { type: Suit.Spades, color: 'text-slate-200', label: 'Spades' },
+    { type: Suit.Hearts, color: 'text-red-500', label: t('game.trump.hearts') },
+    { type: Suit.Diamonds, color: 'text-red-500', label: t('game.trump.diamonds') },
+    { type: Suit.Clubs, color: 'text-slate-200', label: t('game.trump.clubs') },
+    { type: Suit.Spades, color: 'text-slate-200', label: t('game.trump.spades') },
   ];
 
   return (
@@ -37,8 +39,8 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
 
       <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 text-center border-b border-slate-800">
-          <h2 className="text-2xl font-bold text-white">Choose Trump</h2>
-          <p className="text-slate-400 text-sm mt-1">Select a suit or play No Trump</p>
+          <h2 className="text-2xl font-bold text-white">{t('game.trump.choose')}</h2>
+          <p className="text-slate-400 text-sm mt-1">{t('game.trump.subtitle')}</p>
         </div>
 
         <div className="p-6 space-y-4">
@@ -78,7 +80,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
             `}
           >
             <span className="mr-2">Ø</span>
-            {isJokerTrump ? 'No Trump (Joker Revealed)' : 'No Trump'}
+            {isJokerTrump ? t('game.trump.noTrumpJoker') : t('game.trump.noTrump')}
           </button>
 
           <button
@@ -93,7 +95,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
               }
             `}
           >
-            Confirm
+            {t('game.trump.confirm')}
           </button>
         </div>
       </div>

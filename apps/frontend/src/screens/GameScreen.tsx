@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store';
 import {
   selectIsMyTurn,
@@ -14,8 +15,10 @@ import { TrumpSelector } from '../components/TrumpSelector';
 import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const GameScreen: React.FC = () => {
+  const { t } = useTranslation();
   // Store Hooks
   const {
     gameState,
@@ -89,7 +92,7 @@ export const GameScreen: React.FC = () => {
       <div className="flex h-screen w-full items-center justify-center bg-[#1a472a] text-white">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-amber-500" />
-          <p className="animate-pulse text-lg font-medium tracking-wide">Loading Game...</p>
+          <p className="animate-pulse text-lg font-medium tracking-wide">{t('game.loading')}</p>
         </div>
       </div>
     );
@@ -240,7 +243,7 @@ export const GameScreen: React.FC = () => {
 
       // @ts-ignore
       if (hasLeadSuit && card.suit !== leadSuit && card.type !== 'joker') {
-        return `Must follow ${leadSuit}`;
+        return t('game.errors.mustFollow', { suit: leadSuit });
       }
 
       const trump = gameState.trump;
@@ -248,11 +251,11 @@ export const GameScreen: React.FC = () => {
       const hasTrump = trump && myHand.some((c) => c.type !== 'joker' && c.suit === trump);
       // @ts-ignore
       if (!hasLeadSuit && hasTrump && card.suit !== trump && card.type !== 'joker') {
-        return `Must play Trump (${trump})`;
+        return t('game.errors.mustPlayTrump', { trump });
       }
     }
 
-    return 'Invalid card';
+    return t('game.errors.invalidCard');
   };
 
   return (
@@ -325,16 +328,19 @@ export const GameScreen: React.FC = () => {
 
         {/* Timer & Phase */}
         <div className="flex flex-col items-end gap-3 pointer-events-auto">
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to leave the game?')) {
-                leaveGame();
-              }
-            }}
-            className="mb-1 px-4 py-1.5 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700 text-red-100 text-[10px] font-bold uppercase tracking-widest transition-all shadow-md backdrop-blur-sm"
-          >
-            Leave Game
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher className="scale-75 origin-right" />
+            <button
+              onClick={() => {
+                if (window.confirm(t('lobby.leaveGameConfirm'))) {
+                  leaveGame();
+                }
+              }}
+              className="px-4 py-1.5 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700 text-red-100 text-[10px] font-bold uppercase tracking-widest transition-all shadow-md backdrop-blur-sm"
+            >
+              {t('lobby.leaveGame')}
+            </button>
+          </div>
 
           {/* Turn Indicator */}
           <div
@@ -349,10 +355,10 @@ export const GameScreen: React.FC = () => {
           >
             <div className="flex flex-col items-end leading-none">
               <span className="text-[9px] uppercase tracking-[0.2em] mb-1 opacity-80">
-                {isMyTurn ? 'Your Action' : 'Waiting for'}
+                {isMyTurn ? t('game.yourAction') : t('game.waitingFor')}
               </span>
               <span className="font-bold text-lg">
-                {isMyTurn ? 'YOUR TURN' : currentTurnPlayer?.name || 'OPPONENT'}
+                {isMyTurn ? t('game.yourTurn') : currentTurnPlayer?.name || t('game.opponent')}
               </span>
             </div>
             <div className="flex flex-col items-center">
@@ -365,7 +371,7 @@ export const GameScreen: React.FC = () => {
 
           {/* Phase Badge */}
           <div className="px-3 py-1 rounded bg-black/40 border border-white/10 text-[10px] text-slate-300 uppercase tracking-[0.2em] backdrop-blur-sm shadow-sm">
-            {gameState.phase.replace('_', ' ')}
+            {t(`game.phase.${gameState.phase}`, gameState.phase)}
           </div>
         </div>
       </div>
@@ -404,9 +410,7 @@ export const GameScreen: React.FC = () => {
         {isMyTurn && (
           <div className="absolute bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
             <span className="bg-yellow-500/90 text-black px-6 py-2 rounded-full text-sm font-bold border-2 border-yellow-300 shadow-lg tracking-wide uppercase">
-              {gameState.phase === 'betting' && 'Place Your Bet'}
-              {gameState.phase === 'trump_selection' && 'Choose Trump'}
-              {gameState.phase === 'playing' && 'Play a Card'}
+              {t(`game.phase.${gameState.phase}`, gameState.phase)}
             </span>
           </div>
         )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Player } from '@joker/shared';
 
 interface PlayerInfoProps {
@@ -28,6 +29,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   className = '',
   onScoreClick,
 }) => {
+  const { t } = useTranslation();
   // Determine layout orientation based on position
   const isRight = position.includes('right');
 
@@ -111,7 +113,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           </span>
           {player.isBot && (
             <span className="text-[9px] px-1 py-0.5 bg-slate-700 rounded border border-slate-600 text-slate-300 leading-none">
-              Bot
+              {t('game.player.bot')}
             </span>
           )}
         </div>
@@ -122,7 +124,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
         >
           {/* Bet */}
           <div className="flex flex-col leading-none">
-            <span className="text-slate-400 mb-0.5">Bet</span>
+            <span className="text-slate-400 mb-0.5">{t('game.player.bet')}</span>
             <span
               className={`font-bold text-lg ${player.bet === null ? 'text-slate-500' : 'text-yellow-400'}`}
             >
@@ -134,7 +136,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
 
           {/* Tricks */}
           <div className="flex flex-col leading-none">
-            <span className="text-slate-400 mb-0.5">Tricks</span>
+            <span className="text-slate-400 mb-0.5">{t('game.player.tricks')}</span>
             <span className="font-bold text-lg text-white">{player.tricks}</span>
           </div>
 
@@ -143,7 +145,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           {/* Score */}
           <div className="flex flex-col leading-none relative group/score">
             <div className="flex items-center gap-1 mb-0.5">
-              <span className="text-slate-400">Score</span>
+              <span className="text-slate-400">{t('game.player.score')}</span>
               {onScoreClick && (
                 <button
                   onClick={(e) => {
@@ -170,7 +172,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
                 animate-bounce drop-shadow-md
             `}
         >
-          Turn
+          {t('game.player.turn')}
         </div>
       )}
     </div>

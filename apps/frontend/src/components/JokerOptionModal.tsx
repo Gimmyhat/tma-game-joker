@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { JokerOption, Suit } from '@joker/shared';
 
 interface JokerOptionModalProps {
@@ -12,6 +13,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   onSelect,
   leadSuit,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'option' | 'suit'>('option');
   const [selectedOption, setSelectedOption] = useState<JokerOption | null>(null);
 
@@ -42,39 +44,39 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   const options = [
     {
       id: JokerOption.High,
-      label: 'High Request',
-      subLabel: 'Request Highest Card',
+      label: t('game.joker.highRequest'),
+      subLabel: t('game.joker.requestHighest'),
       icon: '⬆️',
       color: 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400',
     },
     {
       id: JokerOption.Low,
-      label: 'Low Request',
-      subLabel: 'Request Lowest Card',
+      label: t('game.joker.lowRequest'),
+      subLabel: t('game.joker.requestLowest'),
       icon: '⬇️',
       color: 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400',
     },
     {
       id: JokerOption.Top,
-      label: 'Take High',
-      subLabel: 'Beats Highest',
+      label: t('game.joker.takeHigh'),
+      subLabel: t('game.joker.beatsHighest'),
       icon: '👑',
       color: 'bg-amber-500/10 border-amber-500/50 text-amber-400',
     },
     {
       id: JokerOption.Bottom,
-      label: 'Take Low',
-      subLabel: 'Beats Lowest',
+      label: t('game.joker.takeLow'),
+      subLabel: t('game.joker.beatsLowest'),
       icon: '🛡️',
       color: 'bg-purple-500/10 border-purple-500/50 text-purple-400',
     },
   ];
 
   const suits = [
-    { type: Suit.Hearts, symbol: '♥', color: 'text-red-500', label: 'Hearts' },
-    { type: Suit.Diamonds, symbol: '♦', color: 'text-red-500', label: 'Diamonds' },
-    { type: Suit.Clubs, symbol: '♣', color: 'text-slate-200', label: 'Clubs' },
-    { type: Suit.Spades, symbol: '♠', color: 'text-slate-200', label: 'Spades' },
+    { type: Suit.Hearts, symbol: '♥', color: 'text-red-500', label: t('game.trump.hearts') },
+    { type: Suit.Diamonds, symbol: '♦', color: 'text-red-500', label: t('game.trump.diamonds') },
+    { type: Suit.Clubs, symbol: '♣', color: 'text-slate-200', label: t('game.trump.clubs') },
+    { type: Suit.Spades, symbol: '♠', color: 'text-slate-200', label: t('game.trump.spades') },
   ];
 
   const leadSuitInfo = leadSuit ? suits.find((s) => s.type === leadSuit) : null;
@@ -91,21 +93,27 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
               onClick={() => setStep('option')}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
             >
-              ← Back
+              ← {t('game.joker.back')}
             </button>
           )}
           <h2 className="text-2xl font-bold text-white">
-            {step === 'option' ? 'Joker Ability' : 'Select Suit'}
+            {step === 'option' ? t('game.joker.ability') : t('game.joker.selectSuit')}
           </h2>
           <div className="flex flex-col items-center mt-1">
             <span className="text-slate-400 text-sm">
               {step === 'option'
-                ? 'Choose how to play the Joker'
-                : `For ${selectedOption === JokerOption.High ? 'Highest' : 'Lowest'} Request`}
+                ? t('game.joker.chooseHow')
+                : t('game.joker.forRequest', {
+                    request:
+                      selectedOption === JokerOption.High
+                        ? t('game.joker.highRequest')
+                        : t('game.joker.lowRequest'),
+                  })}
             </span>
             {leadSuitInfo && step === 'option' && (
               <span className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                Lead: <span className={leadSuitInfo.color}>{leadSuitInfo.symbol}</span>
+                {t('game.joker.lead')}:{' '}
+                <span className={leadSuitInfo.color}>{leadSuitInfo.symbol}</span>
               </span>
             )}
           </div>
