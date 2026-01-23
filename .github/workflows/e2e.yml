@@ -34,6 +34,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      SKIP_AUTH: true
+      POSTGRES_USER: joker
+      POSTGRES_PASSWORD: joker_secret
+      POSTGRES_DB: joker_db
+      DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
+      REDIS_URL: redis://localhost:6379
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,13 +68,14 @@ jobs:
 
       - name: Run backend e2e
         run: pnpm --filter @joker/backend test:e2e
-        env:
-          SKIP_AUTH: true
-          POSTGRES_USER: joker
-          POSTGRES_PASSWORD: joker_secret
-          POSTGRES_DB: joker_db
-          DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
-          REDIS_URL: redis://localhost:6379
+
+      - name: Start Backend for Frontend tests
+        run: |
+          pnpm --filter @joker/backend start &
+          # Wait for backend to be ready (simple sleep or curl loop)
+          echo "Waiting for backend to start..."
+          timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
+          echo "Backend started!"
 
       - name: Run frontend e2e
         run: pnpm --filter @joker/frontend test:e2e
