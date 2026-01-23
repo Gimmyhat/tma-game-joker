@@ -11,6 +11,7 @@
     "starting": "Game starting...",
     "initializing": "Initializing...",
     "leaveGameConfirm": "Are you sure you want to leave the game?",
+    "leaveGameStay": "Stay",
     "leaveGame": "Leave Game"
   },
   "game": {

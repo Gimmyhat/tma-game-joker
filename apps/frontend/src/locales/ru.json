@@ -11,6 +11,7 @@
     "starting": "Игра начинается...",
     "initializing": "Инициализация...",
     "leaveGameConfirm": "Вы уверены, что хотите покинуть игру?",
+    "leaveGameStay": "Остаться",
     "leaveGame": "Выйти"
   },
   "game": {

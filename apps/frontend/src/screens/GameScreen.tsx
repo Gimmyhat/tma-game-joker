@@ -15,6 +15,7 @@ import { TrumpSelector } from '../components/TrumpSelector';
 import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
+import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const GameScreen: React.FC = () => {
@@ -42,6 +43,7 @@ export const GameScreen: React.FC = () => {
   // Local State
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
@@ -331,11 +333,7 @@ export const GameScreen: React.FC = () => {
           <div className="flex items-center gap-2">
             <LanguageSwitcher className="scale-75 origin-right" />
             <button
-              onClick={() => {
-                if (window.confirm(t('lobby.leaveGameConfirm'))) {
-                  leaveGame();
-                }
-              }}
+              onClick={() => setIsLeaveModalOpen(true)}
               className="px-4 py-1.5 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700 text-red-100 text-[10px] font-bold uppercase tracking-widest transition-all shadow-md backdrop-blur-sm"
             >
               {t('lobby.leaveGame')}
@@ -445,6 +443,16 @@ export const GameScreen: React.FC = () => {
         isOpen={isJokerModalOpen}
         onSelect={handleJokerSelect}
         leadSuit={leadSuit}
+      />
+
+      {/* Leave Game Confirmation */}
+      <LeaveGameModal
+        isOpen={isLeaveModalOpen}
+        onConfirm={() => {
+          leaveGame();
+          setIsLeaveModalOpen(false);
+        }}
+        onClose={() => setIsLeaveModalOpen(false)}
       />
     </div>
   );
