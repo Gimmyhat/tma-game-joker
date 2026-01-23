@@ -74,8 +74,14 @@ jobs:
 
       - name: Start Backend for Frontend tests
         run: |
-          pnpm --filter @joker/backend start &
-          # Wait for backend to be ready (simple sleep or curl loop)
+          echo "Checking dist folder..."
+          ls -R apps/backend/dist || echo "Dist folder missing!"
+
+          echo "Starting backend with node..."
+          # Run directly with node to avoid nest start path issues
+          node apps/backend/dist/main &
+
+          # Wait for backend to be ready
           echo "Waiting for backend to start..."
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
           echo "Backend started!"
