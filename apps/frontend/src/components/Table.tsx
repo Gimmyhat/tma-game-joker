@@ -191,6 +191,7 @@ export const Table: React.FC<TableProps> = ({
       return (
         <motion.div
           key={`${tc.playerId}-${tc.card.id}`}
+          initial={{ opacity: 0, scale: 0.5, y: -50 }}
           className={`absolute transition-all duration-500 ease-out ${offsets[pos]}`}
           style={{ zIndex: 20 + i }}
           animate={animateProps}

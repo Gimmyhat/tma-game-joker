@@ -127,6 +127,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `${playerInfo.name} joined queue. Queue size: ${this.roomManager.getQueueLength()}`,
     );
 
+    // Notify all queued players
+    this.broadcastQueueStatus();
+
     // Check if enough players
     if (this.roomManager.canStartGame()) {
       this.clearBotFillTimer();
@@ -153,6 +156,29 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     client.emit('queue_left', { playerId: playerInfo.id });
+
+    // Notify remaining queued players
+    this.broadcastQueueStatus();
+  }
+
+  /**
+   * Broadcast queue status to all queued players
+   */
+  private broadcastQueueStatus(): void {
+    const sockets = this.roomManager.getQueueSockets();
+    const current = this.roomManager.getQueueLength();
+    const required = GAME_CONSTANTS.PLAYERS_COUNT;
+
+    for (const socketId of sockets) {
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.emit('waiting_for_players', {
+          roomId: 'queue',
+          current,
+          required,
+        });
+      }
+    }
   }
 
   /**
@@ -215,7 +241,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.botFillTimer = null;
     }, timeoutMs);
 
-    this.logger.log(`Bot fill timer started (${timeoutMs / 1000}s)`);
+    this.logger.log(`Bot fill timer started (${timeoutMs}ms)`);
   }
 
   /**
@@ -464,16 +490,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Clear existing turn timer just in case
     this.roomManager.clearTurnTimeout(roomId);
 
-    // Emit timer event (using same event structure or new one?)
-    // Let's use a new event for clarity or repurpose turn_timer
-    // But turn_timer is specific to a player. This is global.
+    const timeoutMs =
+      Number(this.configService.get('PULKA_RECAP_TIMEOUT_MS')) ||
+      GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS;
+
+    // Emit timer event
     this.server.to(roomId).emit('pulka_recap_started', {
-      expiresAt: Date.now() + GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS,
+      expiresAt: Date.now() + timeoutMs,
     });
 
     const timeout = setTimeout(async () => {
       await this.handlePulkaRecapTimeout(roomId);
-    }, GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS);
+    }, timeoutMs);
 
     // We can reuse setTurnTimeout or create a new one in RoomManager.
     // For simplicity, let's reuse setTurnTimeout as it effectively blocks turns.
@@ -550,18 +578,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const currentPlayerId = room.gameState.players[room.gameState.currentPlayerIndex]?.id;
     if (!currentPlayerId || this.roomManager.isBot(currentPlayerId)) return;
 
+    // Get timeout from config or default
+    const timeoutMs =
+      Number(this.configService.get('TURN_TIMEOUT_MS')) || GAME_CONSTANTS.TURN_TIMEOUT_MS;
+
     // Emit timer started event
     const socketId = this.roomManager.getSocketId(roomId, currentPlayerId);
     if (socketId) {
       this.server.to(roomId).emit('turn_timer_started', {
         playerId: currentPlayerId,
-        expiresAt: Date.now() + GAME_CONSTANTS.TURN_TIMEOUT_MS,
+        expiresAt: Date.now() + timeoutMs,
       });
     }
 
     const timeout = setTimeout(() => {
       this.handleTurnTimeout(roomId, currentPlayerId);
-    }, GAME_CONSTANTS.TURN_TIMEOUT_MS);
+    }, timeoutMs);
 
     this.roomManager.setTurnTimeout(roomId, timeout);
   }

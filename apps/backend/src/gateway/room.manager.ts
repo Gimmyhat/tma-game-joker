@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { GameState, GAME_CONSTANTS } from '@joker/shared';
 import { GameEngineService } from '../game/services/game-engine.service';
@@ -31,6 +32,7 @@ export class RoomManager {
   constructor(
     private gameEngine: GameEngineService,
     private redisService: RedisService,
+    private configService: ConfigService,
   ) {}
 
   // ==========================================
@@ -80,6 +82,13 @@ export class RoomManager {
    */
   getQueueLength(): number {
     return this.queue.length;
+  }
+
+  /**
+   * Get socket IDs of all queued players
+   */
+  getQueueSockets(): string[] {
+    return this.queue.map((p) => p.socketId).filter(Boolean);
   }
 
   // ==========================================

@@ -18,6 +18,7 @@ import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { PulkaResultsModal } from '../components/game';
+import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
 
 export const GameScreen: React.FC = () => {
@@ -460,6 +461,9 @@ export const GameScreen: React.FC = () => {
 
       {/* Pulka Results Modal */}
       <PulkaResultsModal />
+
+      {/* Game Over Modal */}
+      <GameOverModal />
 
       {/* Dev Logs */}
       <DevLogPanel />

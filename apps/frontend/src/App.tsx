@@ -4,6 +4,7 @@ import { TelegramProvider, useTelegram } from './providers';
 import { useGameStore } from './store';
 import { GameScreen } from './screens';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { LobbyTable } from './components/LobbyTable';
 
 /**
  * Lobby screen - shown before game starts
@@ -11,90 +12,105 @@ import { LanguageSwitcher } from './components/LanguageSwitcher';
 function LobbyScreen() {
   const { t } = useTranslation();
   const { user, isTelegram } = useTelegram();
-  const { connectionStatus, lobbyStatus, findGame, playersInRoom, requiredPlayers, leaveQueue } =
-    useGameStore();
+  const { connectionStatus, lobbyStatus, findGame, leaveQueue } = useGameStore();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div
+        className="absolute inset-0 z-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: `url('https://www.transparenttextures.com/patterns/felt.png')`,
+        }}
+      />
+
+      <div className="absolute top-4 right-4 z-50">
         <LanguageSwitcher />
       </div>
 
-      <div className="text-center text-white max-w-md w-full">
-        {/* Header */}
-        <h1 className="text-4xl font-bold mb-2">{t('lobby.title')}</h1>
-        <p className="text-lg opacity-80 mb-8">{t('lobby.subtitle')}</p>
-
-        {/* User info */}
-        {user && (
-          <div className="bg-white/10 rounded-lg p-4 mb-6">
-            <p className="text-sm opacity-60">{t('lobby.playingAs')}</p>
-            <p className="text-xl font-semibold">
-              {user.firstName} {user.lastName || ''}
+      <div className="relative z-10 w-full flex flex-col items-center">
+        {/* Title Section (only show if not searching/waiting to save space) */}
+        {(lobbyStatus === 'idle' || connectionStatus !== 'connected') && (
+          <div className="text-center text-white max-w-md w-full mb-8">
+            <h1 className="text-5xl font-black mb-2 tracking-tighter text-amber-400 drop-shadow-lg">
+              {t('lobby.title')}
+            </h1>
+            <p className="text-lg opacity-80 font-serif italic text-amber-100/60">
+              {t('lobby.subtitle')}
             </p>
-            {!isTelegram && <p className="text-xs text-yellow-400 mt-1">{t('lobby.devMode')}</p>}
           </div>
         )}
 
-        {/* Connection status */}
-        <div className="mb-6">
-          <div className="flex items-center justify-center gap-2">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected'
-                  ? 'bg-green-400'
-                  : connectionStatus === 'connecting'
-                    ? 'bg-yellow-400 animate-pulse'
-                    : connectionStatus === 'error'
-                      ? 'bg-red-400'
-                      : 'bg-gray-400'
-              }`}
-            />
-            <span className="text-sm opacity-60 capitalize">{connectionStatus}</span>
-          </div>
+        {/* Status Indicator */}
+        <div className="mb-6 flex items-center justify-center gap-2 bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              connectionStatus === 'connected'
+                ? 'bg-green-400 shadow-[0_0_10px_#4ade80]'
+                : connectionStatus === 'connecting'
+                  ? 'bg-yellow-400 animate-pulse'
+                  : 'bg-red-400'
+            }`}
+          />
+          <span className="text-xs font-medium text-white/60 uppercase tracking-widest">
+            {connectionStatus}
+          </span>
         </div>
 
-        {/* Lobby status */}
-        {lobbyStatus === 'idle' && connectionStatus === 'connected' && (
-          <button
-            onClick={findGame}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-colors text-lg"
-          >
-            {t('lobby.findGame')}
-          </button>
-        )}
+        {/* Main Action Area */}
+        <div className="w-full max-w-4xl flex flex-col items-center">
+          {/* Searching/Waiting View: Show Table */}
+          {(lobbyStatus === 'searching' ||
+            lobbyStatus === 'waiting' ||
+            lobbyStatus === 'starting') && (
+            <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
+              <LobbyTable />
 
-        {lobbyStatus === 'searching' && (
-          <div className="bg-white/10 rounded-lg p-6">
-            <div className="animate-spin w-8 h-8 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4" />
-            <p className="text-lg">{t('lobby.searching')}</p>
-          </div>
-        )}
+              <button
+                onClick={leaveQueue}
+                className="mt-8 py-2 px-6 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-sm font-medium transition-all backdrop-blur-sm"
+              >
+                {t('lobby.leaveQueue')}
+              </button>
+            </div>
+          )}
 
-        {lobbyStatus === 'waiting' && (
-          <div className="bg-white/10 rounded-lg p-6">
-            <p className="text-lg mb-2">{t('lobby.waiting')}</p>
-            <p className="text-3xl font-bold">
-              {playersInRoom} / {requiredPlayers}
-            </p>
-          </div>
-        )}
+          {/* Idle View: Show Start Button */}
+          {lobbyStatus === 'idle' && connectionStatus === 'connected' && (
+            <div className="bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-2xl w-full max-w-sm animate-in slide-in-from-bottom-8 duration-700">
+              {user && (
+                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+                    {user.firstName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-white/40 uppercase tracking-wider">
+                      {t('lobby.playingAs')}
+                    </p>
+                    <p className="text-lg font-bold text-white leading-none">
+                      {user.firstName} {user.lastName}
+                    </p>
+                  </div>
+                </div>
+              )}
 
-        {(lobbyStatus === 'searching' || lobbyStatus === 'waiting') && (
-          <button
-            onClick={leaveQueue}
-            className="mt-6 w-full py-3 px-4 bg-red-500/20 hover:bg-red-500/30 active:bg-red-500/40 border border-red-500/30 rounded-xl text-red-100 font-medium transition-all backdrop-blur-sm"
-          >
-            {t('lobby.leaveQueue')}
-          </button>
-        )}
+              <button
+                onClick={findGame}
+                className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-b from-amber-400 to-orange-600 p-[1px] shadow-[0_10px_40px_-10px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="relative h-full w-full rounded-2xl bg-gradient-to-b from-amber-500 to-orange-600 px-8 py-6 transition-all group-hover:bg-opacity-90">
+                  <span className="relative text-2xl font-black uppercase tracking-widest text-white drop-shadow-md">
+                    {t('lobby.findGame')}
+                  </span>
+                </div>
+              </button>
 
-        {lobbyStatus === 'starting' && (
-          <div className="bg-white/10 rounded-lg p-6">
-            <div className="animate-spin w-8 h-8 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4" />
-            <p className="text-lg">{t('lobby.starting')}</p>
-          </div>
-        )}
+              {!isTelegram && (
+                <p className="text-center text-xs text-white/20 mt-4">{t('lobby.devMode')}</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

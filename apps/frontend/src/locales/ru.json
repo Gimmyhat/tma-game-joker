@@ -17,6 +17,12 @@
   "game": {
     "loading": "Загрузка игры...",
     "trickWon": "{{player}} выиграл!",
+    "victory": "Победа!",
+    "gameOver": "Игра окончена",
+    "congrats": "Поздравляем с победой!",
+    "winnerIs": "Победитель: {{name}}",
+    "you": "Вы",
+    "returnToLobby": "Вернуться в лобби",
     "yourAction": "Ваш ход",
     "waitingFor": "Ожидание",
     "yourTurn": "ВАШ ХОД",

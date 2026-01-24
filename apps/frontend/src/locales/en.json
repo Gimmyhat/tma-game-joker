@@ -17,6 +17,12 @@
   "game": {
     "loading": "Loading Game...",
     "trickWon": "{{player}} Wins!",
+    "victory": "Victory!",
+    "gameOver": "Game Over",
+    "congrats": "Congratulations!",
+    "winnerIs": "Winner: {{name}}",
+    "you": "You",
+    "returnToLobby": "Back to Lobby",
     "yourAction": "Your Action",
     "waitingFor": "Waiting for",
     "yourTurn": "YOUR TURN",
