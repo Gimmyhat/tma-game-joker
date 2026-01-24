@@ -220,6 +220,7 @@ export const GAME_CONSTANTS = {
   RECONNECT_TIMEOUT_MS: 30_000,
   MATCHMAKING_TIMEOUT_MS: 60_000,
   PULKA_RECAP_TIMEOUT_MS: 300_000, // 5 minutes for testing
+  TRICK_RECAP_TIMEOUT_MS: 3000, // 3 seconds delay after each trick
 
   // Scoring
   SCORE_TOOK_OWN_MULTIPLIER: 50,
