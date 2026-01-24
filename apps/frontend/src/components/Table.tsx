@@ -141,16 +141,16 @@ export const Table: React.FC<TableProps> = ({
       const pos = getPlayerPosition(tc.playerId);
 
       // Calculate offsets based on position to create a "pile" in the center but clear who played what
-      // Oval center is 0,0
+      // Increased spread to prevent overlap
       const offsets: Record<Position, string> = {
-        'bottom-center': 'translate-y-12 translate-x-0 rotate-0',
-        'bottom-left': 'translate-y-8 -translate-x-12 rotate-[-10deg]',
-        'bottom-right': 'translate-y-8 translate-x-12 rotate-[10deg]',
-        'top-left': '-translate-y-4 -translate-x-16 rotate-[-5deg]',
-        'top-center': '-translate-y-12 translate-x-0',
-        'top-right': '-translate-y-4 translate-x-16 rotate-[5deg]',
-        'left-center': '-translate-y-0 -translate-x-20 rotate-[-90deg]',
-        'right-center': '-translate-y-0 translate-x-20 rotate-[90deg]',
+        'bottom-center': 'translate-y-24 translate-x-0 rotate-[-2deg]',
+        'bottom-left': 'translate-y-12 -translate-x-24 rotate-[15deg]',
+        'bottom-right': 'translate-y-12 translate-x-24 rotate-[-15deg]',
+        'top-left': '-translate-y-12 -translate-x-24 rotate-[-165deg]',
+        'top-center': '-translate-y-24 translate-x-0 rotate-[180deg]',
+        'top-right': '-translate-y-12 translate-x-24 rotate-[165deg]',
+        'left-center': '-translate-y-0 -translate-x-32 rotate-[90deg]',
+        'right-center': '-translate-y-0 translate-x-32 rotate-[-90deg]',
       };
 
       // Inverse rotation for badges to keep them horizontal
