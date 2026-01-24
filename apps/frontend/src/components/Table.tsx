@@ -186,7 +186,12 @@ export const Table: React.FC<TableProps> = ({
             opacity: 0,
             scale: 0.5,
           }
-        : {}; // Default state is handled by className offsets
+        : {
+            x: 0,
+            y: 0,
+            opacity: 1,
+            scale: 1,
+          };
 
       return (
         <motion.div
