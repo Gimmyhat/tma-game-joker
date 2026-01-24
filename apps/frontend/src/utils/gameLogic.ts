@@ -25,7 +25,7 @@ const getCardPower = (
 
     if (jokerOption === JokerOption.High) {
       if (trump && suit === trump) {
-        return 300; // Stronger than any standard trump (200 + rank max ~214)
+        return 199; // Joker High claiming trump is WEAKER than any real trump (min 200+)
       }
       // Stronger than any card of the suit (100 + 14 = 114), but weaker than Trump (200+)
       return 199;
