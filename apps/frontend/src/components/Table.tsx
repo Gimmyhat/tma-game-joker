@@ -39,6 +39,17 @@ export const Table: React.FC<TableProps> = ({
 }) => {
   const { t } = useTranslation();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
+  const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
+
+  // Delay winning animation to let the last card land and be seen
+  React.useEffect(() => {
+    if (gamePhase === GamePhase.TrickComplete) {
+      const timer = setTimeout(() => setShowWinningAnimation(true), 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowWinningAnimation(false);
+    }
+  }, [gamePhase]);
 
   // Determine winner if trick is complete
   const winnerId = useMemo(() => {
@@ -193,8 +204,8 @@ export const Table: React.FC<TableProps> = ({
       // We'll just let it rotate with card for realism
 
       // Animation targets for flying to winner (cleanup phase)
-      const winnerPos = winnerId ? getPlayerPosition(winnerId) : null;
-      const flyTo = winnerPos ? startPos[winnerPos] : null;
+      const targetWinnerPos = winnerId && showWinningAnimation ? getPlayerPosition(winnerId) : null;
+      const flyTo = targetWinnerPos ? startPos[targetWinnerPos] : null;
 
       const initialProps = {
         opacity: 0,
@@ -205,7 +216,7 @@ export const Table: React.FC<TableProps> = ({
       };
 
       const animateProps =
-        winnerPos && flyTo
+        targetWinnerPos && flyTo
           ? {
               x: flyTo.x,
               y: flyTo.y,
@@ -336,7 +347,7 @@ export const Table: React.FC<TableProps> = ({
 
         {/* Trick Winner Notification */}
         <AnimatePresence>
-          {gamePhase === GamePhase.TrickComplete && winnerId && (
+          {gamePhase === GamePhase.TrickComplete && winnerId && showWinningAnimation && (
             <motion.div
               initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
               animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
