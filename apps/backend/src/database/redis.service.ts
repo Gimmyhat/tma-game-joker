@@ -24,6 +24,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    // Skip Redis connection in E2E tests to avoid open handles/reconnect loops
+    if (process.env.E2E_TEST === 'true') {
+      this.logger.log('Running in E2E test mode - Redis disabled (in-memory only)');
+      return;
+    }
+
     const redisUrl = this.configService.get<string>('REDIS_URL');
 
     if (!redisUrl) {

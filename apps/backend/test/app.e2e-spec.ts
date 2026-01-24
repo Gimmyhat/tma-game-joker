@@ -16,6 +16,7 @@ import { AppModule } from '../src/app.module';
 import { GameEngineService } from '../src/game/services/game-engine.service';
 import { StateMachineService } from '../src/game/services/state-machine.service';
 import { RoomManager } from '../src/gateway/room.manager';
+import { RedisService } from '../src/database/redis.service';
 
 describe('App (e2e)', () => {
   jest.setTimeout(20000);
@@ -83,6 +84,8 @@ describe('App (e2e)', () => {
     waitForEvent<{ state: GameState }>(socket, 'game_state', timeoutMs);
 
   beforeAll(async () => {
+    process.env.E2E_TEST = 'true'; // Disable Redis connection
+
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -102,6 +105,15 @@ describe('App (e2e)', () => {
   });
 
   afterAll(async () => {
+    // Force disconnect Redis client if exposed
+    try {
+      const redisService = app.get(RedisService);
+      if (redisService) {
+        await redisService.onModuleDestroy();
+      }
+    } catch (e) {
+      // Ignore if service not found or already closed
+    }
     await app.close();
   });
 
