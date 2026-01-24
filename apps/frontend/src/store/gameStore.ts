@@ -51,6 +51,10 @@ export interface GameStore {
   // Errors
   lastError: ErrorPayload | null;
 
+  // Dev Logs
+  isDevMode: boolean;
+  gameLogs: string[];
+
   // Actions
   initialize: (user?: TelegramUser) => void;
   findGame: () => void;
@@ -60,6 +64,8 @@ export interface GameStore {
   throwCard: (cardId: string, jokerOption?: JokerOption, requestedSuit?: Suit) => void;
   selectTrump: (trump: Suit | null) => void;
   clearError: () => void;
+  addLog: (message: string) => void;
+  toggleDevMode: (enabled?: boolean) => void;
 
   // Internal
   _setConnectionStatus: (status: ConnectionStatus) => void;
@@ -85,6 +91,8 @@ const initialState = {
   currentTurnPlayerId: null as string | null,
   pulkaRecapExpiresAt: null as number | null,
   lastError: null as ErrorPayload | null,
+  isDevMode: false,
+  gameLogs: [] as string[],
 };
 
 // =====================================
@@ -98,9 +106,15 @@ export const useGameStore = create<GameStore>()(
     initialize: (user?: TelegramUser) => {
       // Use provided user or mock for development
       const resolvedUser = user || getMockUser();
+
+      // Check dev mode from URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const isDev = searchParams.get('dev') === 'true';
+
       set({
         user: resolvedUser,
         myPlayerId: String(resolvedUser.id),
+        isDevMode: isDev,
       });
 
       setUserInfo(resolvedUser);
@@ -151,6 +165,20 @@ export const useGameStore = create<GameStore>()(
 
     clearError: () => {
       set({ lastError: null });
+    },
+
+    addLog: (message: string) => {
+      if (!get().isDevMode) return;
+      const timestamp = new Date().toLocaleTimeString();
+      set((state) => ({
+        gameLogs: [...state.gameLogs, `[${timestamp}] ${message}`],
+      }));
+    },
+
+    toggleDevMode: (enabled?: boolean) => {
+      set((state) => ({
+        isDevMode: enabled !== undefined ? enabled : !state.isDevMode,
+      }));
     },
 
     _setConnectionStatus: (status: ConnectionStatus) => {
@@ -239,6 +267,26 @@ function setupSocketListeners(
   });
 
   socket.on('game_state', (data) => {
+    // Log state updates
+    const store = get();
+    if (store.isDevMode) {
+      const phase = data.state.phase;
+      const currentLog = `State update: ${phase} (R${data.state.round})`;
+      // Deduplicate rapid logs if needed, but for now just push
+      store.addLog(currentLog);
+
+      // Log turn change
+      if (data.state.currentPlayerIndex !== store.gameState?.currentPlayerIndex) {
+        const player = data.state.players[data.state.currentPlayerIndex];
+        store.addLog(`Turn: ${player.name} (${player.id})`);
+      }
+
+      // Log trick complete
+      if (phase === 'trick_complete' && store.gameState?.phase !== 'trick_complete') {
+        store.addLog('Trick complete. Calculating winner...');
+      }
+    }
+
     console.log('[Store] Game state update:', data.state.phase, 'round:', data.state.round);
     const currentPlayerId = get().myPlayerId;
     const fallbackHand = currentPlayerId

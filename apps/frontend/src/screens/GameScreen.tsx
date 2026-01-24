@@ -18,6 +18,7 @@ import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { PulkaResultsModal } from '../components/game';
+import { DevLogPanel } from '../components/DevLogPanel';
 
 export const GameScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -459,6 +460,9 @@ export const GameScreen: React.FC = () => {
 
       {/* Pulka Results Modal */}
       <PulkaResultsModal />
+
+      {/* Dev Logs */}
+      <DevLogPanel />
     </div>
   );
 };
