@@ -60,7 +60,10 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
 
     expect(betPlaced.size).toBe(pages.length);
     // Updated to match "Play a Card" (en) or "Сделайте ход" (ru) or "playing" (legacy/fallback)
-    await expect(pages[0].getByText(/Play a Card|Сделайте ход|playing/i)).toBeVisible({
+    // Using a more specific selector to avoid strict mode violation (targeting the jumping hint)
+    await expect(
+      pages[0].locator('.animate-bounce').getByText(/Play a Card|Сделайте ход|playing/i),
+    ).toBeVisible({
       timeout: 20000,
     });
   } finally {
