@@ -270,29 +270,50 @@ function setupSocketListeners(
     // Log state updates
     const store = get();
     if (store.isDevMode) {
+      const phase = data.state.phase;
+      // [INFO] General state update
+      const currentLog = `[INFO] State: ${phase} (R${data.state.round})`;
+      store.addLog(currentLog);
+
+      // [TURN] Turn change
+      if (data.state.currentPlayerIndex !== store.gameState?.currentPlayerIndex) {
+        const player = data.state.players[data.state.currentPlayerIndex];
+        store.addLog(`[TURN] ${player.name} (${player.id})`);
+      }
+
+      // [GAME] Trick completion (check if phase changed to trick_complete)
+      if (phase === 'trick_complete' && store.gameState?.phase !== 'trick_complete') {
+        store.addLog(`[GAME] Trick complete. Calculating winner...`);
+      }
+
+      // [GAME] Trick Winner Detection (Tricks count increased)
       const oldPlayers = store.gameState?.players || [];
       const newPlayers = data.state.players;
-
-      // Check for trick winners (trick count increased)
       for (const player of newPlayers) {
         const oldPlayer = oldPlayers.find((p) => p.id === player.id);
         if (oldPlayer && player.tricks > oldPlayer.tricks) {
-          store.addLog(`Trick won by ${player.name} (Total: ${player.tricks})`);
+          store.addLog(`[GAME] Trick won by ${player.name} (Total: ${player.tricks})`);
         }
       }
 
-      // Check for round completion scores
-      if (data.state.phase === 'round_complete' && store.gameState?.phase !== 'round_complete') {
-        store.addLog(`Round ${data.state.round} Complete.`);
+      // [GAME] Round Completion
+      if (phase === 'round_complete' && store.gameState?.phase !== 'round_complete') {
+        store.addLog(`[GAME] Round ${data.state.round} Complete.`);
         newPlayers.forEach((p) => {
           const roundScore = p.roundScores[p.roundScores.length - 1];
-          store.addLog(`${p.name}: ${roundScore} pts (Total: ${p.totalScore})`);
+          store.addLog(`[SCORE] ${p.name}: ${roundScore} pts (Total: ${p.totalScore})`);
         });
       }
 
-      // Check for pulka completion
-      if (data.state.phase === 'pulka_complete' && store.gameState?.phase !== 'pulka_complete') {
-        store.addLog(`Pulka Complete. Updating Premiums...`);
+      // Auto-cleanup on Pulka Complete
+      if (phase === 'pulka_complete' && store.gameState?.phase !== 'pulka_complete') {
+        store.addLog(`[GAME] Pulka Complete. Clearing old logs...`);
+        // Keep last 10 logs + new message
+        setTimeout(() => {
+          useGameStore.setState((state) => ({
+            gameLogs: [...state.gameLogs.slice(-10), '[SYSTEM] Logs auto-cleared for new Pulka'],
+          }));
+        }, 5000); // Clear after 5 seconds so user sees the "Complete" message
       }
     }
 
