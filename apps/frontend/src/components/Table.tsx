@@ -135,84 +135,108 @@ export const Table: React.FC<TableProps> = ({
   };
 
   // 3. Render Table Cards
-  // Cards float in the center area, offset towards their owner
+  // Cards fly from player position to center with slight randomness
   const renderTableCards = () => {
     return tableCards.map((tc, i) => {
       const pos = getPlayerPosition(tc.playerId);
 
-      // Calculate offsets based on position to create a "pile" in the center but clear who played what
-      // Increased spread to prevent overlap
-      const offsets: Record<Position, string> = {
-        'bottom-center': 'translate-y-24 translate-x-0 rotate-[-2deg]',
-        'bottom-left': 'translate-y-12 -translate-x-24 rotate-[15deg]',
-        'bottom-right': 'translate-y-12 translate-x-24 rotate-[-15deg]',
-        'top-left': '-translate-y-12 -translate-x-24 rotate-[-165deg]',
-        'top-center': '-translate-y-24 translate-x-0 rotate-[180deg]',
-        'top-right': '-translate-y-12 translate-x-24 rotate-[165deg]',
-        'left-center': '-translate-y-0 -translate-x-32 rotate-[90deg]',
-        'right-center': '-translate-y-0 translate-x-32 rotate-[-90deg]',
+      // Generate stable random values based on card ID to avoid jitter on re-renders
+      // Simple hash function for pseudo-randomness
+      const hash = tc.card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const randomAngle = (hash % 30) - 15; // -15 to +15 degrees variation
+      const randomX = (hash % 40) - 20; // -20 to +20px variation
+      const randomY = ((hash * 13) % 40) - 20; // Different seed for Y
+
+      // Initial positions (off-screen / player hand area)
+      const startPos: Record<Position, { x: number; y: number; rotate: number }> = {
+        'bottom-center': { x: 0, y: 400, rotate: 0 },
+        'bottom-left': { x: -300, y: 400, rotate: 15 },
+        'bottom-right': { x: 300, y: 400, rotate: -15 },
+        'top-left': { x: -300, y: -400, rotate: 165 },
+        'top-center': { x: 0, y: -400, rotate: 180 },
+        'top-right': { x: 300, y: -400, rotate: 195 },
+        'left-center': { x: -500, y: 0, rotate: 90 },
+        'right-center': { x: 500, y: 0, rotate: -90 },
       };
 
-      // Inverse rotation for badges to keep them horizontal
-      const badgeRotation: Record<Position, string> = {
-        'bottom-center': 'rotate-0',
-        'bottom-left': 'rotate-[10deg]',
-        'bottom-right': 'rotate-[-10deg]',
-        'top-left': 'rotate-[5deg]',
-        'top-center': 'rotate-0',
-        'top-right': 'rotate-[-5deg]',
-        'left-center': 'rotate-[90deg]',
-        'right-center': 'rotate-[-90deg]',
+      // Target base rotation (card orientation on table)
+      // Players throw cards "facing" the center
+      const baseRotation: Record<Position, number> = {
+        'bottom-center': 0,
+        'bottom-left': 30, // Angled inward
+        'bottom-right': -30,
+        'top-left': 150,
+        'top-center': 180, // Facing me upside down
+        'top-right': 210,
+        'left-center': 90,
+        'right-center': -90,
       };
 
-      // Animation targets for flying to winner
-      const flyTo: Record<Position, { x: number; y: number }> = {
-        'bottom-center': { x: 0, y: 400 },
-        'bottom-left': { x: -300, y: 400 },
-        'bottom-right': { x: 300, y: 400 },
-        'top-left': { x: -300, y: -400 },
-        'top-center': { x: 0, y: -400 },
-        'top-right': { x: 300, y: -400 },
-        'left-center': { x: -500, y: 0 },
-        'right-center': { x: 500, y: 0 },
+      // Target positions (center of table with slight offset towards player)
+      // We use small offsets so they form a loose cluster/pile
+      const targetPos: Record<Position, { x: number; y: number }> = {
+        'bottom-center': { x: 0, y: 30 },
+        'bottom-left': { x: -20, y: 20 },
+        'bottom-right': { x: 20, y: 20 },
+        'top-left': { x: -20, y: -20 },
+        'top-center': { x: 0, y: -30 },
+        'top-right': { x: 20, y: -20 },
+        'left-center': { x: -40, y: 0 },
+        'right-center': { x: 40, y: 0 },
       };
 
-      // If there is a winner, all cards fly to that winner's position
+      const start = startPos[pos];
+      const target = targetPos[pos];
+      const finalRotation = baseRotation[pos] + randomAngle;
+
+      // Badge rotation (to keep text readable/horizontal-ish if needed, or relative to card)
+      // We'll just let it rotate with card for realism
+
+      // Animation targets for flying to winner (cleanup phase)
       const winnerPos = winnerId ? getPlayerPosition(winnerId) : null;
-      const animateProps = winnerPos
-        ? {
-            x: flyTo[winnerPos].x,
-            y: flyTo[winnerPos].y,
-            opacity: 0,
-            scale: 0.5,
-          }
-        : {
-            x: 0,
-            y: 0,
-            opacity: 1,
-            scale: 1,
-          };
+      const flyTo = winnerPos ? startPos[winnerPos] : null;
+
+      const initialProps = {
+        opacity: 0,
+        scale: 0.8,
+        x: start.x,
+        y: start.y,
+        rotate: start.rotate,
+      };
+
+      const animateProps =
+        winnerPos && flyTo
+          ? {
+              x: flyTo.x,
+              y: flyTo.y,
+              opacity: 0,
+              scale: 0.4,
+              rotate: flyTo.rotate, // Rotate towards winner stack
+              transition: { duration: 0.8, ease: 'easeInOut' },
+            }
+          : {
+              x: target.x + randomX,
+              y: target.y + randomY,
+              opacity: 1,
+              scale: 1,
+              rotate: finalRotation,
+              transition: { type: 'spring', stiffness: 300, damping: 25 }, // Snap effect
+            };
 
       return (
         <motion.div
           key={`${tc.playerId}-${tc.card.id}`}
-          initial={{ opacity: 0, scale: 0.5, y: -50 }}
-          className={`absolute transition-all duration-500 ease-out ${offsets[pos]}`}
-          style={{ zIndex: 20 + i }}
+          initial={initialProps}
           animate={animateProps}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="absolute z-20" // Removed fixed offset classes
+          style={{ zIndex: 20 + i }}
         >
-          <Card
-            card={tc.card}
-            size="md"
-            className="shadow-2xl border-none"
-            // Apply slight random rotation for realism (except mostly straight for N/S/E/W)
-            style={{ transform: `rotate(${Math.random() * 2 - 1}deg)` }}
-          />
+          <Card card={tc.card} size="md" className="shadow-2xl border-none" />
           {/* Show Joker Request */}
           {tc.requestedSuit && (
             <div
-              className={`absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg flex items-center gap-2 border border-white/10 ${badgeRotation[pos]}`}
+              className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg flex items-center gap-2 border border-white/10"
+              style={{ transform: `rotate(${-finalRotation}deg)` }} // Counter-rotate to keep text horizontal
             >
               <span className="opacity-80">{t('game.table.req')}</span>
               <SuitIcon
