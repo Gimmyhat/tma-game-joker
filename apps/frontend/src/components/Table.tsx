@@ -212,7 +212,7 @@ export const Table: React.FC<TableProps> = ({
               opacity: 0,
               scale: 0.4,
               rotate: flyTo.rotate, // Rotate towards winner stack
-              transition: { duration: 0.8, ease: 'easeInOut' },
+              transition: { duration: 0.8, ease: 'easeInOut' as const },
             }
           : {
               x: target.x + randomX,
@@ -220,7 +220,7 @@ export const Table: React.FC<TableProps> = ({
               opacity: 1,
               scale: 1,
               rotate: finalRotation,
-              transition: { type: 'spring', stiffness: 300, damping: 25 }, // Snap effect
+              transition: { type: 'spring' as const, stiffness: 300, damping: 25 }, // Snap effect
             };
 
       return (
