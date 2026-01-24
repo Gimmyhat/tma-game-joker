@@ -153,24 +153,6 @@ export class DeckService {
       return lastTopIndex;
     }
 
-    if (leadCard.jokerOption === JokerOption.Low && requestedSuit) {
-      let suitedWinnerIndex = -1;
-      let suitedWinnerRank = -1;
-      for (let i = 0; i < table.length; i++) {
-        const card = table[i].card;
-        if (card.type === 'standard' && (card as StandardCard).suit === requestedSuit) {
-          const rank = (card as StandardCard).rank;
-          if (rank > suitedWinnerRank) {
-            suitedWinnerRank = rank;
-            suitedWinnerIndex = i;
-          }
-        }
-      }
-      if (suitedWinnerIndex >= 0) {
-        return suitedWinnerIndex;
-      }
-    }
-
     if (trump) {
       let trumpWinnerIndex = -1;
       let trumpWinnerRank = -1;
@@ -186,6 +168,24 @@ export class DeckService {
       }
       if (trumpWinnerIndex >= 0) {
         return trumpWinnerIndex;
+      }
+    }
+
+    if (leadCard.jokerOption === JokerOption.Low && requestedSuit) {
+      let suitedWinnerIndex = -1;
+      let suitedWinnerRank = -1;
+      for (let i = 0; i < table.length; i++) {
+        const card = table[i].card;
+        if (card.type === 'standard' && (card as StandardCard).suit === requestedSuit) {
+          const rank = (card as StandardCard).rank;
+          if (rank > suitedWinnerRank) {
+            suitedWinnerRank = rank;
+            suitedWinnerIndex = i;
+          }
+        }
+      }
+      if (suitedWinnerIndex >= 0) {
+        return suitedWinnerIndex;
       }
     }
 

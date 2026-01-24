@@ -6,7 +6,7 @@ export class MoveValidator {
   /**
    * Validate if player can play the given card
    * Rules:
-   * 1. Joker can always be played
+   * 1. Joker can always be played (except response to Joker High/Low with required suit/trump)
    * 2. If table is empty, any card can be played
    * 3. Must follow lead suit if possible
    * 4. If no lead suit, must play trump if possible
@@ -23,11 +23,6 @@ export class MoveValidator {
       return { valid: false, reason: 'CARD_NOT_IN_HAND', message: 'Card is not in your hand' };
     }
 
-    // Joker can always be played
-    if (cardToPlay.type === 'joker') {
-      return { valid: true };
-    }
-
     // Empty table - any card is valid
     if (table.length === 0) {
       return { valid: true };
@@ -36,10 +31,18 @@ export class MoveValidator {
     const firstCard = table[0];
     if (
       firstCard.card.type === 'joker' &&
-      firstCard.jokerOption === JokerOption.High &&
+      (firstCard.jokerOption === JokerOption.High || firstCard.jokerOption === JokerOption.Low) &&
       firstCard.requestedSuit
     ) {
-      return this.validateResponseToJokerHigh(hand, cardToPlay, firstCard.requestedSuit, trump);
+      if (firstCard.jokerOption === JokerOption.High) {
+        return this.validateResponseToJokerHigh(hand, cardToPlay, firstCard.requestedSuit, trump);
+      }
+      return this.validateResponseToJokerLow(hand, cardToPlay, firstCard.requestedSuit, trump);
+    }
+
+    // Joker can always be played
+    if (cardToPlay.type === 'joker') {
+      return { valid: true };
     }
 
     const playedCard = cardToPlay as StandardCard;
@@ -139,12 +142,6 @@ export class MoveValidator {
     requestedSuit: Suit,
     trump: Suit | null,
   ): ValidationResult {
-    // Joker response is always valid
-    if (cardToPlay.type === 'joker') {
-      return { valid: true };
-    }
-
-    const playedCard = cardToPlay as StandardCard;
     const cardsOfSuit = this.getCardsOfSuit(hand, requestedSuit);
 
     if (cardsOfSuit.length === 0) {
@@ -153,6 +150,16 @@ export class MoveValidator {
         const trumpCards = this.getCardsOfSuit(hand, trump);
         if (trumpCards.length > 0) {
           // Must play trump, but any trump is valid
+          if (cardToPlay.type === 'joker') {
+            return {
+              valid: false,
+              reason: 'MUST_PLAY_TRUMP',
+              message: `No ${requestedSuit}, must play trump`,
+              requiredSuit: trump,
+            };
+          }
+
+          const playedCard = cardToPlay as StandardCard;
           if (playedCard.suit !== trump) {
             return {
               valid: false,
@@ -167,6 +174,17 @@ export class MoveValidator {
       // No suit, no trump - any card is valid
       return { valid: true };
     }
+
+    if (cardToPlay.type === 'joker') {
+      return {
+        valid: false,
+        reason: 'MUST_FOLLOW_SUIT',
+        message: `Must play ${requestedSuit}`,
+        requiredSuit: requestedSuit,
+      };
+    }
+
+    const playedCard = cardToPlay as StandardCard;
 
     // Has requested suit - must play HIGHEST card of that suit
     if (playedCard.suit !== requestedSuit) {
@@ -185,6 +203,68 @@ export class MoveValidator {
         reason: 'MUST_PLAY_HIGHEST',
         message: `Must play highest ${requestedSuit} card`,
       };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Validate response to Joker Low
+   * When Joker Low is played, others must play any card of requested suit
+   */
+  validateResponseToJokerLow(
+    hand: Card[],
+    cardToPlay: Card,
+    requestedSuit: Suit,
+    trump: Suit | null,
+  ): ValidationResult {
+    const cardsOfSuit = this.getCardsOfSuit(hand, requestedSuit);
+
+    if (cardsOfSuit.length > 0) {
+      if (cardToPlay.type === 'joker') {
+        return {
+          valid: false,
+          reason: 'MUST_FOLLOW_SUIT',
+          message: `Must play ${requestedSuit}`,
+          requiredSuit: requestedSuit,
+        };
+      }
+
+      const playedCard = cardToPlay as StandardCard;
+      if (playedCard.suit !== requestedSuit) {
+        return {
+          valid: false,
+          reason: 'MUST_FOLLOW_SUIT',
+          message: `Must play ${requestedSuit}`,
+          requiredSuit: requestedSuit,
+        };
+      }
+      return { valid: true };
+    }
+
+    if (trump) {
+      const trumpCards = this.getCardsOfSuit(hand, trump);
+      if (trumpCards.length > 0) {
+        if (cardToPlay.type === 'joker') {
+          return {
+            valid: false,
+            reason: 'MUST_PLAY_TRUMP',
+            message: `No ${requestedSuit}, must play trump`,
+            requiredSuit: trump,
+          };
+        }
+
+        const playedCard = cardToPlay as StandardCard;
+        if (playedCard.suit !== trump) {
+          return {
+            valid: false,
+            reason: 'MUST_PLAY_TRUMP',
+            message: `No ${requestedSuit}, must play trump`,
+            requiredSuit: trump,
+          };
+        }
+        return { valid: true };
+      }
     }
 
     return { valid: true };

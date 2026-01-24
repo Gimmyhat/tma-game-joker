@@ -119,7 +119,12 @@ describe('MoveValidator', () => {
     });
 
     it('should require trump when no requested suit for Joker High lead', () => {
-      const hand: Card[] = [createCard(Suit.Spades, Rank.Seven), createCard(Suit.Clubs, Rank.Ace)];
+      const joker = createJoker(1);
+      const hand: Card[] = [
+        createCard(Suit.Spades, Rank.Seven),
+        createCard(Suit.Clubs, Rank.Ace),
+        joker,
+      ];
       const table: TableCard[] = [
         {
           card: createJoker(1),
@@ -135,6 +140,38 @@ describe('MoveValidator', () => {
       const invalidResult = validator.validate(hand, hand[1], table, Suit.Spades);
       expect(invalidResult.valid).toBe(false);
       expect(invalidResult.reason).toBe('MUST_PLAY_TRUMP');
+
+      const jokerResult = validator.validate(hand, joker, table, Suit.Spades);
+      expect(jokerResult.valid).toBe(false);
+      expect(jokerResult.reason).toBe('MUST_PLAY_TRUMP');
+    });
+
+    it('should require trump when no requested suit for Joker Low lead', () => {
+      const joker = createJoker(2);
+      const hand: Card[] = [
+        createCard(Suit.Spades, Rank.Seven),
+        createCard(Suit.Clubs, Rank.Ace),
+        joker,
+      ];
+      const table: TableCard[] = [
+        {
+          card: createJoker(1),
+          playerId: 'p1',
+          jokerOption: JokerOption.Low,
+          requestedSuit: Suit.Hearts,
+        },
+      ];
+
+      const validResult = validator.validate(hand, hand[0], table, Suit.Spades);
+      expect(validResult.valid).toBe(true);
+
+      const invalidResult = validator.validate(hand, hand[1], table, Suit.Spades);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.reason).toBe('MUST_PLAY_TRUMP');
+
+      const jokerResult = validator.validate(hand, joker, table, Suit.Spades);
+      expect(jokerResult.valid).toBe(false);
+      expect(jokerResult.reason).toBe('MUST_PLAY_TRUMP');
     });
   });
 
@@ -171,7 +208,7 @@ describe('MoveValidator', () => {
   });
 
   describe('validateResponseToJokerHigh', () => {
-    it('should allow joker as response', () => {
+    it('should allow joker if no suit and no trump', () => {
       const joker = createJoker(1);
       const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), joker];
 
@@ -195,9 +232,11 @@ describe('MoveValidator', () => {
     });
 
     it('should require trump if no requested suit', () => {
+      const joker = createJoker(1);
       const hand: Card[] = [
         createCard(Suit.Diamonds, Rank.Seven),
         createCard(Suit.Spades, Rank.Ace),
+        joker,
       ];
 
       const validResult = validator.validateResponseToJokerHigh(
@@ -215,6 +254,15 @@ describe('MoveValidator', () => {
         Suit.Spades,
       );
       expect(invalidResult.valid).toBe(false);
+
+      const jokerResult = validator.validateResponseToJokerHigh(
+        hand,
+        joker,
+        Suit.Hearts,
+        Suit.Spades,
+      );
+      expect(jokerResult.valid).toBe(false);
+      expect(jokerResult.reason).toBe('MUST_PLAY_TRUMP');
     });
 
     it('should allow any card if no suit and no trump', () => {
@@ -275,9 +323,30 @@ describe('MoveValidator', () => {
 
       const validCards = validator.getValidCards(hand, table, null);
       expect(validCards.map((c) => c.id)).toContain('hearts-14');
-      expect(validCards.map((c) => c.id)).toContain('joker-1');
       expect(validCards.map((c) => c.id)).not.toContain('hearts-7');
       expect(validCards.map((c) => c.id)).not.toContain('spades-13');
+      expect(validCards.map((c) => c.id)).not.toContain('joker-1');
+    });
+
+    it('should require trump for Joker Low lead when no requested suit', () => {
+      const hand: Card[] = [
+        createCard(Suit.Spades, Rank.Seven),
+        createCard(Suit.Clubs, Rank.Ace),
+        createJoker(1),
+      ];
+      const table: TableCard[] = [
+        {
+          card: createJoker(2),
+          playerId: 'p1',
+          jokerOption: JokerOption.Low,
+          requestedSuit: Suit.Hearts,
+        },
+      ];
+
+      const validCards = validator.getValidCards(hand, table, Suit.Spades);
+      expect(validCards.map((c) => c.id)).toContain('spades-7');
+      expect(validCards.map((c) => c.id)).not.toContain('clubs-14');
+      expect(validCards.map((c) => c.id)).not.toContain('joker-1');
     });
   });
 });

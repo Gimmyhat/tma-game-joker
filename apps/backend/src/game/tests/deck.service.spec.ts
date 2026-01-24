@@ -428,7 +428,7 @@ describe('DeckService', () => {
       expect(winner).toBe(2);
     });
 
-    it('should choose highest requested suit for Joker Low', () => {
+    it('should let trump beat requested suit for Joker Low', () => {
       const table: TableCard[] = [
         {
           card: { type: 'joker', id: 'j1', jokerId: 1 },
@@ -441,6 +441,29 @@ describe('DeckService', () => {
           playerId: 'p2',
         },
         { card: { type: 'standard', id: '3', suit: Suit.Spades, rank: Rank.Ace }, playerId: 'p3' },
+        {
+          card: { type: 'standard', id: '4', suit: Suit.Diamonds, rank: Rank.King },
+          playerId: 'p4',
+        },
+      ];
+
+      const winner = deckService.determineTrickWinner(table, Suit.Spades);
+      expect(winner).toBe(2);
+    });
+
+    it('should choose highest requested suit for Joker Low when no trump is played', () => {
+      const table: TableCard[] = [
+        {
+          card: { type: 'joker', id: 'j1', jokerId: 1 },
+          playerId: 'p1',
+          jokerOption: JokerOption.Low,
+          requestedSuit: Suit.Diamonds,
+        },
+        {
+          card: { type: 'standard', id: '2', suit: Suit.Diamonds, rank: Rank.Seven },
+          playerId: 'p2',
+        },
+        { card: { type: 'standard', id: '3', suit: Suit.Clubs, rank: Rank.Ace }, playerId: 'p3' },
         {
           card: { type: 'standard', id: '4', suit: Suit.Diamonds, rank: Rank.King },
           playerId: 'p4',
