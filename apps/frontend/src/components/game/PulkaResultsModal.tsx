@@ -21,13 +21,12 @@ export const PulkaResultsModal: React.FC = () => {
     return () => clearInterval(interval);
   }, [pulkaRecapExpiresAt]);
 
-  // Only show if we have results
-  if (!gameState?.lastPulkaResults) return null;
+  // Only show if we have results AND phase is PulkaComplete
+  // The results stay in state for history, but modal should only show during the phase
+  if (!gameState?.lastPulkaResults || gameState.phase !== 'pulka_complete') return null;
 
-  const { pulka, premiums, playerScores } = gameState.lastPulkaResults;
+  const { pulka, playerScores } = gameState.lastPulkaResults;
   const players = gameState.players;
-
-  const getPlayerName = (id: string) => players.find((p) => p.id === id)?.name || 'Unknown';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -38,60 +37,36 @@ export const PulkaResultsModal: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-6 overflow-y-auto max-h-[60vh]">
-          {/* Scores */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-              Счет за пульку
-            </h3>
-            <div className="bg-[#0f172a]/50 rounded-lg p-3 space-y-2 border border-[#2c3e50]/50">
-              {players.map((player) => (
-                <div key={player.id} className="flex justify-between items-center">
-                  <span className="text-gray-200 font-medium">{player.name}</span>
-                  <span className="font-mono font-bold text-yellow-400 text-lg">
-                    {playerScores[player.id] ?? 0}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="overflow-y-auto max-h-[60vh]">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#0f172a]/50 border-b border-[#2c3e50] text-gray-400 text-xs uppercase tracking-wider">
+                <th className="p-4 font-medium">Игрок</th>
+                <th className="p-4 font-medium text-right">Премия</th>
+                <th className="p-4 font-medium text-right">Общий счет</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#2c3e50]/50">
+              {players.map((player) => {
+                const score = playerScores[player.id] ?? 0;
+                let scoreColor = 'text-yellow-400';
+                if (score > 0) scoreColor = 'text-emerald-400';
+                if (score < 0) scoreColor = 'text-red-400';
 
-          {/* Premiums */}
-          {premiums && premiums.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Премии и Штрафы
-              </h3>
-              <div className="space-y-2">
-                {premiums.map((prem, idx) => {
-                  const playerName = getPlayerName(prem.playerId);
-                  // We render two potential blocks per premium entry: one for gain, one for loss
-                  return (
-                    <React.Fragment key={idx}>
-                      {prem.received > 0 && (
-                        <div className="flex items-center justify-between text-emerald-400 bg-emerald-900/20 border border-emerald-900/30 p-2.5 rounded-lg">
-                          <span className="font-medium">{playerName}</span>
-                          <span className="text-sm font-bold">+{prem.received} (Премия)</span>
-                        </div>
-                      )}
-                      {prem.takenAmount > 0 && (
-                        <div className="flex items-center justify-between text-red-400 bg-red-900/20 border border-red-900/30 p-2.5 rounded-lg">
-                          <span className="font-medium">{playerName}</span>
-                          <div className="text-right">
-                            <div className="text-sm font-bold">-{prem.takenAmount}</div>
-                            <div className="text-[10px] opacity-80">
-                              Отдано{' '}
-                              {prem.takenFromPlayerId ? getPlayerName(prem.takenFromPlayerId) : '?'}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                return (
+                  <tr key={player.id} className="hover:bg-white/5 transition-colors">
+                    <td className="p-4 text-gray-200 font-medium">{player.name}</td>
+                    <td className={`p-4 text-right font-mono font-bold ${scoreColor}`}>
+                      {score > 0 ? `+${score}` : score}
+                    </td>
+                    <td className="p-4 text-right font-mono font-bold text-white">
+                      {player.totalScore}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Footer / Timer */}

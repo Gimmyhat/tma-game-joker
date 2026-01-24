@@ -216,10 +216,10 @@ export const GAME_CONSTANTS = {
   TOTAL_PULKAS: 4,
 
   // Timeouts
-  TURN_TIMEOUT_MS: 300_000, // 5 minutes for testing
+  TURN_TIMEOUT_MS: 60_000, // 1 minute
   RECONNECT_TIMEOUT_MS: 30_000,
   MATCHMAKING_TIMEOUT_MS: 60_000,
-  PULKA_RECAP_TIMEOUT_MS: 300_000, // 5 minutes for testing
+  PULKA_RECAP_TIMEOUT_MS: 60_000, // 1 minute
   TRICK_RECAP_TIMEOUT_MS: 3000, // 3 seconds delay after each trick
 
   // Scoring
