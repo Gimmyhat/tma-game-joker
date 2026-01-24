@@ -53,10 +53,15 @@ export class ScoringService {
     } else if (tookAll) {
       score = GAME_CONSTANTS.SCORE_TOOK_ALL_MULTIPLIER * roundLength;
     } else if (tookOwn) {
-      score = GAME_CONSTANTS.SCORE_TOOK_OWN_MULTIPLIER * bet;
+      // Rule: 50 * bet + 50 (bonus)
+      score = GAME_CONSTANTS.SCORE_TOOK_OWN_MULTIPLIER * bet + 50;
     } else {
       score = GAME_CONSTANTS.SCORE_MISS_MULTIPLIER * tricks;
     }
+
+    console.log(
+      `[Scoring] Player: ${bet} | Tricks: ${tricks} | RL: ${roundLength} | Shtanga: ${isShtanga} | Own: ${tookOwn} | Score: ${score}`,
+    );
 
     return {
       playerId: '',

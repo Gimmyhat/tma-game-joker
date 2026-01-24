@@ -25,9 +25,9 @@ describe('ScoringService', () => {
   });
 
   describe('calculateRoundScore', () => {
-    it('should give 50 * bet when took own', () => {
+    it('should give 50 * bet + 50 when took own', () => {
       const result = service.calculateRoundScore(3, 3, 5);
-      expect(result.score).toBe(150); // 50 * 3
+      expect(result.score).toBe(200); // 50 * 3 + 50
       expect(result.tookOwn).toBe(true);
       expect(result.tookAll).toBe(false);
     });
@@ -96,8 +96,8 @@ describe('ScoringService', () => {
       const results = service.calculateRoundScores(players, 5);
 
       expect(results.length).toBe(4);
-      expect(results[0].score).toBe(100); // 50 * 2
-      expect(results[1].score).toBe(50); // 50 * 1
+      expect(results[0].score).toBe(150); // 50 * 2 + 50
+      expect(results[1].score).toBe(100); // 50 * 1 + 50
       expect(results[2].score).toBe(20); // 10 * 2 (miss)
       expect(results[3].score).toBe(-200); // shtanga
     });
