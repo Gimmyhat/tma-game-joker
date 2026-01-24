@@ -238,6 +238,11 @@ export const GAME_CONSTANTS = {
   ],
 } as const;
 
+export const resolveTimeoutMs = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 // =====================================
 // UTILITY TYPES
 // =====================================

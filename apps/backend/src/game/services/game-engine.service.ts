@@ -9,7 +9,9 @@ import {
   JokerOption,
   RoundHistory,
   GAME_CONSTANTS,
+  resolveTimeoutMs,
 } from '@joker/shared';
+import { ConfigService } from '@nestjs/config';
 import { DeckService } from './deck.service';
 import { MoveValidator } from '../validators/move.validator';
 import { BetValidator } from '../validators/bet.validator';
@@ -24,6 +26,7 @@ export class GameEngineService {
     private betValidator: BetValidator,
     private scoringService: ScoringService,
     private stateMachine: StateMachineService,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -67,7 +70,7 @@ export class GameEngineService {
       trump: null,
       table: [],
       turnStartedAt: Date.now(),
-      turnTimeoutMs: GAME_CONSTANTS.TURN_TIMEOUT_MS,
+      turnTimeoutMs: this.getTurnTimeoutMs(),
       history: [],
       lastPulkaResults: null,
       createdAt: Date.now(),
@@ -428,7 +431,7 @@ export class GameEngineService {
 
     // Set timeout for the recap phase
     newState.turnStartedAt = Date.now();
-    newState.turnTimeoutMs = GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS;
+    newState.turnTimeoutMs = this.getPulkaRecapTimeoutMs();
 
     return newState;
   }
@@ -497,9 +500,23 @@ export class GameEngineService {
 
     newState.table = [];
     newState.turnStartedAt = Date.now();
-    newState.turnTimeoutMs = GAME_CONSTANTS.TURN_TIMEOUT_MS; // Reset to normal turn timeout
+    newState.turnTimeoutMs = this.getTurnTimeoutMs(); // Reset to normal turn timeout
 
     return newState;
+  }
+
+  private getTurnTimeoutMs(): number {
+    return resolveTimeoutMs(
+      this.configService.get<string>('TURN_TIMEOUT_MS'),
+      GAME_CONSTANTS.TURN_TIMEOUT_MS,
+    );
+  }
+
+  private getPulkaRecapTimeoutMs(): number {
+    return resolveTimeoutMs(
+      this.configService.get<string>('PULKA_RECAP_TIMEOUT_MS'),
+      GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS,
+    );
   }
 
   private orderPlayersForScoreSheet(players: Player[], dealerIndex: number): Player[] {

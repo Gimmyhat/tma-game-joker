@@ -261,10 +261,13 @@ export class ScoringService {
    * Calculate final game results and winner
    */
   calculateFinalResults(players: Player[]): { winnerId: string; rankings: Player[] } {
-    const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
+    const scoreSheetOrder = new Map(players.map((player, index) => [player.id, index]));
+    const sorted = [...players].sort((a, b) => {
+      const scoreDiff = b.totalScore - a.totalScore;
+      if (scoreDiff !== 0) return scoreDiff;
 
-    // Tie-breaker: player positioned earlier in score sheet wins
-    // This is already handled by original player order if scores are equal
+      return (scoreSheetOrder.get(a.id) ?? 0) - (scoreSheetOrder.get(b.id) ?? 0);
+    });
 
     return {
       winnerId: sorted[0].id,
