@@ -57,9 +57,9 @@ describe('ScoringService', () => {
       expect(result.isShtanga).toBe(true);
     });
 
-    it('should give 0 for bet 0, tricks 0 (took own, not shtanga)', () => {
+    it('should give 50 for bet 0, tricks 0 (successful pass)', () => {
       const result = service.calculateRoundScore(0, 0, 5);
-      expect(result.score).toBe(0); // 50 * 0 = 0
+      expect(result.score).toBe(50); // SCORE_PASS_BONUS
       expect(result.tookOwn).toBe(true);
       expect(result.isShtanga).toBe(false);
     });

@@ -44,6 +44,12 @@ export class ScoringService {
 
     if (isShtanga) {
       score = GAME_CONSTANTS.SCORE_SHTANGA_PENALTY;
+    } else if (bet === 0) {
+      if (tricks === 0) {
+        score = GAME_CONSTANTS.SCORE_PASS_BONUS;
+      } else {
+        score = GAME_CONSTANTS.SCORE_MISS_MULTIPLIER * tricks;
+      }
     } else if (tookAll) {
       score = GAME_CONSTANTS.SCORE_TOOK_ALL_MULTIPLIER * roundLength;
     } else if (tookOwn) {
@@ -84,10 +90,7 @@ export class ScoringService {
    * 4. Same amount is subtracted from NEXT player (clockwise)
    * 5. Exception: If next player is also on premium, don't subtract
    */
-  calculatePulkaPremiums(
-    players: Player[],
-    pulkaHistory: RoundHistory[],
-  ): PulkaScoreResult {
+  calculatePulkaPremiums(players: Player[], pulkaHistory: RoundHistory[]): PulkaScoreResult {
     const playerCount = players.length;
 
     // Find players who are "clean" (didn't spoil in this pulka)
