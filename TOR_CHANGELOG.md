@@ -1,5 +1,16 @@
 # TOR_CHANGELOG
 
+## v0.5.1 (2026-01-24) — Исправление E2E тестов
+
+- **Проблема**: Frontend E2E тест `4 players can place bets` падал — кнопка "Find Game" не была видна.
+- **Корневая причина**: Тест проверял `if (isVisible())` вместо ожидания подключения сокета.
+- **Исправлено**:
+  - `game-flow.spec.ts`: заменён `if (isVisible())` на `waitFor({ timeout: 20000 })`.
+  - `health.controller.ts`: создан endpoint `/api/health` для проверки готовности backend.
+  - `app.module.ts`: добавлен `HealthController`.
+  - `e2e.yml`: удалён неиспользуемый postgres service, убран `DATABASE_URL`.
+- **Status**: IMPLEMENTED.
+
 ## v0.5 (2026-01-24) — Исправление механики джокера
 
 - **Источник**: Анализ правил грузинского покера (Pagat.com, Wikipedia).

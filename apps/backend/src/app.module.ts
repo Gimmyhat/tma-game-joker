@@ -7,6 +7,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { BotModule } from './bot/bot.module';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { DatabaseModule } from './database/database.module';
     BotModule,
     AuthModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}

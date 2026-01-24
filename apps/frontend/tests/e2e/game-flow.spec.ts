@@ -8,15 +8,18 @@ const players = [
 ];
 
 test('4 players can place bets and reach playing phase', async ({ browser }) => {
-  test.setTimeout(60000);
+  test.setTimeout(90000);
   const contexts = await Promise.all(players.map(() => browser.newContext()));
   const pages = await Promise.all(contexts.map((context) => context.newPage()));
 
   try {
+    // Connect all players and click Find Game
     for (let i = 0; i < pages.length; i += 1) {
       const player = players[i];
       const page = pages[i];
       await page.goto(`/?devUserId=${player.id}&devUserName=${encodeURIComponent(player.name)}`);
+
+      // Wait for page to load
       await Promise.race([
         page
           .getByRole('heading', { name: /Joker|Джокер/i })
@@ -27,10 +30,10 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
           .waitFor({ state: 'visible', timeout: 15000 }),
       ]);
 
+      // Wait for socket connection - button only appears when connected
       const findGameButton = page.getByRole('button', { name: /Find Game|Найти игру/i });
-      if (await findGameButton.isVisible()) {
-        await findGameButton.click();
-      }
+      await findGameButton.waitFor({ state: 'visible', timeout: 20000 });
+      await findGameButton.click();
     }
 
     const betPlaced = new Set<number>();
