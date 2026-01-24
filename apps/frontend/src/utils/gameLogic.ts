@@ -12,19 +12,40 @@ const getCardPower = (
 ): number => {
   // Joker handling
   if (card.type === 'joker') {
-    if (jokerOption === JokerOption.Top || jokerOption === JokerOption.High) {
-      return 1000; // Always wins (unless beaten by another joker later, handled in loop)
+    if (jokerOption === JokerOption.Top) {
+      return 1000; // Always wins (unless beaten by another joker Top later)
     }
-    if (jokerOption === JokerOption.Bottom || jokerOption === JokerOption.Low) {
+    if (jokerOption === JokerOption.Bottom) {
       return 0; // Always loses
     }
-    // High/Low options when leading are effectively Top/Bottom for power calculation
+
+    // High/Low options (only valid when leading)
+    // requestedSuit IS the leadSuit when Joker leads, so we can use leadSuit or _requestedSuit
+    const suit = _requestedSuit || leadSuit;
+
+    if (jokerOption === JokerOption.High) {
+      if (trump && suit === trump) {
+        return 300; // Stronger than any standard trump (200 + rank max ~214)
+      }
+      // Stronger than any card of the suit (100 + 14 = 114), but weaker than Trump (200+)
+      return 199;
+    }
+
+    if (jokerOption === JokerOption.Low) {
+      if (trump && suit === trump) {
+        return 201; // Weakest trump (200 + 6 = 206 is usually min)
+      }
+      // Weakest card of the suit (100 + 6 = 106 is usually min)
+      // Beats off-suit non-trumps (Power < 100)
+      return 101;
+    }
+
+    // Fallback
     return 1000;
   }
 
   // Trump handling
   if (trump && card.suit === trump) {
-    // If joker requested this suit (High option), treat as normal trump power
     return 200 + card.rank;
   }
 
@@ -67,10 +88,9 @@ export const determineTrickWinner = (
   for (let i = 0; i < tableCards.length; i++) {
     const { card, jokerOption, requestedSuit } = tableCards[i];
 
-    if (
-      card.type === 'joker' &&
-      (jokerOption === JokerOption.Top || (i === 0 && jokerOption === JokerOption.High))
-    ) {
+    // Only count "Top" as overriding "Top" joker logic
+    // "High" is a power-based win, not an absolute override like "Top"
+    if (card.type === 'joker' && jokerOption === JokerOption.Top) {
       topJokerIndices.push(i);
     }
 
