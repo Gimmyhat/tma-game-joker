@@ -270,6 +270,12 @@ describe('App (e2e)', () => {
         currentState = (await nextStatePromise).state;
       }
 
+      // With the new delay mechanic, we might receive TrickComplete state first
+      // If so, we need to wait for the actual Round change (which happens after delay)
+      if (currentState.phase === GamePhase.TrickComplete) {
+        currentState = (await waitForState(clients[0])).state;
+      }
+
       expect(currentState.round).toBe(2);
       expect(currentState.phase).toBe(GamePhase.Betting);
     } finally {
