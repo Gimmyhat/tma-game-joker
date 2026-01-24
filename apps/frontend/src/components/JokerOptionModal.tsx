@@ -80,10 +80,10 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
     },
   ];
 
-  // Filter options based on position in trick
-  // Leading (first card): High/Low with suit selection
-  // Following (not first): Top/Bottom only
-  const options = allOptions.filter((opt) => opt.leadingOnly === isLeading);
+  // No longer filtering options to show all possibilities (disabled states)
+  // Leading (first card): High/Low active, Top/Bottom disabled
+  // Following (not first): Top/Bottom active, High/Low disabled
+  const options = allOptions; // Show all
 
   const suits = [
     { type: Suit.Hearts, symbol: '♥', color: 'text-red-500', label: t('game.trump.hearts') },
@@ -136,30 +136,40 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
         <div className="p-6">
           {step === 'option' ? (
             <div className="grid gap-3">
-              {options.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => handleOptionSelect(opt.id)}
-                  className={`
-                    flex items-center p-4 rounded-xl border transition-all duration-200 text-left group
-                    hover:bg-slate-800 hover:border-slate-600
-                    ${opt.color}
-                  `}
-                >
-                  <span className="text-3xl mr-4 group-hover:scale-110 transition-transform">
-                    {opt.icon}
-                  </span>
-                  <div>
-                    <div className="font-bold text-lg text-white">{opt.label}</div>
-                    <div className="text-xs opacity-70 uppercase tracking-wider">
-                      {opt.subLabel}
+              {options.map((opt) => {
+                const isDisabled = opt.leadingOnly !== isLeading;
+
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => !isDisabled && handleOptionSelect(opt.id)}
+                    disabled={isDisabled}
+                    className={`
+                      flex items-center p-4 rounded-xl border transition-all duration-200 text-left group
+                      ${
+                        isDisabled
+                          ? 'opacity-30 bg-slate-900 border-slate-800 cursor-not-allowed saturate-0'
+                          : `hover:bg-slate-800 hover:border-slate-600 ${opt.color}`
+                      }
+                    `}
+                  >
+                    <span className="text-3xl mr-4 group-hover:scale-110 transition-transform">
+                      {opt.icon}
+                    </span>
+                    <div>
+                      <div className="font-bold text-lg text-white">{opt.label}</div>
+                      <div className="text-xs opacity-70 uppercase tracking-wider">
+                        {opt.subLabel}
+                      </div>
                     </div>
-                  </div>
-                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
-                    →
-                  </div>
-                </button>
-              ))}
+                    {!isDisabled && (
+                      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+                        →
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
