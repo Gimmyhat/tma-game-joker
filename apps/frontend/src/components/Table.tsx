@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, TableCard, Suit } from '@joker/shared';
+import { motion } from 'framer-motion';
+import { Player, TableCard, Suit, GamePhase } from '@joker/shared';
+import { useGameStore } from '../store/gameStore';
+import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
 import PlayerInfo from './PlayerInfo';
 
@@ -34,6 +37,8 @@ export const Table: React.FC<TableProps> = ({
   isJokerTrump = false,
 }) => {
   const { t } = useTranslation();
+  const gamePhase = useGameStore((state) => state.gameState?.phase);
+
   // 1. Calculate Positions
   const orderedPlayers = useMemo(() => {
     if (!players.length) return [];
@@ -123,6 +128,14 @@ export const Table: React.FC<TableProps> = ({
   // 3. Render Table Cards
   // Cards float in the center area, offset towards their owner
   const renderTableCards = () => {
+    // Determine winner if trick is complete
+    const winnerId = useMemo(() => {
+      if (gamePhase === GamePhase.TrickComplete) {
+        return determineTrickWinner(tableCards, trump);
+      }
+      return null;
+    }, [gamePhase, tableCards, trump]);
+
     return tableCards.map((tc, i) => {
       const pos = getPlayerPosition(tc.playerId);
 
@@ -139,11 +152,36 @@ export const Table: React.FC<TableProps> = ({
         'right-center': '-translate-y-0 translate-x-20 rotate-[90deg]',
       };
 
+      // Animation targets for flying to winner
+      const flyTo: Record<Position, { x: number; y: number }> = {
+        'bottom-center': { x: 0, y: 400 },
+        'bottom-left': { x: -300, y: 400 },
+        'bottom-right': { x: 300, y: 400 },
+        'top-left': { x: -300, y: -400 },
+        'top-center': { x: 0, y: -400 },
+        'top-right': { x: 300, y: -400 },
+        'left-center': { x: -500, y: 0 },
+        'right-center': { x: 500, y: 0 },
+      };
+
+      // If there is a winner, all cards fly to that winner's position
+      const winnerPos = winnerId ? getPlayerPosition(winnerId) : null;
+      const animateProps = winnerPos
+        ? {
+            x: flyTo[winnerPos].x,
+            y: flyTo[winnerPos].y,
+            opacity: 0,
+            scale: 0.5,
+          }
+        : {}; // Default state is handled by className offsets
+
       return (
-        <div
+        <motion.div
           key={`${tc.playerId}-${tc.card.id}`}
           className={`absolute transition-all duration-500 ease-out ${offsets[pos]}`}
           style={{ zIndex: 20 + i }}
+          animate={animateProps}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <Card
             card={tc.card}
@@ -158,7 +196,7 @@ export const Table: React.FC<TableProps> = ({
               {t('game.table.req')}: {tc.requestedSuit}
             </div>
           )}
-        </div>
+        </motion.div>
       );
     });
   };
