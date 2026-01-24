@@ -1,13 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Card,
-  StandardCard,
-  JokerCard,
-  Suit,
-  Rank,
-  TableCard,
-  JokerOption,
-} from '@joker/shared';
+import { Card, StandardCard, JokerCard, Suit, Rank, TableCard, JokerOption } from '@joker/shared';
 
 @Injectable()
 export class DeckService {
@@ -75,7 +67,11 @@ export class DeckService {
    * @param cardsPerPlayer - cards per player for this round
    * @returns Array of hands for each player
    */
-  deal(deck: Card[], playerCount: number, cardsPerPlayer: number): { hands: Card[][]; remainingDeck: Card[] } {
+  deal(
+    deck: Card[],
+    playerCount: number,
+    cardsPerPlayer: number,
+  ): { hands: Card[][]; remainingDeck: Card[] } {
     const deckCopy = [...deck];
     const hands: Card[][] = Array.from({ length: playerCount }, () => []);
 
@@ -121,11 +117,19 @@ export class DeckService {
       throw new Error('Table is empty');
     }
 
+    const leadCard = table[0];
+    if (
+      leadCard.card.type === 'joker' &&
+      (leadCard.jokerOption === JokerOption.High || leadCard.jokerOption === JokerOption.Low)
+    ) {
+      return this.determineJokerHighLowWinner(table, trump);
+    }
+
     let winnerIndex = 0;
     let winnerCard = table[0];
 
     for (let i = 1; i < table.length; i++) {
-      const comparison = this.compareCards(winnerCard, table[i], trump, i);
+      const comparison = this.compareCards(winnerCard, table[i], trump);
       if (comparison < 0) {
         winnerIndex = i;
         winnerCard = table[i];
@@ -135,16 +139,64 @@ export class DeckService {
     return winnerIndex;
   }
 
+  private determineJokerHighLowWinner(table: TableCard[], trump: Suit | null): number {
+    const leadCard = table[0];
+    const requestedSuit = leadCard.requestedSuit;
+
+    let lastTopIndex = -1;
+    for (let i = 0; i < table.length; i++) {
+      if (table[i].card.type === 'joker' && table[i].jokerOption === JokerOption.Top) {
+        lastTopIndex = i;
+      }
+    }
+    if (lastTopIndex >= 0) {
+      return lastTopIndex;
+    }
+
+    if (leadCard.jokerOption === JokerOption.Low && requestedSuit) {
+      let suitedWinnerIndex = -1;
+      let suitedWinnerRank = -1;
+      for (let i = 0; i < table.length; i++) {
+        const card = table[i].card;
+        if (card.type === 'standard' && (card as StandardCard).suit === requestedSuit) {
+          const rank = (card as StandardCard).rank;
+          if (rank > suitedWinnerRank) {
+            suitedWinnerRank = rank;
+            suitedWinnerIndex = i;
+          }
+        }
+      }
+      if (suitedWinnerIndex >= 0) {
+        return suitedWinnerIndex;
+      }
+    }
+
+    if (trump) {
+      let trumpWinnerIndex = -1;
+      let trumpWinnerRank = -1;
+      for (let i = 0; i < table.length; i++) {
+        const card = table[i].card;
+        if (card.type === 'standard' && (card as StandardCard).suit === trump) {
+          const rank = (card as StandardCard).rank;
+          if (rank > trumpWinnerRank) {
+            trumpWinnerRank = rank;
+            trumpWinnerIndex = i;
+          }
+        }
+      }
+      if (trumpWinnerIndex >= 0) {
+        return trumpWinnerIndex;
+      }
+    }
+
+    return 0;
+  }
+
   /**
    * Compare two table cards
    * Returns positive if card1 wins, negative if card2 wins
    */
-  private compareCards(
-    card1: TableCard,
-    card2: TableCard,
-    trump: Suit | null,
-    card2Index: number,
-  ): number {
+  private compareCards(card1: TableCard, card2: TableCard, trump: Suit | null): number {
     const c1 = card1.card;
     const c2 = card2.card;
 
@@ -218,8 +270,7 @@ export class DeckService {
     if (card.type === 'joker') {
       // Joker with High/Low option specifies a suit
       if (
-        (firstCard.jokerOption === JokerOption.High ||
-          firstCard.jokerOption === JokerOption.Low) &&
+        (firstCard.jokerOption === JokerOption.High || firstCard.jokerOption === JokerOption.Low) &&
         firstCard.requestedSuit
       ) {
         return firstCard.requestedSuit;

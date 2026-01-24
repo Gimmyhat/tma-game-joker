@@ -294,13 +294,16 @@ describe('App (e2e)', () => {
     state = gameEngine.startGame(state);
     expect(state.phase).toBe(GamePhase.Betting);
 
-    state = gameEngine.makeBet(state, players[0], 0);
-    state = gameEngine.makeBet(state, players[1], 0);
-    state = gameEngine.makeBet(state, players[2], 0);
+    for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT - 1; i++) {
+      const currentPlayerId = state.players[state.currentPlayerIndex].id;
+      state = gameEngine.makeBet(state, currentPlayerId, 0);
+    }
 
-    expect(() => gameEngine.makeBet(state, players[3], 1)).toThrow(/Cannot bet/i);
+    const dealerId = state.players[state.dealerIndex].id;
 
-    state = gameEngine.makeBet(state, players[3], 0);
+    expect(() => gameEngine.makeBet(state, dealerId, 1)).toThrow(/Cannot bet/i);
+
+    state = gameEngine.makeBet(state, dealerId, 0);
     expect(state.phase).toBe(GamePhase.Playing);
   });
 
@@ -310,16 +313,19 @@ describe('App (e2e)', () => {
     const followSuitCard = createCard(Suit.Hearts, Rank.Seven);
 
     const state = gameEngine.createGame(players, names);
+    const orderedPlayerIds = state.players.map((player) => player.id);
     state.phase = GamePhase.Playing;
     state.trump = Suit.Spades;
-    state.table = [{ card: leadCard, playerId: players[0] } as TableCard];
+    state.table = [{ card: leadCard, playerId: orderedPlayerIds[0] } as TableCard];
     state.currentPlayerIndex = 1;
     state.players[0].hand = [leadCard];
     state.players[1].hand = [followSuitCard, offSuitCard];
     state.players[2].hand = [createCard(Suit.Clubs, Rank.Ace)];
     state.players[3].hand = [createCard(Suit.Diamonds, Rank.Ace)];
 
-    expect(() => gameEngine.playCard(state, players[1], offSuitCard.id)).toThrow(/Must play/i);
+    expect(() => gameEngine.playCard(state, orderedPlayerIds[1], offSuitCard.id)).toThrow(
+      /Must play/i,
+    );
   });
 
   it('requires high/low option when joker leads', () => {
@@ -329,11 +335,13 @@ describe('App (e2e)', () => {
     state.currentPlayerIndex = 0;
     state.table = [] as TableCard[];
 
+    const currentPlayerId = state.players[state.currentPlayerIndex].id;
+
     const joker = createJoker(1);
-    state.players[0].hand = [joker];
+    state.players[state.currentPlayerIndex].hand = [joker];
 
     expect(() =>
-      gameEngine.playCard(state, players[0], joker.id, JokerOption.Top, Suit.Hearts),
+      gameEngine.playCard(state, currentPlayerId, joker.id, JokerOption.Top, Suit.Hearts),
     ).toThrow(/Joker/i);
   });
 
@@ -342,6 +350,8 @@ describe('App (e2e)', () => {
     state.dealerIndex = 3;
     state.currentPlayerIndex = stateMachine.getFirstPlayerIndex(state.dealerIndex);
     state = gameEngine.startGame(state);
+
+    const orderedPlayerIds = state.players.map((player) => player.id);
 
     const roundHands: Card[][] = [
       [createCard(Suit.Hearts, Rank.Seven)],
@@ -361,21 +371,21 @@ describe('App (e2e)', () => {
     state.phase = GamePhase.Betting;
     state.currentPlayerIndex = stateMachine.getFirstPlayerIndex(state.dealerIndex);
 
-    state = gameEngine.makeBet(state, players[0], 0);
-    state = gameEngine.makeBet(state, players[1], 0);
-    state = gameEngine.makeBet(state, players[2], 0);
-    state = gameEngine.makeBet(state, players[3], 0);
+    for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+      const currentPlayerId = state.players[state.currentPlayerIndex].id;
+      state = gameEngine.makeBet(state, currentPlayerId, 0);
+    }
 
-    state = gameEngine.playCard(state, players[0], roundHands[0][0].id);
-    state = gameEngine.playCard(state, players[1], roundHands[1][0].id);
-    state = gameEngine.playCard(state, players[2], roundHands[2][0].id);
-    state = gameEngine.playCard(state, players[3], roundHands[3][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[0], roundHands[0][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[1], roundHands[1][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[2], roundHands[2][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[3], roundHands[3][0].id);
 
     expect(state.phase).toBe(GamePhase.TrickComplete);
 
     state = gameEngine.completeTrick(state);
     expect(state.phase).toBe(GamePhase.RoundComplete);
-    expect(state.players.find((player) => player.id === players[1])?.tricks).toBe(1);
+    expect(state.players.find((player) => player.id === orderedPlayerIds[1])?.tricks).toBe(1);
 
     state = gameEngine.completeRound(state);
 
@@ -383,7 +393,9 @@ describe('App (e2e)', () => {
     expect(state.cardsPerPlayer).toBe(2);
     expect(state.phase).toBe(GamePhase.Betting);
     expect(state.history.length).toBe(1);
-    expect(state.players.find((player) => player.id === players[1])?.roundScores[0]).toBe(10);
+    expect(state.players.find((player) => player.id === orderedPlayerIds[1])?.roundScores[0]).toBe(
+      10,
+    );
     state.players.forEach((player) => expect(player.hand.length).toBe(2));
   });
 
@@ -396,6 +408,8 @@ describe('App (e2e)', () => {
     state.trump = Suit.Spades;
     state.table = [] as TableCard[];
     state.currentPlayerIndex = 0;
+
+    const orderedPlayerIds = state.players.map((player) => player.id);
 
     const hands: Card[][] = [
       [createCard(Suit.Hearts, Rank.Seven), createCard(Suit.Hearts, Rank.Nine)],
@@ -411,10 +425,10 @@ describe('App (e2e)', () => {
       tricks: 0,
     }));
 
-    state = gameEngine.playCard(state, players[0], hands[0][0].id);
-    state = gameEngine.playCard(state, players[1], hands[1][0].id);
-    state = gameEngine.playCard(state, players[2], hands[2][0].id);
-    state = gameEngine.playCard(state, players[3], hands[3][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[0], hands[0][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[1], hands[1][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[2], hands[2][0].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[3], hands[3][0].id);
     expect(state.phase).toBe(GamePhase.TrickComplete);
 
     state = gameEngine.completeTrick(state);
@@ -422,10 +436,10 @@ describe('App (e2e)', () => {
     expect(state.currentPlayerIndex).toBe(2);
     expect(state.players[2].tricks).toBe(1);
 
-    state = gameEngine.playCard(state, players[2], hands[2][1].id);
-    state = gameEngine.playCard(state, players[3], hands[3][1].id);
-    state = gameEngine.playCard(state, players[0], hands[0][1].id);
-    state = gameEngine.playCard(state, players[1], hands[1][1].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[2], hands[2][1].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[3], hands[3][1].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[0], hands[0][1].id);
+    state = gameEngine.playCard(state, orderedPlayerIds[1], hands[1][1].id);
     expect(state.phase).toBe(GamePhase.TrickComplete);
 
     state = gameEngine.completeTrick(state);
@@ -443,17 +457,19 @@ describe('App (e2e)', () => {
     state.trump = null;
     state.table = [] as TableCard[];
 
+    const orderedPlayerIds = state.players.map((player) => player.id);
+
     state.players = state.players.map((player, index) => ({
       ...player,
       hand: [],
-      bet: index === 0 ? 1 : 0,
+      bet: index === 0 ? 2 : 0,
       tricks: 0,
       spoiled: false,
     }));
 
     state = gameEngine.completeRound(state);
 
-    const shtangaPlayer = state.players.find((player) => player.id === players[0]);
+    const shtangaPlayer = state.players.find((player) => player.id === orderedPlayerIds[0]);
     expect(shtangaPlayer?.roundScores[0]).toBe(GAME_CONSTANTS.SCORE_SHTANGA_PENALTY);
     expect(shtangaPlayer?.totalScore).toBe(GAME_CONSTANTS.SCORE_SHTANGA_PENALTY);
   });
@@ -467,6 +483,8 @@ describe('App (e2e)', () => {
     state.trump = null;
     state.table = [] as TableCard[];
 
+    const orderedPlayerIds = state.players.map((player) => player.id);
+
     state.players = state.players.map((player, index) => ({
       ...player,
       hand: [],
@@ -477,7 +495,7 @@ describe('App (e2e)', () => {
 
     state = gameEngine.completeRound(state);
 
-    const winner = state.players.find((player) => player.id === players[1]);
+    const winner = state.players.find((player) => player.id === orderedPlayerIds[1]);
     const tookAllScore = GAME_CONSTANTS.SCORE_TOOK_ALL_MULTIPLIER * 2;
     expect(winner?.roundScores[0]).toBe(tookAllScore);
     expect(winner?.totalScore).toBe(tookAllScore);

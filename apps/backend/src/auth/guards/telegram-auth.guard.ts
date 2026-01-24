@@ -18,7 +18,9 @@ export class TelegramAuthGuard implements CanActivate {
     console.log('Auth check failed. SKIP_AUTH:', skipAuth); // Debug log
 
     const client: Socket = context.switchToWs().getClient();
-    const initData = client.handshake.query.initData as string;
+    const initData =
+      (client.handshake.auth?.initData as string | undefined) ||
+      (client.handshake.query.initData as string | undefined);
 
     if (!initData) {
       throw new WsException('No initData provided');

@@ -1,12 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Card,
-  StandardCard,
-  Suit,
-  TableCard,
-  JokerOption,
-  ValidationResult,
-} from '@joker/shared';
+import { Card, StandardCard, Suit, TableCard, JokerOption, ValidationResult } from '@joker/shared';
 
 @Injectable()
 export class MoveValidator {
@@ -38,6 +31,15 @@ export class MoveValidator {
     // Empty table - any card is valid
     if (table.length === 0) {
       return { valid: true };
+    }
+
+    const firstCard = table[0];
+    if (
+      firstCard.card.type === 'joker' &&
+      firstCard.jokerOption === JokerOption.High &&
+      firstCard.requestedSuit
+    ) {
+      return this.validateResponseToJokerHigh(hand, cardToPlay, firstCard.requestedSuit, trump);
     }
 
     const playedCard = cardToPlay as StandardCard;
@@ -227,8 +229,7 @@ export class MoveValidator {
     if (card.type === 'joker') {
       // Joker with High/Low specifies a suit
       if (
-        (firstCard.jokerOption === JokerOption.High ||
-          firstCard.jokerOption === JokerOption.Low) &&
+        (firstCard.jokerOption === JokerOption.High || firstCard.jokerOption === JokerOption.Low) &&
         firstCard.requestedSuit
       ) {
         return firstCard.requestedSuit;

@@ -319,7 +319,7 @@ export class RoomManager {
   /**
    * Handle player disconnect
    */
-  async handleDisconnect(playerId: string, socketId: string): Promise<void> {
+  async handleDisconnect(playerId: string): Promise<void> {
     // Remove from queue
     this.removeFromQueue(playerId);
 

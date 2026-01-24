@@ -45,6 +45,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Bot fill timer (before room is created)
   private botFillTimer: NodeJS.Timeout | null = null;
 
+  private reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
   constructor(
     private gameEngine: GameEngineService,
     private roomManager: RoomManager,
@@ -68,7 +70,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketToPlayer.set(client.id, { id: userId, name: userName });
 
     // DEBUG: Log all incoming events
-    client.onAny((event, ...args) => {
+    client.onAny((event) => {
       this.logger.log(`[DEBUG] Received event: ${event} from ${client.id}`);
     });
 
@@ -77,6 +79,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room) {
       await this.roomManager.updateSocketId(userId, client.id);
       client.join(room.id);
+
+      this.clearReconnectTimeout(userId);
 
       // Mark player as connected
       const player = room.gameState.players.find((p) => p.id === userId);
@@ -97,8 +101,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket): Promise<void> {
     const playerInfo = this.socketToPlayer.get(client.id);
     if (playerInfo) {
-      await this.roomManager.handleDisconnect(playerInfo.id, client.id);
+      await this.roomManager.handleDisconnect(playerInfo.id);
       this.socketToPlayer.delete(client.id);
+      this.startReconnectTimeout(playerInfo.id);
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -391,52 +396,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.handleTrickCompletionWithDelay(room.id);
         // Don't process further immediately
       } else {
-        // Handle round completion (should be triggered by trick completion usually, but just in case)
-        if (room.gameState.phase === GamePhase.RoundComplete) {
-          room.gameState = this.gameEngine.completeRound(room.gameState);
-        }
-
-        // Handle pulka completion
-        if (room.gameState.phase === GamePhase.PulkaComplete) {
-          room.gameState = this.gameEngine.completePulka(room.gameState);
-          // Start recap timer
-          this.startPulkaRecapTimer(room.id);
-        }
-
-        await this.roomManager.updateGameState(room.id, room.gameState);
-        await this.emitGameState(room.id);
-
-        // Check if game finished
-        if (room.gameState.phase === GamePhase.Finished) {
-          await this.handleGameFinished(room.id);
-        } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
-          this.startTurnTimer(room.id);
-          await this.processBotTurn(room.id);
-        }
-      }
-
-      // Handle round completion
-      if (room.gameState.phase === GamePhase.RoundComplete) {
-        room.gameState = this.gameEngine.completeRound(room.gameState);
-      }
-
-      // Handle pulka completion
-      if (room.gameState.phase === GamePhase.PulkaComplete) {
-        room.gameState = this.gameEngine.completePulka(room.gameState);
-        // Start recap timer
-        this.startPulkaRecapTimer(room.id);
-      }
-
-      await this.roomManager.updateGameState(room.id, room.gameState);
-      await this.emitGameState(room.id);
-
-      // Check if game finished (should wait for PulkaComplete first now, so this might move)
-      if (room.gameState.phase === GamePhase.Finished) {
-        await this.handleGameFinished(room.id);
-      } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
-        // Only start turn timer if NOT in PulkaComplete (recap)
-        this.startTurnTimer(room.id);
-        await this.processBotTurn(room.id);
+        await this.handlePostMoveTransitions(room.id);
       }
     } catch (err) {
       client.emit('error', { code: 'INVALID_MOVE', message: (err as Error).message });
@@ -457,30 +417,35 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       try {
         // Complete trick
         room.gameState = this.gameEngine.completeTrick(room.gameState);
-
-        // Handle subsequent completions
-        if (room.gameState.phase === GamePhase.RoundComplete) {
-          room.gameState = this.gameEngine.completeRound(room.gameState);
-        }
-
-        if (room.gameState.phase === GamePhase.PulkaComplete) {
-          room.gameState = this.gameEngine.completePulka(room.gameState);
-          this.startPulkaRecapTimer(roomId);
-        }
-
-        await this.roomManager.updateGameState(room.id, room.gameState);
-        await this.emitGameState(room.id);
-
-        if (room.gameState.phase === GamePhase.Finished) {
-          await this.handleGameFinished(room.id);
-        } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
-          this.startTurnTimer(room.id);
-          await this.processBotTurn(room.id);
-        }
+        await this.handlePostMoveTransitions(roomId);
       } catch (err) {
         this.logger.error(`Error completing trick: ${(err as Error).message}`);
       }
     }, delay);
+  }
+
+  private async handlePostMoveTransitions(roomId: string): Promise<void> {
+    const room = this.roomManager.getRoomSync(roomId);
+    if (!room || room.gameState.phase === GamePhase.TrickComplete) return;
+
+    if (room.gameState.phase === GamePhase.RoundComplete) {
+      room.gameState = this.gameEngine.completeRound(room.gameState);
+    }
+
+    if (room.gameState.phase === GamePhase.PulkaComplete) {
+      room.gameState = this.gameEngine.completePulka(room.gameState);
+      this.startPulkaRecapTimer(roomId);
+    }
+
+    await this.roomManager.updateGameState(room.id, room.gameState);
+    await this.emitGameState(room.id);
+
+    if (room.gameState.phase === GamePhase.Finished) {
+      await this.handleGameFinished(room.id);
+    } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
+      this.startTurnTimer(room.id);
+      await this.processBotTurn(room.id);
+    }
   }
 
   /**
@@ -598,6 +563,51 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.roomManager.setTurnTimeout(roomId, timeout);
   }
 
+  private startReconnectTimeout(playerId: string): void {
+    if (this.roomManager.isBot(playerId)) return;
+
+    const room = this.roomManager.getRoomByPlayerIdSync(playerId);
+    if (!room) return;
+
+    this.clearReconnectTimeout(playerId);
+
+    const timeoutMs =
+      Number(this.configService.get('RECONNECT_TIMEOUT_MS')) || GAME_CONSTANTS.RECONNECT_TIMEOUT_MS;
+
+    const timeout = setTimeout(async () => {
+      this.clearReconnectTimeout(playerId);
+
+      const currentRoom = this.roomManager.getRoomByPlayerIdSync(playerId);
+      if (!currentRoom) return;
+
+      const player = currentRoom.gameState.players.find((p) => p.id === playerId);
+      if (!player || player.connected) return;
+
+      const newState = await this.roomManager.replaceWithBot(currentRoom.id, playerId);
+      if (!newState) return;
+
+      currentRoom.gameState = newState;
+
+      this.server.to(currentRoom.id).emit('player_replaced', {
+        playerId,
+        playerName: player.name,
+      });
+
+      await this.emitGameState(currentRoom.id);
+      await this.processBotTurn(currentRoom.id);
+    }, timeoutMs);
+
+    this.reconnectTimeouts.set(playerId, timeout);
+  }
+
+  private clearReconnectTimeout(playerId: string): void {
+    const timeout = this.reconnectTimeouts.get(playerId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.reconnectTimeouts.delete(playerId);
+    }
+  }
+
   /**
    * Handle turn timeout - replace with bot
    */
@@ -612,7 +622,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (newState) {
       room.gameState = newState;
 
-      this.server.to(roomId).emit('player_replaced_by_bot', {
+      this.server.to(roomId).emit('player_replaced', {
         playerId,
         playerName: playerName || 'Unknown',
       });
@@ -650,19 +660,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       switch (room.gameState.phase) {
-        case GamePhase.TrumpSelection:
+        case GamePhase.TrumpSelection: {
           // Bot picks random trump or no trump
           const trump = this.botService.selectTrump();
           room.gameState = this.gameEngine.selectTrump(room.gameState, botId, trump);
           break;
+        }
 
-        case GamePhase.Betting:
+        case GamePhase.Betting: {
           // Bot makes bet using BotService
           const bet = this.botService.makeBet(room.gameState, botId);
           room.gameState = this.gameEngine.makeBet(room.gameState, botId, bet);
           break;
+        }
 
-        case GamePhase.Playing:
+        case GamePhase.Playing: {
           // Bot plays card using BotService
           const move = this.botService.makeMove(room.gameState, botId);
 
@@ -674,6 +686,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
             move.requestedSuit,
           );
           break;
+        }
       }
 
       // Handle completions
@@ -684,41 +697,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         this.handleTrickCompletionWithDelay(room.id);
       } else {
-        // Only proceed if NOT trick complete (as that's handled async)
-        if (room.gameState.phase === GamePhase.RoundComplete) {
-          room.gameState = this.gameEngine.completeRound(room.gameState);
-        }
-        if (room.gameState.phase === GamePhase.PulkaComplete) {
-          room.gameState = this.gameEngine.completePulka(room.gameState);
-          this.startPulkaRecapTimer(roomId);
-        }
-
-        await this.roomManager.updateGameState(room.id, room.gameState);
-        await this.emitGameState(room.id);
-
-        if (room.gameState.phase === GamePhase.Finished) {
-          await this.handleGameFinished(room.id);
-        } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
-          this.startTurnTimer(roomId);
-          await this.processBotTurn(roomId);
-        }
-      }
-      if (room.gameState.phase === GamePhase.RoundComplete) {
-        room.gameState = this.gameEngine.completeRound(room.gameState);
-      }
-      if (room.gameState.phase === GamePhase.PulkaComplete) {
-        room.gameState = this.gameEngine.completePulka(room.gameState);
-        this.startPulkaRecapTimer(roomId);
-      }
-
-      await this.roomManager.updateGameState(room.id, room.gameState);
-      await this.emitGameState(roomId);
-
-      if (room.gameState.phase === GamePhase.Finished) {
-        await this.handleGameFinished(roomId);
-      } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
-        this.startTurnTimer(roomId);
-        await this.processBotTurn(roomId);
+        await this.handlePostMoveTransitions(room.id);
       }
     } catch (err) {
       this.logger.error(`Bot error: ${(err as Error).message}`);

@@ -4,7 +4,6 @@ import {
   GameState,
   GamePhase,
   Player,
-  Card,
   Suit,
   TableCard,
   JokerOption,
@@ -53,11 +52,14 @@ export class GameEngineService {
       hadJokerInRounds: [],
     }));
 
+    const scoreSheetPlayers = this.orderPlayersForScoreSheet(players, dealerIndex);
+    const scoreSheetDealerIndex = scoreSheetPlayers.length - 1;
+
     const gameState: GameState = {
       id: uuidv4(),
-      players,
-      dealerIndex,
-      currentPlayerIndex: this.stateMachine.getFirstPlayerIndex(dealerIndex),
+      players: scoreSheetPlayers,
+      dealerIndex: scoreSheetDealerIndex,
+      currentPlayerIndex: this.stateMachine.getFirstPlayerIndex(scoreSheetDealerIndex),
       round: 1,
       pulka: 1,
       cardsPerPlayer: 1,
@@ -396,7 +398,6 @@ export class GameEngineService {
     const newState = { ...state };
 
     // Get rounds for this pulka
-    const pulkaInfo = this.stateMachine.getPulkaInfo(newState.round);
     const pulkaRounds = newState.history.filter((h) => h.pulka === newState.pulka);
 
     // Calculate premiums
@@ -499,5 +500,13 @@ export class GameEngineService {
     newState.turnTimeoutMs = GAME_CONSTANTS.TURN_TIMEOUT_MS; // Reset to normal turn timeout
 
     return newState;
+  }
+
+  private orderPlayersForScoreSheet(players: Player[], dealerIndex: number): Player[] {
+    const ordered: Player[] = [];
+    for (let offset = 1; offset <= players.length; offset++) {
+      ordered.push(players[(dealerIndex + offset) % players.length]);
+    }
+    return ordered;
   }
 }

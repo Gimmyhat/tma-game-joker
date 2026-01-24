@@ -23,10 +23,7 @@ describe('MoveValidator', () => {
 
   describe('validate', () => {
     it('should allow any card on empty table', () => {
-      const hand: Card[] = [
-        createCard(Suit.Hearts, Rank.Seven),
-        createCard(Suit.Spades, Rank.Ace),
-      ];
+      const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), createCard(Suit.Spades, Rank.Ace)];
 
       const result = validator.validate(hand, hand[0], [], null);
       expect(result.valid).toBe(true);
@@ -44,22 +41,15 @@ describe('MoveValidator', () => {
     it('should always allow joker', () => {
       const joker = createJoker(1);
       const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), joker];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Spades, Rank.Ace), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Spades, Rank.Ace), playerId: 'p1' }];
 
       const result = validator.validate(hand, joker, table, null);
       expect(result.valid).toBe(true);
     });
 
     it('should require following lead suit when possible', () => {
-      const hand: Card[] = [
-        createCard(Suit.Hearts, Rank.Seven),
-        createCard(Suit.Spades, Rank.Ace),
-      ];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' },
-      ];
+      const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), createCard(Suit.Spades, Rank.Ace)];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' }];
 
       const validResult = validator.validate(hand, hand[0], table, null);
       expect(validResult.valid).toBe(true);
@@ -74,9 +64,7 @@ describe('MoveValidator', () => {
         createCard(Suit.Diamonds, Rank.Seven),
         createCard(Suit.Spades, Rank.Ace),
       ];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' }];
 
       // Spades is trump
       const validResult = validator.validate(hand, hand[1], table, Suit.Spades);
@@ -92,9 +80,7 @@ describe('MoveValidator', () => {
         createCard(Suit.Diamonds, Rank.Seven),
         createCard(Suit.Clubs, Rank.Ace),
       ];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' }];
 
       // No trump, no hearts in hand
       const result1 = validator.validate(hand, hand[0], table, null);
@@ -107,12 +93,48 @@ describe('MoveValidator', () => {
     it('should allow joker even when holding lead suit', () => {
       const joker = createJoker(1);
       const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), joker];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' }];
 
       const result = validator.validate(hand, joker, table, null);
       expect(result.valid).toBe(true);
+    });
+
+    it('should require highest requested suit for Joker High lead', () => {
+      const hand: Card[] = [createCard(Suit.Hearts, Rank.Seven), createCard(Suit.Hearts, Rank.Ace)];
+      const table: TableCard[] = [
+        {
+          card: createJoker(1),
+          playerId: 'p1',
+          jokerOption: JokerOption.High,
+          requestedSuit: Suit.Hearts,
+        },
+      ];
+
+      const validResult = validator.validate(hand, hand[1], table, null);
+      expect(validResult.valid).toBe(true);
+
+      const invalidResult = validator.validate(hand, hand[0], table, null);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.reason).toBe('MUST_PLAY_HIGHEST');
+    });
+
+    it('should require trump when no requested suit for Joker High lead', () => {
+      const hand: Card[] = [createCard(Suit.Spades, Rank.Seven), createCard(Suit.Clubs, Rank.Ace)];
+      const table: TableCard[] = [
+        {
+          card: createJoker(1),
+          playerId: 'p1',
+          jokerOption: JokerOption.High,
+          requestedSuit: Suit.Hearts,
+        },
+      ];
+
+      const validResult = validator.validate(hand, hand[0], table, Suit.Spades);
+      expect(validResult.valid).toBe(true);
+
+      const invalidResult = validator.validate(hand, hand[1], table, Suit.Spades);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.reason).toBe('MUST_PLAY_TRUMP');
     });
   });
 
@@ -135,9 +157,7 @@ describe('MoveValidator', () => {
     });
 
     it('should require Top or Bottom for non-first card', () => {
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.King), playerId: 'p1' }];
 
       const validTop = validator.validateJokerPlay(table, JokerOption.Top);
       expect(validTop.valid).toBe(true);
@@ -180,10 +200,20 @@ describe('MoveValidator', () => {
         createCard(Suit.Spades, Rank.Ace),
       ];
 
-      const validResult = validator.validateResponseToJokerHigh(hand, hand[1], Suit.Hearts, Suit.Spades);
+      const validResult = validator.validateResponseToJokerHigh(
+        hand,
+        hand[1],
+        Suit.Hearts,
+        Suit.Spades,
+      );
       expect(validResult.valid).toBe(true);
 
-      const invalidResult = validator.validateResponseToJokerHigh(hand, hand[0], Suit.Hearts, Suit.Spades);
+      const invalidResult = validator.validateResponseToJokerHigh(
+        hand,
+        hand[0],
+        Suit.Hearts,
+        Suit.Spades,
+      );
       expect(invalidResult.valid).toBe(false);
     });
 
@@ -217,9 +247,7 @@ describe('MoveValidator', () => {
         createCard(Suit.Spades, Rank.King),
         createJoker(1),
       ];
-      const table: TableCard[] = [
-        { card: createCard(Suit.Hearts, Rank.Ten), playerId: 'p1' },
-      ];
+      const table: TableCard[] = [{ card: createCard(Suit.Hearts, Rank.Ten), playerId: 'p1' }];
 
       const validCards = validator.getValidCards(hand, table, null);
       // Hearts cards + Joker
@@ -227,6 +255,29 @@ describe('MoveValidator', () => {
       expect(validCards.map((c) => c.id)).toContain('hearts-7');
       expect(validCards.map((c) => c.id)).toContain('hearts-14');
       expect(validCards.map((c) => c.id)).toContain('joker-1');
+    });
+
+    it('should only allow highest requested suit for Joker High lead', () => {
+      const hand: Card[] = [
+        createCard(Suit.Hearts, Rank.Seven),
+        createCard(Suit.Hearts, Rank.Ace),
+        createCard(Suit.Spades, Rank.King),
+        createJoker(1),
+      ];
+      const table: TableCard[] = [
+        {
+          card: createJoker(2),
+          playerId: 'p1',
+          jokerOption: JokerOption.High,
+          requestedSuit: Suit.Hearts,
+        },
+      ];
+
+      const validCards = validator.getValidCards(hand, table, null);
+      expect(validCards.map((c) => c.id)).toContain('hearts-14');
+      expect(validCards.map((c) => c.id)).toContain('joker-1');
+      expect(validCards.map((c) => c.id)).not.toContain('hearts-7');
+      expect(validCards.map((c) => c.id)).not.toContain('spades-13');
     });
   });
 });

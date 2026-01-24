@@ -1,5 +1,5 @@
 import { ScoringService } from '../services/scoring.service';
-import { Player, RoundHistory, Suit, GAME_CONSTANTS } from '@joker/shared';
+import { Player, RoundHistory, Suit } from '@joker/shared';
 
 describe('ScoringService', () => {
   let service: ScoringService;
@@ -51,10 +51,16 @@ describe('ScoringService', () => {
       expect(result.tookOwn).toBe(false);
     });
 
-    it('should give -200 for shtanga (bet >= 1, tricks = 0)', () => {
+    it('should give -200 for shtanga (bet > 1, tricks = 0)', () => {
       const result = service.calculateRoundScore(2, 0, 5);
       expect(result.score).toBe(-200);
       expect(result.isShtanga).toBe(true);
+    });
+
+    it('should not give shtanga for bet 1, tricks 0', () => {
+      const result = service.calculateRoundScore(1, 0, 5);
+      expect(result.score).toBe(0);
+      expect(result.isShtanga).toBe(false);
     });
 
     it('should give 50 for bet 0, tricks 0 (successful pass)', () => {
@@ -142,6 +148,7 @@ describe('ScoringService', () => {
       ];
 
       const result = service.calculatePulkaPremiumsAdvanced(players, history);
+      expect(result).toBeDefined();
 
       // p1 gets premium (highest from first round = 150)
       expect(result.playerScores['p1']).toBe(150);
@@ -210,6 +217,7 @@ describe('ScoringService', () => {
       const history: RoundHistory[] = [createRoundHistory({ p1: 100, p2: 100, p3: 100, p4: 100 })];
 
       const result = service.calculatePulkaPremiumsAdvanced(players, history);
+      expect(result).toBeDefined();
 
       // Only first player gets (p4 tried to subtract from p1 but p1 is on premium)
       // Actually p4's "next" is p1 who is clean, so p4 doesn't subtract

@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { io, Socket } from 'socket.io-client';
-import { GamePhase, GameState } from '@joker/shared';
+import { GameState } from '@joker/shared';
 import { AppModule } from '../src/app.module';
 import { RoomManager } from '../src/gateway/room.manager';
 import { RedisService } from '../src/database/redis.service';
@@ -61,7 +61,9 @@ describe.skip('Resilience (e2e)', () => {
     try {
       const redis = app.get(RedisService);
       if (redis) await redis.onModuleDestroy();
-    } catch {}
+    } catch (error) {
+      void error;
+    }
     await app.close();
   });
 
@@ -109,12 +111,12 @@ describe.skip('Resilience (e2e)', () => {
       currentClient.disconnect();
 
       // Wait for timeout + buffer (2.5s)
-      // Others should receive 'player_replaced_by_bot'
+      // Others should receive 'player_replaced'
       const otherClient = clients.find((_, i) => i !== playerIndex)!;
 
       const replacedEvent = await waitForEvent<{ playerId: string }>(
         otherClient,
-        'player_replaced_by_bot',
+        'player_replaced',
         TURN_TIMEOUT + 2000,
       );
       expect(replacedEvent.playerId).toBe(currentPlayerId);

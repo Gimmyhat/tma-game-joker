@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GameState, Card, JokerOption, Rank, Suit } from '@joker/shared';
+import { GameState, JokerOption, Rank, Suit } from '@joker/shared';
 import { MoveValidator } from '../../game/validators/move.validator';
 import { BetValidator } from '../../game/validators/bet.validator';
 
