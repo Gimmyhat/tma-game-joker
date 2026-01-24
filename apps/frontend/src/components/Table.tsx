@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TableCard, Suit, GamePhase } from '@joker/shared';
 import { useGameStore } from '../store/gameStore';
 import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
 import PlayerInfo from './PlayerInfo';
+import { SuitIcon } from './SuitIcon';
 
 interface TableProps {
   players: Player[];
@@ -38,6 +39,14 @@ export const Table: React.FC<TableProps> = ({
 }) => {
   const { t } = useTranslation();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
+
+  // Determine winner if trick is complete
+  const winnerId = useMemo(() => {
+    if (gamePhase === GamePhase.TrickComplete) {
+      return determineTrickWinner(tableCards, trump);
+    }
+    return null;
+  }, [gamePhase, tableCards, trump]);
 
   // 1. Calculate Positions
   const orderedPlayers = useMemo(() => {
@@ -128,14 +137,6 @@ export const Table: React.FC<TableProps> = ({
   // 3. Render Table Cards
   // Cards float in the center area, offset towards their owner
   const renderTableCards = () => {
-    // Determine winner if trick is complete
-    const winnerId = useMemo(() => {
-      if (gamePhase === GamePhase.TrickComplete) {
-        return determineTrickWinner(tableCards, trump);
-      }
-      return null;
-    }, [gamePhase, tableCards, trump]);
-
     return tableCards.map((tc, i) => {
       const pos = getPlayerPosition(tc.playerId);
 
@@ -150,6 +151,18 @@ export const Table: React.FC<TableProps> = ({
         'top-right': '-translate-y-4 translate-x-16 rotate-[5deg]',
         'left-center': '-translate-y-0 -translate-x-20 rotate-[-90deg]',
         'right-center': '-translate-y-0 translate-x-20 rotate-[90deg]',
+      };
+
+      // Inverse rotation for badges to keep them horizontal
+      const badgeRotation: Record<Position, string> = {
+        'bottom-center': 'rotate-0',
+        'bottom-left': 'rotate-[10deg]',
+        'bottom-right': 'rotate-[-10deg]',
+        'top-left': 'rotate-[5deg]',
+        'top-center': 'rotate-0',
+        'top-right': 'rotate-[-5deg]',
+        'left-center': 'rotate-[90deg]',
+        'right-center': 'rotate-[-90deg]',
       };
 
       // Animation targets for flying to winner
@@ -192,8 +205,18 @@ export const Table: React.FC<TableProps> = ({
           />
           {/* Show Joker Request */}
           {tc.requestedSuit && (
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-yellow-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full whitespace-nowrap border border-yellow-500/50 shadow-md">
-              {t('game.table.req')}: {tc.requestedSuit}
+            <div
+              className={`absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg flex items-center gap-2 border border-white/10 ${badgeRotation[pos]}`}
+            >
+              <span className="opacity-80">{t('game.table.req')}</span>
+              <SuitIcon
+                suit={tc.requestedSuit}
+                className={`w-4 h-4 ${
+                  tc.requestedSuit === Suit.Hearts || tc.requestedSuit === Suit.Diamonds
+                    ? 'text-red-500'
+                    : 'text-white'
+                }`}
+              />
             </div>
           )}
         </motion.div>
@@ -280,6 +303,28 @@ export const Table: React.FC<TableProps> = ({
           {/* Center point anchor */}
           <div className="absolute top-1/2 left-1/2 w-0 h-0">{renderTableCards()}</div>
         </div>
+
+        {/* Trick Winner Notification */}
+        <AnimatePresence>
+          {gamePhase === GamePhase.TrickComplete && winnerId && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+              exit={{ opacity: 0, scale: 1.1, x: '-50%', y: '-50%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className="absolute top-1/2 left-1/2 z-50 pointer-events-none whitespace-nowrap"
+            >
+              <div className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] border-4 border-amber-300 flex items-center gap-3 transform -rotate-2">
+                <span className="text-3xl font-black uppercase tracking-wider drop-shadow-sm">
+                  {t('game.trickWon', {
+                    player: players.find((p) => p.id === winnerId)?.name,
+                  })}
+                </span>
+                <span className="text-3xl">🏆</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Players - Positioned absolutely around the table container */}

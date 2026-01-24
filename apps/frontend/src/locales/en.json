@@ -16,6 +16,7 @@
   },
   "game": {
     "loading": "Loading Game...",
+    "trickWon": "{{player}} Wins!",
     "yourAction": "Your Action",
     "waitingFor": "Waiting for",
     "yourTurn": "YOUR TURN",

@@ -16,6 +16,7 @@
   },
   "game": {
     "loading": "Загрузка игры...",
+    "trickWon": "{{player}} выиграл!",
     "yourAction": "Ваш ход",
     "waitingFor": "Ожидание",
     "yourTurn": "ВАШ ХОД",
