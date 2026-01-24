@@ -6,12 +6,15 @@ interface JokerOptionModalProps {
   isOpen: boolean;
   onSelect: (option: JokerOption, requestedSuit?: Suit) => void;
   leadSuit?: Suit;
+  /** True if this joker is leading the trick (first card on table) */
+  isLeading: boolean;
 }
 
 export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   isOpen,
   onSelect,
   leadSuit,
+  isLeading,
 }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<'option' | 'suit'>('option');
@@ -41,13 +44,15 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
     }
   };
 
-  const options = [
+  // All possible joker options
+  const allOptions = [
     {
       id: JokerOption.High,
       label: t('game.joker.highRequest'),
       subLabel: t('game.joker.requestHighest'),
       icon: '⬆️',
       color: 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400',
+      leadingOnly: true, // Only available when leading the trick
     },
     {
       id: JokerOption.Low,
@@ -55,6 +60,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
       subLabel: t('game.joker.requestLowest'),
       icon: '⬇️',
       color: 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400',
+      leadingOnly: true, // Only available when leading the trick
     },
     {
       id: JokerOption.Top,
@@ -62,6 +68,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
       subLabel: t('game.joker.beatsHighest'),
       icon: '👑',
       color: 'bg-amber-500/10 border-amber-500/50 text-amber-400',
+      leadingOnly: false, // Only available when NOT leading
     },
     {
       id: JokerOption.Bottom,
@@ -69,8 +76,14 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
       subLabel: t('game.joker.beatsLowest'),
       icon: '🛡️',
       color: 'bg-purple-500/10 border-purple-500/50 text-purple-400',
+      leadingOnly: false, // Only available when NOT leading
     },
   ];
+
+  // Filter options based on position in trick
+  // Leading (first card): High/Low with suit selection
+  // Following (not first): Top/Bottom only
+  const options = allOptions.filter((opt) => opt.leadingOnly === isLeading);
 
   const suits = [
     { type: Suit.Hearts, symbol: '♥', color: 'text-red-500', label: t('game.trump.hearts') },

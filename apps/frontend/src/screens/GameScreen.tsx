@@ -443,6 +443,7 @@ export const GameScreen: React.FC = () => {
         isOpen={isJokerModalOpen}
         onSelect={handleJokerSelect}
         leadSuit={leadSuit}
+        isLeading={gameState.table.length === 0}
       />
 
       {/* Leave Game Confirmation */}
