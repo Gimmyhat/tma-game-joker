@@ -46,6 +46,7 @@ export interface GameStore {
   // Turn timer
   turnExpiresAt: number | null;
   currentTurnPlayerId: string | null;
+  pulkaRecapExpiresAt: number | null;
 
   // Errors
   lastError: ErrorPayload | null;
@@ -82,6 +83,7 @@ const initialState = {
   myPlayerId: null as string | null,
   turnExpiresAt: null as number | null,
   currentTurnPlayerId: null as string | null,
+  pulkaRecapExpiresAt: null as number | null,
   lastError: null as ErrorPayload | null,
 };
 
@@ -250,10 +252,20 @@ function setupSocketListeners(
   });
 
   // Turn timer
-  socket.on('turn_timer', (data) => {
+  socket.on('turn_timer_started', (data) => {
     set({
       turnExpiresAt: data.expiresAt,
       currentTurnPlayerId: data.playerId,
+      pulkaRecapExpiresAt: null, // Clear pulka timer when turn starts
+    });
+  });
+
+  socket.on('pulka_recap_started', (data) => {
+    console.log('[Store] Pulka recap started:', data);
+    set({
+      pulkaRecapExpiresAt: data.expiresAt,
+      turnExpiresAt: null, // Clear turn timer
+      currentTurnPlayerId: null,
     });
   });
 

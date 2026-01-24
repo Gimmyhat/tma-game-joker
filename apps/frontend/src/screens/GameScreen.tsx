@@ -17,6 +17,7 @@ import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { PulkaResultsModal } from '../components/game';
 
 export const GameScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -455,6 +456,9 @@ export const GameScreen: React.FC = () => {
         }}
         onClose={() => setIsLeaveModalOpen(false)}
       />
+
+      {/* Pulka Results Modal */}
+      <PulkaResultsModal />
     </div>
   );
 };

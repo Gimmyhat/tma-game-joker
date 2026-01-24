@@ -31,6 +31,8 @@ export interface ServerToClientEvents {
 
   // Turn events
   turn_timer: (data: TurnTimerPayload) => void;
+  turn_timer_started: (data: TurnTimerPayload) => void;
+  pulka_recap_started: (data: { expiresAt: number }) => void;
 
   // Player status
   player_disconnected: (data: { playerId: string; playerName: string }) => void;

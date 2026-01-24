@@ -369,20 +369,70 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Handle pulka completion
       if (room.gameState.phase === GamePhase.PulkaComplete) {
         room.gameState = this.gameEngine.completePulka(room.gameState);
+        // Start recap timer
+        this.startPulkaRecapTimer(room.id);
       }
 
       await this.roomManager.updateGameState(room.id, room.gameState);
       await this.emitGameState(room.id);
 
-      // Check if game finished
+      // Check if game finished (should wait for PulkaComplete first now, so this might move)
       if (room.gameState.phase === GamePhase.Finished) {
         await this.handleGameFinished(room.id);
-      } else {
+      } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
+        // Only start turn timer if NOT in PulkaComplete (recap)
         this.startTurnTimer(room.id);
         await this.processBotTurn(room.id);
       }
     } catch (err) {
       client.emit('error', { code: 'INVALID_MOVE', message: (err as Error).message });
+    }
+  }
+
+  /**
+   * Start pulka recap timer
+   */
+  private startPulkaRecapTimer(roomId: string): void {
+    // Clear existing turn timer just in case
+    this.roomManager.clearTurnTimeout(roomId);
+
+    // Emit timer event (using same event structure or new one?)
+    // Let's use a new event for clarity or repurpose turn_timer
+    // But turn_timer is specific to a player. This is global.
+    this.server.to(roomId).emit('pulka_recap_started', {
+      expiresAt: Date.now() + GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS,
+    });
+
+    const timeout = setTimeout(async () => {
+      await this.handlePulkaRecapTimeout(roomId);
+    }, GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS);
+
+    // We can reuse setTurnTimeout or create a new one in RoomManager.
+    // For simplicity, let's reuse setTurnTimeout as it effectively blocks turns.
+    this.roomManager.setTurnTimeout(roomId, timeout);
+  }
+
+  /**
+   * Handle pulka recap timeout - proceed to next round
+   */
+  private async handlePulkaRecapTimeout(roomId: string): Promise<void> {
+    const room = this.roomManager.getRoomSync(roomId);
+    if (!room || room.gameState.phase !== GamePhase.PulkaComplete) return;
+
+    try {
+      // Advance game state
+      room.gameState = this.gameEngine.startNextPulka(room.gameState);
+      await this.roomManager.updateGameState(roomId, room.gameState);
+      await this.emitGameState(roomId);
+
+      if (room.gameState.phase === GamePhase.Finished) {
+        await this.handleGameFinished(roomId);
+      } else {
+        this.startTurnTimer(roomId);
+        await this.processBotTurn(roomId);
+      }
+    } catch (error) {
+      this.logger.error(`Error handling pulka recap timeout: ${(error as Error).message}`);
     }
   }
 
@@ -535,6 +585,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
       if (room.gameState.phase === GamePhase.PulkaComplete) {
         room.gameState = this.gameEngine.completePulka(room.gameState);
+        this.startPulkaRecapTimer(roomId);
       }
 
       await this.roomManager.updateGameState(room.id, room.gameState);
@@ -542,7 +593,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (room.gameState.phase === GamePhase.Finished) {
         await this.handleGameFinished(roomId);
-      } else {
+      } else if (room.gameState.phase !== GamePhase.PulkaComplete) {
         this.startTurnTimer(roomId);
         await this.processBotTurn(roomId);
       }

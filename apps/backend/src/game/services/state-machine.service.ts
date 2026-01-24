@@ -9,6 +9,7 @@ export type GameEvent =
   | { type: 'TRICK_COMPLETE' }
   | { type: 'ROUND_COMPLETE' }
   | { type: 'PULKA_COMPLETE' }
+  | { type: 'PULKA_RECAP_COMPLETE' }
   | { type: 'GAME_FINISH' };
 
 @Injectable()
@@ -74,11 +75,17 @@ export class StateMachineService {
 
       case GamePhase.PulkaComplete:
         if (event.type === 'PULKA_COMPLETE') {
-          // Check if game finished
+          // Stay in PulkaComplete for recap, handled by game engine logic now
+          // Wait, actually we need a new event for transitioning OUT of PulkaComplete
+          // Let's call it PULKA_RECAP_COMPLETE
+          return GamePhase.PulkaComplete; // This transition is handled inside GameEngine for now, or we need new event
+        }
+        if (event.type === 'PULKA_RECAP_COMPLETE') {
+          // This logic was previously inside PULKA_COMPLETE transition
+          // Now we move it here
           if (state.round >= GAME_CONSTANTS.TOTAL_ROUNDS) {
             return GamePhase.Finished;
           }
-          // Next pulka - check if trump selection needed
           if (this.needsTrumpSelection(state)) {
             return GamePhase.TrumpSelection;
           }
@@ -185,7 +192,7 @@ export class StateMachineService {
       [GamePhase.Playing]: ['CARD_PLAYED'],
       [GamePhase.TrickComplete]: ['TRICK_COMPLETE'],
       [GamePhase.RoundComplete]: ['ROUND_COMPLETE'],
-      [GamePhase.PulkaComplete]: ['PULKA_COMPLETE'],
+      [GamePhase.PulkaComplete]: ['PULKA_RECAP_COMPLETE'],
       [GamePhase.Finished]: [],
     };
 

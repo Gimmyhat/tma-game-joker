@@ -67,6 +67,7 @@ export class GameEngineService {
       turnStartedAt: Date.now(),
       turnTimeoutMs: GAME_CONSTANTS.TURN_TIMEOUT_MS,
       history: [],
+      lastPulkaResults: null,
       createdAt: Date.now(),
       finishedAt: null,
       winnerId: null,
@@ -83,11 +84,7 @@ export class GameEngineService {
 
     // Deal cards for round 1
     const deck = this.deckService.shuffle(this.deckService.createDeck());
-    const { hands, remainingDeck } = this.deckService.deal(
-      deck,
-      4,
-      newState.cardsPerPlayer,
-    );
+    const { hands, remainingDeck } = this.deckService.deal(deck, 4, newState.cardsPerPlayer);
 
     // Assign hands to players
     for (let i = 0; i < 4; i++) {
@@ -211,12 +208,7 @@ export class GameEngineService {
     }
 
     // Validate move
-    const moveValidation = this.moveValidator.validate(
-      player.hand,
-      card,
-      state.table,
-      state.trump,
-    );
+    const moveValidation = this.moveValidator.validate(player.hand, card, state.table, state.trump);
 
     if (!moveValidation.valid) {
       throw new Error(moveValidation.message || moveValidation.reason);
@@ -425,6 +417,31 @@ export class GameEngineService {
       };
     }
 
+    // Save results for UI
+    newState.lastPulkaResults = {
+      pulka: newState.pulka,
+      premiums: premiumResult.premiums,
+      playerScores: premiumResult.playerScores,
+      highestTrickScore: premiumResult.highestTrickScore,
+    };
+
+    // Set timeout for the recap phase
+    newState.turnStartedAt = Date.now();
+    newState.turnTimeoutMs = GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS;
+
+    return newState;
+  }
+
+  /**
+   * Start next pulka after recap
+   */
+  startNextPulka(state: GameState): GameState {
+    if (state.phase !== GamePhase.PulkaComplete) {
+      throw new Error('Not in pulka complete phase');
+    }
+
+    const newState = { ...state };
+
     // Check if game finished
     if (newState.round >= GAME_CONSTANTS.TOTAL_ROUNDS) {
       newState.phase = GamePhase.Finished;
@@ -479,6 +496,7 @@ export class GameEngineService {
 
     newState.table = [];
     newState.turnStartedAt = Date.now();
+    newState.turnTimeoutMs = GAME_CONSTANTS.TURN_TIMEOUT_MS; // Reset to normal turn timeout
 
     return newState;
   }

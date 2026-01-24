@@ -106,6 +106,20 @@ export interface RoundHistory {
   tableHistory: TableCard[][];
 }
 
+export interface PremiumResult {
+  playerId: string;
+  received: number;
+  takenFromPlayerId: string | null;
+  takenAmount: number;
+}
+
+export interface PulkaResults {
+  pulka: number;
+  premiums: PremiumResult[];
+  playerScores: Record<string, number>; // Bonus/penalty for this pulka
+  highestTrickScore: number;
+}
+
 export interface GameState {
   id: string;
 
@@ -130,6 +144,7 @@ export interface GameState {
 
   // History
   history: RoundHistory[];
+  lastPulkaResults: PulkaResults | null;
 
   // Metadata
   createdAt: number;
@@ -204,6 +219,7 @@ export const GAME_CONSTANTS = {
   TURN_TIMEOUT_MS: 30_000,
   RECONNECT_TIMEOUT_MS: 30_000,
   MATCHMAKING_TIMEOUT_MS: 60_000,
+  PULKA_RECAP_TIMEOUT_MS: 15_000,
 
   // Scoring
   SCORE_TOOK_OWN_MULTIPLIER: 50,
