@@ -20,9 +20,24 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      postgres:
+        image: postgres:15-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: joker
+          POSTGRES_PASSWORD: joker_secret
+          POSTGRES_DB: joker_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       SKIP_AUTH: true
       REDIS_URL: redis://localhost:6379
+      DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
 
     steps:
       - name: Checkout
@@ -54,6 +69,11 @@ jobs:
       - name: Build Backend
         run: pnpm --filter @joker/backend build
 
+      - name: Run Database Migrations
+        run: |
+          cd apps/backend
+          npx prisma migrate deploy
+
       - name: Start Backend for Frontend tests
         run: |
           # Go to backend dir
@@ -75,7 +95,7 @@ jobs:
           # Explicitly export env vars
           export SKIP_AUTH=true
           export REDIS_URL=redis://localhost:6379
-
+          export DATABASE_URL=postgresql://joker:joker_secret@localhost:5432/joker_db
 
           # Run node with the found file
           node "$MAIN_FILE" &

@@ -138,5 +138,14 @@ jobs:
 
             # Pull and restart
             docker compose -f docker-compose.prod.yml pull
+
+            # Apply migrations (using backend container)
+            # We run this BEFORE bringing up the full stack to ensure DB is ready
+            # Assuming backend service has 'npx prisma migrate deploy' in its startup or we run explicitly
+
             docker compose -f docker-compose.prod.yml up -d
+
+            # Run migrations inside the running backend container
+            docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
+
             docker image prune -f

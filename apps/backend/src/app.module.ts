@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { GameModule } from './game/game.module';
 import { GatewayModule } from './gateway/gateway.module';
@@ -19,6 +20,7 @@ import { HealthController } from './health/health.controller';
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/',
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     GameModule,
     GatewayModule,

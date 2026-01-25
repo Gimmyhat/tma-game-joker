@@ -21,6 +21,7 @@ import {
 import { GameEngineService } from '../game/services/game-engine.service';
 import { RoomManager } from './room.manager';
 import { BotService } from '../bot/bot.service';
+import { GameAuditService } from '../game/services/game-audit.service';
 
 import { UseGuards } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
@@ -52,6 +53,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private roomManager: RoomManager,
     private botService: BotService,
     private configService: ConfigService,
+    private gameAuditService: GameAuditService,
   ) {}
 
   /**
@@ -721,6 +723,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         score: p.totalScore,
       })),
     });
+
+    // Save game record to DB (Audit Log)
+    await this.gameAuditService.saveGameRecord(room.gameState);
 
     // Sync final state to Redis before cleanup
     await this.roomManager.syncToRedis(roomId);

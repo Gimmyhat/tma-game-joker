@@ -17,6 +17,7 @@ import { MoveValidator } from '../validators/move.validator';
 import { BetValidator } from '../validators/bet.validator';
 import { ScoringService } from './scoring.service';
 import { StateMachineService } from './state-machine.service';
+import { GameAuditService } from './game-audit.service';
 
 @Injectable()
 export class GameEngineService {
@@ -27,6 +28,7 @@ export class GameEngineService {
     private scoringService: ScoringService,
     private stateMachine: StateMachineService,
     private configService: ConfigService,
+    private gameAuditService: GameAuditService,
   ) {}
 
   /**
@@ -121,6 +123,13 @@ export class GameEngineService {
     newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
     newState.turnStartedAt = Date.now();
 
+    // Log start
+    this.gameAuditService.logAction(newState.id, 'GAME_START', 'system', {
+      round: 1,
+      pulka: 1,
+      trump: newState.trump,
+    });
+
     return newState;
   }
 
@@ -141,6 +150,8 @@ export class GameEngineService {
     newState.trump = trump;
     newState.phase = this.stateMachine.transition(newState, { type: 'TRUMP_SELECTED' });
     newState.turnStartedAt = Date.now();
+
+    this.gameAuditService.logAction(newState.id, 'TRUMP', playerId, { trump });
 
     return newState;
   }
@@ -188,6 +199,8 @@ export class GameEngineService {
     }
 
     newState.turnStartedAt = Date.now();
+
+    this.gameAuditService.logAction(newState.id, 'BET', playerId, { amount });
 
     return newState;
   }
@@ -268,6 +281,15 @@ export class GameEngineService {
 
     newState.turnStartedAt = Date.now();
 
+    this.gameAuditService.logAction(newState.id, 'CARD', playerId, {
+      cardId,
+      cardType: card.type,
+      suit: card.type === 'standard' ? card.suit : null,
+      rank: card.type === 'standard' ? card.rank : null,
+      jokerOption,
+      requestedSuit,
+    });
+
     return newState;
   }
 
@@ -290,6 +312,10 @@ export class GameEngineService {
       ...newState.players[winnerPlayerIndex],
       tricks: newState.players[winnerPlayerIndex].tricks + 1,
     };
+
+    this.gameAuditService.logAction(newState.id, 'TRICK_WINNER', winnerId, {
+      tricks: newState.players[winnerPlayerIndex].tricks,
+    });
 
     // Clear table
     newState.table = [];
@@ -350,6 +376,11 @@ export class GameEngineService {
       tableHistory: [], // TODO: Track full table history if needed
     };
     newState.history.push(roundHistory);
+
+    this.gameAuditService.logAction(newState.id, 'ROUND_COMPLETE', 'system', {
+      round: newState.round,
+      scores: roundHistory.scores,
+    });
 
     // Check if pulka complete
     if (this.stateMachine.isPulkaComplete(newState)) {
@@ -437,6 +468,11 @@ export class GameEngineService {
       playerScores: premiumResult.playerScores,
       highestTrickScore: premiumResult.highestTrickScore,
     };
+
+    this.gameAuditService.logAction(newState.id, 'PULKA_COMPLETE', 'system', {
+      pulka: newState.pulka,
+      premiums: premiumResult.playerScores,
+    });
 
     // Set timeout for the recap phase
     newState.turnStartedAt = Date.now();

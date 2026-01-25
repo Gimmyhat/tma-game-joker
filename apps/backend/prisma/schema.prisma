@@ -1,0 +1,21 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model FinishedGame {
+  id          String   @id @default(uuid())
+  startedAt   DateTime
+  finishedAt  DateTime
+  winnerId    String?
+  players     Json     // Stores player metadata (id, name, score)
+  gameLog     Json     // The heavy replay log
+  createdAt   DateTime @default(now())
+
+  @@map("finished_games")
+}
