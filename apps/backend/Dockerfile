@@ -74,6 +74,6 @@ COPY --from=build /app/apps/backend/package.json ./package.json
 EXPOSE 3000
 # Update entrypoint to match NestJS build output structure
 # When running from root, 'nest build' outputs to dist/
-# BUT in Docker we copy apps/backend/dist to ./dist
-# So structure inside container is /app/dist/main.js
-CMD [ "node", "dist/main" ]
+# In monorepo with shared libs, tsc preserves directory structure:
+# dist/apps/backend/src/main.js
+CMD [ "node", "dist/apps/backend/src/main" ]
