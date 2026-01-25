@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameCleanupService } from '../services/game-cleanup.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('GameCleanupService', () => {
   let service: GameCleanupService;
@@ -13,8 +14,16 @@ describe('GameCleanupService', () => {
       },
     };
 
+    const configServiceMock = {
+      get: jest.fn().mockReturnValue('mock-db-url'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [GameCleanupService, { provide: PrismaService, useValue: prismaServiceMock }],
+      providers: [
+        GameCleanupService,
+        { provide: PrismaService, useValue: prismaServiceMock },
+        { provide: ConfigService, useValue: configServiceMock },
+      ],
     }).compile();
 
     service = module.get<GameCleanupService>(GameCleanupService);

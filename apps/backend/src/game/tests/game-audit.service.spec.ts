@@ -3,6 +3,7 @@ import { GameAuditService } from '../services/game-audit.service';
 import { RedisService } from '../../database/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GameState } from '@joker/shared';
+import { ConfigService } from '@nestjs/config';
 
 describe('GameAuditService', () => {
   let service: GameAuditService;
@@ -27,11 +28,16 @@ describe('GameAuditService', () => {
       },
     };
 
+    const configServiceMock = {
+      get: jest.fn().mockReturnValue('mock-db-url'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GameAuditService,
         { provide: RedisService, useValue: redisServiceMock },
         { provide: PrismaService, useValue: prismaServiceMock },
+        { provide: ConfigService, useValue: configServiceMock },
       ],
     }).compile();
 

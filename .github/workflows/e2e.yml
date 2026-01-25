@@ -77,6 +77,7 @@ jobs:
         run: pnpm --filter @joker/backend test:e2e
 
       - name: Build Backend
+        run: pnpm --filter @joker/backend build
 
       - name: Start Backend for Frontend tests
         run: |
