@@ -136,6 +136,7 @@ export interface GameState {
 
   // Cards
   trump: Suit | null;
+  trumpCard: Card | null; // The actual card that determined trump (shown on table)
   table: TableCard[];
 
   // Timing

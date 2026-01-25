@@ -107,6 +107,25 @@ export class DeckService {
   }
 
   /**
+   * Determine trump card from remaining deck, returning both the card and its suit
+   * If Joker is drawn as trump → no trump suit (null), but card is returned
+   */
+  determineTrumpWithCard(remainingDeck: Card[]): { trump: Suit | null; trumpCard: Card | null } {
+    if (remainingDeck.length === 0) {
+      return { trump: null, trumpCard: null };
+    }
+
+    const topCard = remainingDeck[0];
+
+    if (topCard.type === 'joker') {
+      // Joker as trump card → no trump, but we still have the card
+      return { trump: null, trumpCard: topCard };
+    }
+
+    return { trump: (topCard as StandardCard).suit, trumpCard: topCard };
+  }
+
+  /**
    * Determine trick winner based on cards on table
    * @param table - cards played in order
    * @param trump - trump suit (null = no trump)

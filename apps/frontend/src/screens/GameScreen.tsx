@@ -385,10 +385,10 @@ export const GameScreen: React.FC = () => {
             players={gameState.players}
             tableCards={gameState.table}
             trump={gameState.trump}
+            trumpCard={gameState.trumpCard}
             currentPlayerId={currentTurnPlayer?.id}
             myPlayerId={myPlayerId}
             className="w-[85%] h-[65%] z-10" // Sizing relative to container
-            // @ts-ignore - gameState.trumpCard might not exist in type but standard joker has it
             isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
           />
         </div>

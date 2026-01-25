@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Player, TableCard, Suit, GamePhase } from '@joker/shared';
+import { Player, TableCard, Suit, GamePhase, Card as CardType } from '@joker/shared';
 import { useGameStore } from '../store/gameStore';
 import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
@@ -12,6 +12,7 @@ interface TableProps {
   players: Player[];
   tableCards: TableCard[];
   trump: Suit | null;
+  trumpCard?: CardType | null;
   currentPlayerId?: string;
   myPlayerId: string;
   className?: string;
@@ -32,6 +33,7 @@ export const Table: React.FC<TableProps> = ({
   players,
   tableCards,
   trump,
+  trumpCard,
   currentPlayerId,
   myPlayerId,
   className = '',
@@ -154,9 +156,9 @@ export const Table: React.FC<TableProps> = ({
       // Generate stable random values based on card ID to avoid jitter on re-renders
       // Simple hash function for pseudo-randomness
       const hash = tc.card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const randomAngle = (hash % 30) - 15; // -15 to +15 degrees variation
-      const randomX = (hash % 40) - 20; // -20 to +20px variation
-      const randomY = ((hash * 13) % 40) - 20; // Different seed for Y
+      const randomAngle = (hash % 20) - 10; // -10 to +10 degrees variation
+      const randomX = (hash % 16) - 8; // -8 to +8px variation (~10% card overlap max)
+      const randomY = ((hash * 13) % 16) - 8; // Different seed for Y
 
       // Initial positions (off-screen / player hand area)
       const startPos: Record<Position, { x: number; y: number; rotate: number }> = {
@@ -371,23 +373,34 @@ export const Table: React.FC<TableProps> = ({
       {/* Players - Positioned absolutely around the table container */}
       {orderedPlayers.map((p, i) => renderPlayer(p, i))}
 
-      {/* Current Trump Bubble (Small, UI) - Floating near table edge top-right */}
-      {(trump || isJokerTrump) && (
-        <div className="absolute -top-4 -right-4 z-40 flex flex-col items-center bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
-          <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold">
+      {/* Current Trump Indicator - Floating near table edge top-right */}
+      {(trump || trumpCard || isJokerTrump) && (
+        <div className="absolute -top-2 -right-2 z-40 flex flex-col items-center">
+          <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
             {t('game.trump.label')}
           </span>
-          {trump ? (
-            <span
-              className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
-            >
-              {trump === Suit.Hearts && '♥'}
-              {trump === Suit.Diamonds && '♦'}
-              {trump === Suit.Clubs && '♣'}
-              {trump === Suit.Spades && '♠'}
-            </span>
+          {trumpCard ? (
+            // Show actual trump card when available (non-9-card rounds)
+            <div className="transform rotate-6 shadow-[0_4px_20px_rgba(234,179,8,0.4)] rounded-lg">
+              <Card card={trumpCard} size="sm" className="border-2 border-yellow-500/50" />
+            </div>
+          ) : trump ? (
+            // Fallback to suit symbol (9-card rounds where player selected trump)
+            <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
+              <span
+                className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
+              >
+                {trump === Suit.Hearts && '♥'}
+                {trump === Suit.Diamonds && '♦'}
+                {trump === Suit.Clubs && '♣'}
+                {trump === Suit.Spades && '♠'}
+              </span>
+            </div>
           ) : (
-            <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
+            // No trump (joker was trump card)
+            <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
+              <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
+            </div>
           )}
         </div>
       )}

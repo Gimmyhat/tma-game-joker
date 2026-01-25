@@ -68,6 +68,7 @@ export class GameEngineService {
       cardsPerPlayer: 1,
       phase: GamePhase.Waiting,
       trump: null,
+      trumpCard: null,
       table: [],
       turnStartedAt: Date.now(),
       turnTimeoutMs: this.getTurnTimeoutMs(),
@@ -107,7 +108,12 @@ export class GameEngineService {
 
     // Determine trump (for non-9-card rounds)
     if (newState.cardsPerPlayer !== 9) {
-      newState.trump = this.deckService.determineTrump(remainingDeck);
+      const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
+      newState.trump = trump;
+      newState.trumpCard = trumpCard;
+    } else {
+      // For 9-card rounds, trump is selected by player (trumpCard stays null)
+      newState.trumpCard = null;
     }
 
     // Transition to betting (or trump selection for 9-card rounds)
@@ -373,9 +379,12 @@ export class GameEngineService {
 
       // Determine trump for non-9-card rounds
       if (newState.cardsPerPlayer !== 9) {
-        newState.trump = this.deckService.determineTrump(remainingDeck);
+        const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
+        newState.trump = trump;
+        newState.trumpCard = trumpCard;
       } else {
         newState.trump = null;
+        newState.trumpCard = null;
       }
 
       // Transition phase
@@ -487,9 +496,12 @@ export class GameEngineService {
 
       // Determine trump for non-9-card rounds
       if (newState.cardsPerPlayer !== 9) {
-        newState.trump = this.deckService.determineTrump(remainingDeck);
+        const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
+        newState.trump = trump;
+        newState.trumpCard = trumpCard;
       } else {
         newState.trump = null;
+        newState.trumpCard = null;
       }
 
       // Transition phase
