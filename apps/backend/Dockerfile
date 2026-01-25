@@ -62,9 +62,10 @@ WORKDIR /app
 # Copy production node_modules (patched with built shared lib)
 COPY --from=build /app/pruned/node_modules ./node_modules
 
-# Copy Prisma schema and generate client for production (Alpine requires correct binary)
-COPY --from=build /app/apps/backend/prisma ./prisma
-RUN npx prisma generate
+# Copy already generated Prisma Client from build stage (Alpine binary was generated during build)
+# This avoids needing prisma CLI in production
+COPY --from=build /app/node_modules/.pnpm/@prisma+client@*/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=build /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma ./node_modules/.prisma
 
 # Copy built backend app
 # Since pnpm runs 'nest build' inside apps/backend directory, output is in apps/backend/dist
