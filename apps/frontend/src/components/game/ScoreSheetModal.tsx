@@ -5,10 +5,19 @@ import { GAME_CONSTANTS, RoundHistory } from '@joker/shared';
 
 interface ScoreSheetModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void; // Optional onClose for manual mode
+  title?: React.ReactNode; // Custom title
+  footer?: React.ReactNode; // Custom footer (e.g. timer)
+  isPulkaResult?: boolean; // Styling flag
 }
 
-export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClose }) => {
+export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  footer,
+  isPulkaResult = false,
+}) => {
   const { t } = useTranslation();
   const gameState = useGameStore((state) => state.gameState);
 
@@ -19,7 +28,6 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
 
   if (!isOpen || !gameState) return null;
 
-  // Helper to get score for a specific round and player
   const getRoundData = (roundNumber: number, playerId: string) => {
     const roundHistory = historyMap.get(roundNumber);
     if (!roundHistory) return null;
@@ -31,96 +39,93 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
     };
   };
 
-  // Helper to get accumulated score up to a specific round
-  // Note: The history stores individual round scores. We might need to sum them up
-  // if we want to show running total. The image typically shows running total in some versions,
-  // or just round score. Let's assume round score for now as per history structure,
-  // but usually players want to see their Total Score.
-  // The GameState has players[].totalScore, which is current.
-  // To show historical running total, we'd need to re-calculate.
-  // Let's just show the Round Score for now, as that's what's recorded.
-  // The image shows large numbers (-200, 100), which are definitely single round scores
-  // (Shtanga = -200, Take All 1 card = 100).
-  // So Round Score is correct.
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl max-h-[90vh] bg-[#1a2c38] border border-[#2c3e50] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+      <div
+        className={`w-full max-w-5xl max-h-[90vh] bg-[#1a2c38] border ${isPulkaResult ? 'border-amber-500/50 shadow-amber-500/20' : 'border-[#2c3e50]'} rounded-xl shadow-2xl flex flex-col overflow-hidden`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between bg-[#0f172a] p-4 border-b border-[#2c3e50]">
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-amber-400"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path
-                fillRule="evenodd"
-                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {t('game.scoreSheet', 'Таблица счета')}
+            {title || (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-amber-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {t('game.scoreSheet', 'Таблица счета')}
+              </>
+            )}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
           <table className="w-full text-center border-collapse text-xs sm:text-sm">
-            <thead className="sticky top-0 z-10 bg-[#0f172a] shadow-md">
+            <thead className="sticky top-0 z-10 bg-[#0f172a] shadow-md shadow-black/50">
               <tr>
-                <th className="p-2 border-r border-[#2c3e50] w-12 text-gray-400 font-mono">#</th>
-                <th className="p-2 border-r border-[#2c3e50] w-12 text-gray-400 font-mono">
+                <th className="p-3 border-r border-[#2c3e50] w-12 text-gray-400 font-mono bg-[#0f172a]">
+                  #
+                </th>
+                <th className="p-3 border-r border-[#2c3e50] w-12 text-gray-400 font-mono bg-[#0f172a]">
                   Cards
                 </th>
                 {gameState.players.map((player) => (
                   <th
                     key={player.id}
-                    className="p-2 border-r border-[#2c3e50] min-w-[80px] text-gray-200"
+                    className="p-3 border-r border-[#2c3e50] min-w-[100px] bg-[#0f172a]"
                   >
-                    <div className="truncate max-w-[100px] mx-auto">{player.name}</div>
-                    <div className="text-[10px] text-amber-500 font-mono mt-1">
-                      Total: {player.totalScore}
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold text-gray-100 truncate max-w-[120px]">
+                        {player.name}
+                      </span>
+                      <span className="text-[11px] text-amber-500 font-mono mt-1 px-2 py-0.5 rounded bg-amber-950/30 border border-amber-900/50">
+                        {player.totalScore} pts
+                      </span>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2c3e50]">
-              {GAME_CONSTANTS.PULKA_STRUCTURE.map((pulka, pulkaIndex) => (
+              {GAME_CONSTANTS.PULKA_STRUCTURE.map((pulka) => (
                 <React.Fragment key={pulka.pulka}>
-                  {/* Pulka Header/Separator */}
-                  {pulkaIndex > 0 && (
-                    <tr className="bg-[#0f172a]/80 text-[#amber-500] font-bold text-xs">
-                      <td
-                        colSpan={2 + gameState.players.length}
-                        className="p-1 text-center border-t border-b border-[#2c3e50] text-amber-500/50 uppercase tracking-widest"
-                      >
-                        Pulka {pulka.pulka}
-                      </td>
-                    </tr>
-                  )}
+                  <td
+                    colSpan={2 + gameState.players.length}
+                    className="p-2 text-center border-t border-b border-[#2c3e50]"
+                  >
+                    — Pulka {pulka.pulka} —
+                  </td>
 
                   {/* Rounds */}
                   {pulka.rounds.map((roundNum, idx) => {
@@ -133,14 +138,14 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
                         key={roundNum}
                         className={`
                           ${isCurrentRound ? 'bg-amber-500/10' : 'hover:bg-white/5'} 
-                          ${!isPastRound && !isCurrentRound ? 'opacity-40' : ''}
-                          transition-colors
+                          ${!isPastRound && !isCurrentRound ? 'opacity-30 grayscale' : ''}
+                          transition-colors duration-200
                         `}
                       >
                         <td className="p-2 border-r border-[#2c3e50] font-mono text-gray-500">
                           {roundNum}
                         </td>
-                        <td className="p-2 border-r border-[#2c3e50] font-mono font-bold text-gray-300">
+                        <td className="p-2 border-r border-[#2c3e50] font-mono font-bold text-gray-400">
                           {cardsCount}
                         </td>
 
@@ -149,7 +154,10 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
 
                           if (!data) {
                             return (
-                              <td key={player.id} className="p-2 border-r border-[#2c3e50]">
+                              <td
+                                key={player.id}
+                                className="p-2 border-r border-[#2c3e50] text-gray-700"
+                              >
                                 -
                               </td>
                             );
@@ -161,19 +169,23 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
                           return (
                             <td key={player.id} className="p-2 border-r border-[#2c3e50]">
                               <div className="flex flex-col items-center gap-1">
-                                <div className="flex items-center justify-center gap-2 text-xs font-mono">
-                                  <span className="text-blue-300 w-4 text-right">
+                                <div className="flex items-center justify-center gap-3 text-xs font-mono bg-black/20 rounded px-2 py-1 min-w-[60px]">
+                                  <span
+                                    className={`w-3 text-right ${data.bet === data.tricks ? 'text-amber-200' : 'text-blue-300'}`}
+                                  >
                                     {data.bet ?? '-'}
                                   </span>
-                                  <span className="text-gray-600">|</span>
-                                  <span className="text-emerald-300 w-4 text-left">
+                                  <span className="text-gray-600 opacity-50">|</span>
+                                  <span
+                                    className={`w-3 text-left ${data.bet === data.tricks ? 'text-amber-200' : 'text-emerald-300'}`}
+                                  >
                                     {data.tricks ?? '-'}
                                   </span>
                                 </div>
                                 <div
-                                  className={`font-bold ${isShtanga ? 'text-red-500' : isBonus ? 'text-emerald-400' : 'text-gray-400'}`}
+                                  className={`font-bold text-sm ${isShtanga ? 'text-red-500 animate-pulse' : isBonus ? 'text-emerald-400' : 'text-gray-400'}`}
                                 >
-                                  {data.score !== undefined ? data.score : ''}
+                                  {data.score > 0 ? `+${data.score}` : data.score}
                                 </div>
                               </div>
                             </td>
@@ -183,19 +195,42 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({ isOpen, onClos
                     );
                   })}
 
-                  {/* Pulka Results (Premiums) - if available */}
-                  {/* NOTE: We don't have historical pulka results stored easily in GameState 
-                      except for lastPulkaResults. 
-                      However, we can calculate running totals or just leave this placeholder for now.
-                      The 'X' row in the image likely represents premiums/bonuses. 
-                      Since we can't easily retrieve past pulka premiums from current state structure 
-                      (unless we add it to history), we might skip this or just show it if it's the LAST pulka.
-                  */}
+                  {/* Premium Row (if this pulka is finished) */}
+                  {gameState.lastPulkaResults &&
+                    gameState.lastPulkaResults.pulka === pulka.pulka && (
+                      <tr className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-t-2 border-indigo-500/30">
+                        <td
+                          colSpan={2}
+                          className="p-3 text-right font-bold text-indigo-300 text-xs uppercase tracking-wider border-r border-[#2c3e50]"
+                        >
+                          Premiums
+                        </td>
+                        {gameState.players.map((player) => {
+                          const premiumScore =
+                            gameState.lastPulkaResults?.playerScores[player.id] || 0;
+                          const hasPremium = premiumScore !== 0;
+                          return (
+                            <td key={player.id} className="p-3 border-r border-[#2c3e50]">
+                              {hasPremium && (
+                                <div
+                                  className={`font-bold text-lg ${premiumScore > 0 ? 'text-emerald-300 drop-shadow-glow-green' : 'text-red-400'}`}
+                                >
+                                  {premiumScore > 0 ? `+${premiumScore}` : premiumScore}
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                 </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Footer */}
+        {footer && <div className="bg-[#0f172a] p-4 border-t border-[#2c3e50]">{footer}</div>}
       </div>
     </div>
   );
