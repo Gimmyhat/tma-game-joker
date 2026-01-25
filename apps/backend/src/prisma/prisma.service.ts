@@ -6,12 +6,8 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(config: ConfigService) {
     super({
-      // @ts-ignore - types mismatch in test env, but valid at runtime
-      datasources: {
-        db: {
-          url: config.get<string>('DATABASE_URL'),
-        },
-      },
+      // @ts-ignore - 'datasourceUrl' is valid in runtime but types might be outdated
+      datasourceUrl: config.get<string>('DATABASE_URL'),
     });
   }
 
