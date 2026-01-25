@@ -65,10 +65,10 @@ COPY --from=build /app/pruned/node_modules ./node_modules
 # Copy Prisma schema for client generation
 COPY --from=build /app/apps/backend/prisma ./prisma
 
-# Install prisma CLI in production for generate, then remove it
+# Install prisma CLI globally for generate and migrations
+# Keep it installed for runtime migrations (prisma migrate deploy)
 RUN npm install -g prisma@6.19.2 && \
-    prisma generate && \
-    npm uninstall -g prisma
+    prisma generate
 
 # Copy built backend app
 # Since pnpm runs 'nest build' inside apps/backend directory, output is in apps/backend/dist
