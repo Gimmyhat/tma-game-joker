@@ -7,9 +7,11 @@
     "dev": "pnpm run --parallel dev",
     "dev:backend": "pnpm --filter @joker/backend dev",
     "dev:frontend": "pnpm --filter @joker/frontend dev",
+    "dev:admin": "pnpm --filter @joker/admin dev",
     "build": "pnpm run --parallel build",
     "build:backend": "pnpm --filter @joker/backend build",
     "build:frontend": "pnpm --filter @joker/frontend build",
+    "build:admin": "pnpm --filter @joker/admin build",
     "test": "pnpm run --parallel test",
     "test:backend": "pnpm --filter @joker/backend test",
     "lint": "pnpm run --parallel lint",
@@ -28,5 +30,25 @@
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "pnpm": {
+    "overrides": {
+      "@tiptap/core": "2.1.13",
+      "@tiptap/pm": "2.1.13",
+      "@tiptap/extension-bold": "2.1.13",
+      "@tiptap/extension-italic": "2.1.13",
+      "@tiptap/extension-strike": "2.1.13",
+      "@tiptap/extension-history": "2.1.13",
+      "@tiptap/extension-gapcursor": "2.1.13",
+      "@tiptap/extension-list-item": "2.1.13",
+      "@tiptap/extension-paragraph": "2.1.13",
+      "@tiptap/extension-blockquote": "2.1.13",
+      "@tiptap/extension-code-block": "2.1.13",
+      "@tiptap/extension-dropcursor": "2.1.13",
+      "@tiptap/extension-hard-break": "2.1.13",
+      "@tiptap/extension-bullet-list": "2.1.13",
+      "@tiptap/extension-ordered-list": "2.1.13",
+      "@tiptap/extension-horizontal-rule": "2.1.13"
+    }
+  }
 }
