@@ -26,7 +26,7 @@ RUN pnpm --filter @joker/shared build
 
 # 1.5. Generate Prisma Client (CRITICAL for types)
 # We must run this before building the backend so the types exist
-# Cache bust: 2026-01-25T16:40 - Prisma 7.x engineType fix
+# Downgraded to Prisma 6.x for stability - 2026-01-25
 WORKDIR /app/apps/backend
 RUN npx prisma generate
 WORKDIR /app
