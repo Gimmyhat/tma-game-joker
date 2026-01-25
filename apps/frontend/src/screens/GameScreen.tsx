@@ -17,7 +17,7 @@ import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { PulkaResultsModal } from '../components/game';
+import { PulkaResultsModal, ScoreSheetModal } from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
 
@@ -47,6 +47,7 @@ export const GameScreen: React.FC = () => {
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isScoreSheetOpen, setIsScoreSheetOpen] = useState(false);
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
@@ -336,6 +337,25 @@ export const GameScreen: React.FC = () => {
           <div className="flex items-center gap-2">
             <LanguageSwitcher className="scale-75 origin-right" />
             <button
+              onClick={() => setIsScoreSheetOpen(true)}
+              className="p-2 rounded-lg bg-black/40 hover:bg-black/60 border border-white/10 text-amber-400 transition-colors backdrop-blur-sm"
+              title={t('game.scoreSheet', 'Score Sheet')}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path
+                  fillRule="evenodd"
+                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <button
               onClick={() => setIsLeaveModalOpen(true)}
               className="px-4 py-1.5 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700 text-red-100 text-[10px] font-bold uppercase tracking-widest transition-all shadow-md backdrop-blur-sm"
             >
@@ -462,6 +482,9 @@ export const GameScreen: React.FC = () => {
 
       {/* Pulka Results Modal */}
       <PulkaResultsModal />
+
+      {/* Score Sheet Modal */}
+      <ScoreSheetModal isOpen={isScoreSheetOpen} onClose={() => setIsScoreSheetOpen(false)} />
 
       {/* Game Over Modal */}
       <GameOverModal />
