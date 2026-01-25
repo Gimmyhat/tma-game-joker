@@ -6,6 +6,7 @@ interface PlayerInfoProps {
   player: Player;
   position: string;
   isCurrentTurn?: boolean;
+  isDealer?: boolean;
   className?: string;
   onScoreClick?: () => void;
 }
@@ -26,6 +27,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   player,
   position,
   isCurrentTurn = false,
+  isDealer = false,
   className = '',
   onScoreClick,
 }) => {
@@ -89,6 +91,16 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
             ${player.connected ? 'bg-green-500' : 'bg-red-500'}
           `}
         />
+
+        {/* Dealer Badge */}
+        {isDealer && (
+          <div
+            className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 border-2 border-slate-900 z-20 flex items-center justify-center"
+            title="Dealer"
+          >
+            <span className="text-[10px] font-black text-slate-900 leading-none">D</span>
+          </div>
+        )}
       </div>
 
       {/* Info Card - Slides out from avatar */}

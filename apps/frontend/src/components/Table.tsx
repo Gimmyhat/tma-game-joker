@@ -15,6 +15,7 @@ interface TableProps {
   trumpCard?: CardType | null;
   currentPlayerId?: string;
   myPlayerId: string;
+  dealerIndex?: number;
   className?: string;
   isJokerTrump?: boolean;
 }
@@ -36,6 +37,7 @@ export const Table: React.FC<TableProps> = ({
   trumpCard,
   currentPlayerId,
   myPlayerId,
+  dealerIndex,
   className = '',
   isJokerTrump = false,
 }) => {
@@ -112,6 +114,10 @@ export const Table: React.FC<TableProps> = ({
     const position = getPosition(index, orderedPlayers.length);
     const isTurn = player.id === currentPlayerId;
 
+    // Check if this player is the dealer (dealerIndex is relative to original players array)
+    const originalPlayerIndex = players.findIndex((p) => p.id === player.id);
+    const isDealer = dealerIndex !== undefined && originalPlayerIndex === dealerIndex;
+
     // Absolute positioning styles around the oval
     // We push them outward from the table edge
     const posStyles: Record<Position, string> = {
@@ -134,6 +140,7 @@ export const Table: React.FC<TableProps> = ({
           player={player}
           position={position}
           isCurrentTurn={isTurn}
+          isDealer={isDealer}
           onScoreClick={
             player.id === myPlayerId
               ? () => {

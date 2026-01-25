@@ -388,6 +388,7 @@ export const GameScreen: React.FC = () => {
             trumpCard={gameState.trumpCard}
             currentPlayerId={currentTurnPlayer?.id}
             myPlayerId={myPlayerId}
+            dealerIndex={gameState.dealerIndex}
             className="w-[85%] h-[65%] z-10" // Sizing relative to container
             isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
           />
