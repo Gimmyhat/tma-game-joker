@@ -24,6 +24,12 @@ COPY --from=dependencies /app/apps/backend/node_modules ./apps/backend/node_modu
 # 1. Build shared library (generates dist)
 RUN pnpm --filter @joker/shared build
 
+# 1.5. Generate Prisma Client (CRITICAL for types)
+# We must run this before building the backend so the types exist
+WORKDIR /app/apps/backend
+RUN npx prisma generate
+WORKDIR /app
+
 # 2. Build backend (using workspace context, so tsconfig paths work fine)
 RUN pnpm --filter @joker/backend build
 
@@ -37,11 +43,27 @@ RUN mkdir -p /app/pruned/node_modules/@joker/shared && \
     cp -r packages/shared/dist /app/pruned/node_modules/@joker/shared/ && \
     cp packages/shared/package.json /app/pruned/node_modules/@joker/shared/
 
+# Also copy generated Prisma Client to production node_modules
+# Prisma generates client into node_modules/@prisma/client by default
+# Since 'deploy --prod' creates a fresh node_modules, we need to copy the client over
+# However, usually 'prisma generate' in postinstall script handles this.
+# But in Docker, we want to be safe.
+# Actually, 'pnpm deploy' might skip postinstall for dev deps.
+# Let's ensure the Prisma engine/client is present in production image.
+# We will regenerate it in the final stage or copy it.
+# COPY --from=build /app/apps/backend/node_modules/.prisma /app/pruned/node_modules/.prisma
+# COPY --from=build /app/apps/backend/node_modules/@prisma/client /app/pruned/node_modules/@prisma/client
+# The safest way is to generate it again in the deploy stage OR copy it from build.
+
 FROM base AS deploy
 WORKDIR /app
 
 # Copy production node_modules (patched with built shared lib)
 COPY --from=build /app/pruned/node_modules ./node_modules
+
+# Copy Prisma schema and generate client for production (Alpine requires correct binary)
+COPY --from=build /app/apps/backend/prisma ./prisma
+RUN npx prisma generate
 
 # Copy built backend app
 # Since pnpm runs 'nest build' inside apps/backend directory, output is in apps/backend/dist
@@ -50,4 +72,8 @@ COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/apps/backend/package.json ./package.json
 
 EXPOSE 3000
-CMD [ "node", "dist/apps/backend/src/main" ]
+# Update entrypoint to match NestJS build output structure
+# When running from root, 'nest build' outputs to dist/
+# BUT in Docker we copy apps/backend/dist to ./dist
+# So structure inside container is /app/dist/main.js
+CMD [ "node", "dist/main" ]

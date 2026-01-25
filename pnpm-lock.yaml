@@ -53,9 +53,6 @@ importers:
       '@prisma/client':
         specifier: ^7.3.0
         version: 7.3.0(prisma@7.3.0)(typescript@5.9.3)
-      '@types/cron':
-        specifier: ^2.4.3
-        version: 2.4.3
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -2241,13 +2238,6 @@ packages:
     dependencies:
       '@types/node': 20.19.30
 
-  /@types/cron@2.4.3:
-    resolution: {integrity: sha512-ViRBkoZD9Rk0hGeMdd2GHGaOaZuH9mDmwsE5/Zo53Ftwcvh7h9VJc8lIt2wdgEwS4EW5lbtTX6vlE0idCLPOyA==}
-    deprecated: This is a stub types definition. cron provides its own type definitions, so you do not need this installed.
-    dependencies:
-      cron: 4.4.0
-    dev: false
-
   /@types/deep-eql@4.0.2:
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
     dev: true
@@ -3500,14 +3490,6 @@ packages:
 
   /cron@4.3.5:
     resolution: {integrity: sha512-hKPP7fq1+OfyCqoePkKfVq7tNAdFwiQORr4lZUHwrf0tebC65fYEeWgOrXOL6prn1/fegGOdTfrM6e34PJfksg==}
-    engines: {node: '>=18.x'}
-    dependencies:
-      '@types/luxon': 3.7.1
-      luxon: 3.7.2
-    dev: false
-
-  /cron@4.4.0:
-    resolution: {integrity: sha512-fkdfq+b+AHI4cKdhZlppHveI/mgz2qpiYxcm+t5E5TsxX7QrLS1VE0+7GENEk9z0EeGPcpSciGv6ez24duWhwQ==}
     engines: {node: '>=18.x'}
     dependencies:
       '@types/luxon': 3.7.1
