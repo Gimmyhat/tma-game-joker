@@ -8,8 +8,8 @@ WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --filter @joker/admin
+# Install all dependencies (needed for build)
+RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
@@ -24,16 +24,21 @@ RUN pnpm exec prisma generate
 # Build TypeScript
 RUN pnpm exec tsc
 
+# Create production deployment bundle
+WORKDIR /app
+RUN pnpm --filter @joker/admin deploy --prod /app/pruned
+
 FROM base AS deploy
 WORKDIR /app
 
-# Copy built app
-COPY --from=build /app/apps/admin/dist ./dist
-COPY --from=build /app/apps/admin/prisma ./prisma
-COPY --from=build /app/apps/admin/package.json ./package.json
+# Copy production bundle
+COPY --from=build /app/pruned ./
 
-# Copy node_modules from build (includes generated Prisma client)
-COPY --from=build /app/node_modules ./node_modules
+# Copy built dist (not included in deploy)
+COPY --from=build /app/apps/admin/dist ./dist
+
+# Copy prisma schema
+COPY --from=build /app/apps/admin/prisma ./prisma
 
 EXPOSE 3001
 CMD ["node", "dist/index.js"]
