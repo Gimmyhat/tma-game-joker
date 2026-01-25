@@ -60,19 +60,23 @@ jobs:
       - name: Build shared library
         run: pnpm --filter @joker/shared build
 
+      - name: Generate Prisma Client
+        run: |
+          cd apps/backend
+          npx prisma generate
+
       - name: Install Playwright browsers
         run: pnpm --filter @joker/frontend exec playwright install --with-deps
-
-      - name: Run backend e2e
-        run: pnpm --filter @joker/backend test:e2e
-
-      - name: Build Backend
-        run: pnpm --filter @joker/backend build
 
       - name: Run Database Migrations
         run: |
           cd apps/backend
           npx prisma migrate deploy
+
+      - name: Run backend e2e
+        run: pnpm --filter @joker/backend test:e2e
+
+      - name: Build Backend
 
       - name: Start Backend for Frontend tests
         run: |
