@@ -32,11 +32,8 @@ COPY --from=build /app/apps/admin/dist ./dist
 COPY --from=build /app/apps/admin/prisma ./prisma
 COPY --from=build /app/apps/admin/package.json ./package.json
 
-# Copy node_modules from build
+# Copy node_modules from build (includes generated Prisma client)
 COPY --from=build /app/node_modules ./node_modules
-
-# Generate Prisma client in production
-RUN npm install -g prisma@6.19.2 && prisma generate
 
 EXPOSE 3001
 CMD ["node", "dist/index.js"]
