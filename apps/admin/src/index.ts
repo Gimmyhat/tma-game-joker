@@ -4,6 +4,12 @@ import { Database, Resource, getModelByName } from '@adminjs/prisma';
 import { PrismaClient } from '@prisma/client';
 import express from 'express';
 import session from 'express-session';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import componentLoader from './component-loader.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Register Prisma adapter
 AdminJS.registerAdapter({ Database, Resource });
@@ -14,10 +20,20 @@ const PORT = process.env.ADMIN_PORT || 3001;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@joker.game';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'change-this-in-production-please';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// Resolve public dir for prebundled assets
+const publicDir = IS_PRODUCTION
+  ? path.join(__dirname, '..', 'public')
+  : path.join(process.cwd(), 'public');
 
 async function start() {
   const adminJs = new AdminJS({
     rootPath: '/admin',
+    // Use prebundled assets in production (built during Docker build)
+    // In development, AdminJS bundles on-the-fly
+    ...(IS_PRODUCTION && { assetsCDN: '/public' }),
+    componentLoader,
     branding: {
       companyName: 'Joker Game Admin',
       logo: false,
@@ -91,6 +107,12 @@ async function start() {
 
   const app = express();
 
+  // Serve prebundled AdminJS assets in production
+  if (IS_PRODUCTION) {
+    app.use('/public', express.static(publicDir));
+    console.log(`📁 Serving static assets from ${publicDir}`);
+  }
+
   // Session configuration
   const sessionOptions: session.SessionOptions = {
     secret: SESSION_SECRET,
@@ -98,7 +120,7 @@ async function start() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: IS_PRODUCTION,
     },
   };
 
