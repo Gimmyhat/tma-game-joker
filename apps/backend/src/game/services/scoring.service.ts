@@ -33,10 +33,10 @@ export class ScoringService {
    * - Took own (bet === tricks): 50 × bet
    * - Took ALL (bet === tricks === roundLength): 100 × roundLength
    * - Miss (bet ≠ tricks): 10 × tricks
-   * - Shtanga (bet > 1 && tricks === 0): -200
+   * - Shtanga (bet >= 1 && tricks === 0): -200
    */
   calculateRoundScore(bet: number, tricks: number, roundLength: number): RoundScoreResult {
-    const isShtanga = bet > 1 && tricks === 0;
+    const isShtanga = bet >= 1 && tricks === 0;
     const tookOwn = bet === tricks;
     const tookAll = tookOwn && bet === roundLength;
 

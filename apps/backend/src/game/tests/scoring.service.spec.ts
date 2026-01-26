@@ -51,16 +51,16 @@ describe('ScoringService', () => {
       expect(result.tookOwn).toBe(false);
     });
 
-    it('should give -200 for shtanga (bet > 1, tricks = 0)', () => {
+    it('should give -200 for shtanga (bet >= 1, tricks = 0)', () => {
       const result = service.calculateRoundScore(2, 0, 5);
       expect(result.score).toBe(-200);
       expect(result.isShtanga).toBe(true);
     });
 
-    it('should not give shtanga for bet 1, tricks 0', () => {
+    it('should give -200 for shtanga (bet = 1, tricks = 0)', () => {
       const result = service.calculateRoundScore(1, 0, 5);
-      expect(result.score).toBe(0);
-      expect(result.isShtanga).toBe(false);
+      expect(result.score).toBe(-200);
+      expect(result.isShtanga).toBe(true);
     });
 
     it('should give 50 for bet 0, tricks 0 (successful pass)', () => {
