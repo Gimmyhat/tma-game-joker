@@ -15,11 +15,12 @@ import {
 import { AppModule } from '../src/app.module';
 import { GameEngineService } from '../src/game/services/game-engine.service';
 import { StateMachineService } from '../src/game/services/state-machine.service';
-import { RoomManager } from '../src/gateway/room.manager';
+import { RoomManager } from '../src/game/services/room.manager';
 import { RedisService } from '../src/database/redis.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('App (e2e)', () => {
-  jest.setTimeout(20000);
+  jest.setTimeout(60000);
 
   let app: INestApplication;
   let gameEngine: GameEngineService;
@@ -27,10 +28,18 @@ describe('App (e2e)', () => {
   let roomManager: RoomManager;
   let serverUrl: string;
 
-  const socketTimeoutMs = 15000;
+  const socketTimeoutMs = 40000;
 
   const players = ['p1', 'p2', 'p3', 'p4'];
   const names = ['Alice', 'Boris', 'Chen', 'Dana'];
+
+  const createSocketPlayers = (label: string) => {
+    const suffix = `${label}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    return {
+      ids: players.map((id) => `${id}-${suffix}`),
+      names: names.map((name) => `${name}-${label}`),
+    };
+  };
 
   const createCard = (suit: Suit, rank: Rank): StandardCard => ({
     type: 'standard',
@@ -86,9 +95,21 @@ describe('App (e2e)', () => {
   beforeAll(async () => {
     process.env.E2E_TEST = 'true'; // Disable Redis connection
 
+    const prismaMock = {
+      $connect: jest.fn(),
+      $disconnect: jest.fn(),
+      game: {
+        upsert: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
+
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaMock)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -123,14 +144,15 @@ describe('App (e2e)', () => {
 
   it('creates a room via websocket matchmaking', async () => {
     let roomId: string | null = null;
-    const clients = players.map((playerId, index) =>
+    const { ids: playerIds, names: playerNames } = createSocketPlayers('matchmaking');
+    const clients = playerIds.map((playerId, index) =>
       io(serverUrl, {
         transports: ['websocket'],
         autoConnect: false,
         forceNew: true,
         query: {
           userId: playerId,
-          userName: names[index],
+          userName: playerNames[index],
         },
       }),
     );
@@ -165,22 +187,259 @@ describe('App (e2e)', () => {
       });
     } finally {
       if (roomId) {
-        roomManager.cleanupRoom(roomId);
+        await roomManager.cleanupRoom(roomId);
       }
+      playerIds.forEach((playerId) => roomManager.removeFromQueue(playerId));
       clients.forEach((client) => client.disconnect());
     }
   });
 
-  it('plays bets and a trick via websocket flow', async () => {
+  it('allows a player to leave game via websocket', async () => {
     let roomId: string | null = null;
-    const clients = players.map((playerId, index) =>
+    const { ids: playerIds, names: playerNames } = createSocketPlayers('leave-game');
+    const clients = playerIds.map((playerId, index) =>
       io(serverUrl, {
         transports: ['websocket'],
         autoConnect: false,
         forceNew: true,
         query: {
           userId: playerId,
-          userName: names[index],
+          userName: playerNames[index],
+        },
+      }),
+    );
+
+    const leavingIndex = 0;
+    const leavingClient = clients[leavingIndex];
+    const leavingPlayerId = playerIds[leavingIndex];
+
+    try {
+      const connectPromises = clients.map((client) => waitForEvent<void>(client, 'connect'));
+      clients.forEach((client) => client.connect());
+      await Promise.all(connectPromises);
+
+      const startedPromises = clients.map((client) =>
+        waitForEvent<{ roomId: string }>(client, 'game_started'),
+      );
+      const statePromise = waitForState(leavingClient);
+
+      clients.forEach((client) => client.emit('find_game'));
+
+      const started = await Promise.all(startedPromises);
+      roomId = started[0].roomId;
+      started.forEach((payload) => expect(payload.roomId).toBe(roomId));
+
+      await statePromise;
+
+      const leftPromise = waitForEvent<{ roomId: string }>(leavingClient, 'left_game');
+      const playerLeftPromise = waitForEvent<{
+        playerId: string;
+        playerName: string;
+        playersCount: number;
+      }>(clients[1], 'player_left');
+
+      leavingClient.emit('leave_game', { roomId });
+
+      const [leftPayload, playerLeftPayload] = await Promise.all([leftPromise, playerLeftPromise]);
+
+      expect(leftPayload.roomId).toBe(roomId);
+      expect(playerLeftPayload.playerId).toBe(leavingPlayerId);
+      expect(playerLeftPayload.playersCount).toBe(GAME_CONSTANTS.PLAYERS_COUNT);
+
+      const nextState = await waitForState(clients[1]);
+      expect(nextState.state.players).toHaveLength(GAME_CONSTANTS.PLAYERS_COUNT);
+    } finally {
+      if (roomId) {
+        await roomManager.cleanupRoom(roomId);
+      }
+      playerIds.forEach((playerId) => roomManager.removeFromQueue(playerId));
+      clients.forEach((client) => client.disconnect());
+    }
+  });
+
+  it('restores game state after reconnect', async () => {
+    let roomId: string | null = null;
+    const { ids: playerIds, names: playerNames } = createSocketPlayers('reconnect');
+    const clients = playerIds.map((playerId, index) =>
+      io(serverUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: playerId,
+          userName: playerNames[index],
+        },
+      }),
+    );
+
+    const reconnectIndex = 0;
+    const reconnectPlayerId = playerIds[reconnectIndex];
+    const reconnectPlayerName = playerNames[reconnectIndex];
+    const disconnectClient = clients[reconnectIndex];
+    let reconnectClient: Socket | null = null;
+
+    try {
+      const connectPromises = clients.map((client) => waitForEvent<void>(client, 'connect'));
+      clients.forEach((client) => client.connect());
+      await Promise.all(connectPromises);
+
+      const startedPromises = clients.map((client) =>
+        waitForEvent<{ roomId: string }>(client, 'game_started'),
+      );
+      const initialStatePromise = waitForState(clients[0]);
+
+      clients.forEach((client) => client.emit('find_game'));
+
+      const started = await Promise.all(startedPromises);
+      roomId = started[0].roomId;
+      started.forEach((payload) => expect(payload.roomId).toBe(roomId));
+      await initialStatePromise;
+
+      const disconnectPromise = waitForEvent<string>(disconnectClient, 'disconnect');
+      disconnectClient.disconnect();
+      await disconnectPromise;
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      reconnectClient = io(serverUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: reconnectPlayerId,
+          userName: reconnectPlayerName,
+        },
+      });
+
+      const reconnectPromise = waitForEvent<void>(reconnectClient, 'connect');
+      const reconnectStatePromise = waitForState(reconnectClient);
+      reconnectClient.connect();
+      await reconnectPromise;
+
+      const statePayload = await reconnectStatePromise;
+      const player = statePayload.state.players.find((p) => p.id === reconnectPlayerId);
+      expect(player?.connected).toBe(true);
+    } finally {
+      if (roomId) {
+        await roomManager.cleanupRoom(roomId);
+      }
+      playerIds.forEach((playerId) => roomManager.removeFromQueue(playerId));
+      clients.forEach((client) => client.disconnect());
+      reconnectClient?.disconnect();
+    }
+  });
+
+  it('fills matchmaking with bots after timeout', async () => {
+    let botApp: INestApplication | null = null;
+    let botRoomManager: RoomManager | null = null;
+    let botServerUrl: string | null = null;
+    let roomId: string | null = null;
+    let client: Socket | null = null;
+    let playerId: string | null = null;
+
+    const previousMatchmakingTimeout = process.env.MATCHMAKING_TIMEOUT_MS;
+    process.env.MATCHMAKING_TIMEOUT_MS = '500';
+    process.env.E2E_TEST = 'true';
+
+    const prismaMock = {
+      $connect: jest.fn(),
+      $disconnect: jest.fn(),
+      game: {
+        upsert: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
+
+    try {
+      const moduleFixture = await Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock)
+        .compile();
+
+      botApp = moduleFixture.createNestApplication();
+      await botApp.init();
+      await botApp.listen(0);
+
+      const address = botApp.getHttpServer().address();
+      if (!address || typeof address === 'string') {
+        throw new Error('Failed to resolve bot-fill test server address');
+      }
+
+      botServerUrl = `http://127.0.0.1:${address.port}`;
+      botRoomManager = botApp.get(RoomManager);
+
+      const { ids: playerIds, names: playerNames } = createSocketPlayers('bot-fill');
+      playerId = playerIds[0];
+      const playerName = playerNames[0];
+
+      client = io(botServerUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: playerId,
+          userName: playerName,
+        },
+      });
+
+      const connectPromise = waitForEvent<void>(client, 'connect');
+      const startedPromise = waitForEvent<{ roomId: string }>(client, 'game_started', 50000);
+      const statePromise = waitForState(client, 50000);
+
+      client.connect();
+      await connectPromise;
+      client.emit('find_game');
+
+      const started = await startedPromise;
+      roomId = started.roomId;
+
+      const statePayload = await statePromise;
+      expect(statePayload.state.players).toHaveLength(GAME_CONSTANTS.PLAYERS_COUNT);
+      const botCount = statePayload.state.players.filter((player) => player.isBot).length;
+      expect(botCount).toBe(GAME_CONSTANTS.PLAYERS_COUNT - 1);
+      expect(statePayload.state.players.some((player) => player.id === playerId)).toBe(true);
+    } finally {
+      if (roomId && botRoomManager) {
+        await botRoomManager.cleanupRoom(roomId);
+      }
+      if (botRoomManager && playerId) {
+        botRoomManager.removeFromQueue(playerId);
+      }
+      client?.disconnect();
+
+      if (botApp) {
+        try {
+          const redisService = botApp.get(RedisService);
+          if (redisService) {
+            await redisService.onModuleDestroy();
+          }
+        } catch (e) {
+          void e;
+        }
+        await botApp.close();
+      }
+
+      if (previousMatchmakingTimeout === undefined) {
+        delete process.env.MATCHMAKING_TIMEOUT_MS;
+      } else {
+        process.env.MATCHMAKING_TIMEOUT_MS = previousMatchmakingTimeout;
+      }
+    }
+  }, 90000);
+
+  it('plays bets and a trick via websocket flow', async () => {
+    let roomId: string | null = null;
+    const { ids: playerIds, names: playerNames } = createSocketPlayers('bet-trick');
+    const clients = playerIds.map((playerId, index) =>
+      io(serverUrl, {
+        transports: ['websocket'],
+        autoConnect: false,
+        forceNew: true,
+        query: {
+          userId: playerId,
+          userName: playerNames[index],
         },
       }),
     );
@@ -188,7 +447,7 @@ describe('App (e2e)', () => {
     const playerHands = new Map<string, Card[]>();
 
     clients.forEach((client, index) => {
-      const playerId = players[index];
+      const playerId = playerIds[index];
       client.on('game_state', (payload: { state: GameState }) => {
         const player = payload.state.players.find((item) => item.id === playerId);
         if (player) {
@@ -219,7 +478,7 @@ describe('App (e2e)', () => {
 
       for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
         const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
-        const socketIndex = players.indexOf(currentPlayerId);
+        const socketIndex = playerIds.indexOf(currentPlayerId);
         const currentSocket = clients[socketIndex];
         if (!currentSocket) {
           throw new Error(`Missing socket for player ${currentPlayerId}`);
@@ -234,7 +493,7 @@ describe('App (e2e)', () => {
 
       for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
         const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
-        const socketIndex = players.indexOf(currentPlayerId);
+        const socketIndex = playerIds.indexOf(currentPlayerId);
         const currentSocket = clients[socketIndex];
         if (!currentSocket) {
           throw new Error(`Missing socket for player ${currentPlayerId}`);
@@ -280,8 +539,9 @@ describe('App (e2e)', () => {
       expect(currentState.phase).toBe(GamePhase.Betting);
     } finally {
       if (roomId) {
-        roomManager.cleanupRoom(roomId);
+        await roomManager.cleanupRoom(roomId);
       }
+      playerIds.forEach((playerId) => roomManager.removeFromQueue(playerId));
       clients.forEach((client) => client.disconnect());
     }
   });

@@ -12,6 +12,7 @@ export class GameProcessService {
   private readonly logger = new Logger(GameProcessService.name);
   private server!: Server;
   private reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private botFillTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private gameEngine: GameEngineService,
@@ -92,6 +93,157 @@ export class GameProcessService {
     } else {
       await this.handlePostMoveTransitions(room.id);
     }
+  }
+
+  /**
+   * Leave current game room and replace with bot
+   */
+  async handleLeaveGame(
+    playerId: string,
+    playerName: string,
+  ): Promise<{ roomId: string | null; playersCount?: number } | null> {
+    const room = await this.roomManager.getRoomByPlayerId(playerId);
+    if (!room) {
+      this.roomManager.removeFromQueue(playerId);
+      return { roomId: null };
+    }
+
+    await this.roomManager.replaceWithBot(room.id, playerId);
+
+    this.server.to(room.id).emit('player_left', {
+      playerId,
+      playerName,
+      playersCount: room.gameState.players.length,
+    });
+
+    await this.emitGameState(room.id);
+    this.startTurnTimer(room.id);
+    await this.processBotTurn(room.id);
+
+    return { roomId: room.id, playersCount: room.gameState.players.length };
+  }
+
+  /**
+   * Handle player disconnect
+   */
+  async handleDisconnect(playerId: string): Promise<void> {
+    await this.roomManager.handleDisconnect(playerId);
+    this.startReconnectTimeout(playerId);
+  }
+
+  /**
+   * Handle new connection and reconcile reconnection state
+   */
+  async handleConnection(playerId: string, socketId: string): Promise<string | null> {
+    const room = await this.roomManager.getRoomByPlayerId(playerId);
+    if (!room) return null;
+
+    await this.roomManager.updateSocketId(playerId, socketId);
+    this.clearReconnectTimeout(playerId);
+
+    const player = room.gameState.players.find((p) => p.id === playerId);
+    if (player) {
+      player.connected = true;
+      await this.emitGameState(room.id);
+    }
+
+    return room.id;
+  }
+
+  /**
+   * Add player to matchmaking queue and start game if ready
+   */
+  async handleFindGame(
+    playerId: string,
+    playerName: string,
+    socketId: string,
+  ): Promise<'already_in_game' | 'queued' | 'started'> {
+    const existingRoom = await this.roomManager.getRoomByPlayerId(playerId);
+    if (existingRoom) {
+      return 'already_in_game';
+    }
+
+    this.roomManager.addToQueue(playerId, playerName, socketId);
+    this.logger.log(`${playerName} joined queue. Queue size: ${this.roomManager.getQueueLength()}`);
+
+    this.broadcastQueueStatus();
+
+    if (this.roomManager.canStartGame()) {
+      this.clearBotFillTimer();
+      await this.startGame();
+      return 'started';
+    }
+
+    if (this.roomManager.getQueueLength() === 1 && !this.botFillTimer) {
+      this.startBotFillTimer();
+    }
+
+    return 'queued';
+  }
+
+  /**
+   * Remove player from matchmaking queue
+   */
+  handleLeaveQueue(playerId: string): void {
+    this.roomManager.removeFromQueue(playerId);
+    if (this.roomManager.getQueueLength() === 0) {
+      this.clearBotFillTimer();
+    }
+
+    this.broadcastQueueStatus();
+  }
+
+  /**
+   * Broadcast queue status to all queued players
+   */
+  private broadcastQueueStatus(): void {
+    const sockets = this.roomManager.getQueueSockets();
+    const current = this.roomManager.getQueueLength();
+    const required = GAME_CONSTANTS.PLAYERS_COUNT;
+
+    for (const socketId of sockets) {
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.emit('waiting_for_players', {
+          roomId: 'queue',
+          current,
+          required,
+        });
+      }
+    }
+  }
+
+  /**
+   * Clear bot fill timer
+   */
+  private clearBotFillTimer(): void {
+    if (this.botFillTimer) {
+      clearTimeout(this.botFillTimer);
+      this.botFillTimer = null;
+      this.logger.log('Bot fill timer cleared (queue empty or game started)');
+    }
+  }
+
+  /**
+   * Start bot fill timer
+   */
+  private startBotFillTimer(): void {
+    this.clearBotFillTimer();
+
+    const timeoutMs =
+      Number(this.configService.get('MATCHMAKING_TIMEOUT_MS')) ||
+      GAME_CONSTANTS.MATCHMAKING_TIMEOUT_MS;
+
+    this.botFillTimer = setTimeout(async () => {
+      // Fill with bots if still waiting
+      if (this.roomManager.getQueueLength() > 0) {
+        this.logger.log('Bot fill timeout - creating game with bots');
+        await this.startGameWithBots();
+      }
+      this.botFillTimer = null;
+    }, timeoutMs);
+
+    this.logger.log(`Bot fill timer started (${timeoutMs}ms)`);
   }
 
   /**

@@ -59,10 +59,6 @@ export class ScoringService {
       score = GAME_CONSTANTS.SCORE_MISS_MULTIPLIER * tricks;
     }
 
-    console.log(
-      `[Scoring] Player: ${bet} | Tricks: ${tricks} | RL: ${roundLength} | Shtanga: ${isShtanga} | Own: ${tookOwn} | Score: ${score}`,
-    );
-
     return {
       playerId: '',
       bet,

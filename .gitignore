@@ -43,3 +43,4 @@ apps/frontend/playwright-report/
 node_modules/
 nul
 *.kilocode*
+installation_guide.md

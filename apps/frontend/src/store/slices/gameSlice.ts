@@ -38,20 +38,23 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
   },
 
   makeBet: (amount: number) => {
-    const { roomId, gameState } = get();
+    const { roomId, gameState, myPlayerId } = get();
     if (!roomId || gameState?.phase !== 'betting') return;
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== myPlayerId) return;
     emitMakeBet(roomId, amount);
   },
 
   throwCard: (cardId: string, jokerOption?: JokerOption, requestedSuit?: Suit) => {
-    const { roomId, gameState } = get();
+    const { roomId, gameState, myPlayerId } = get();
     if (!roomId || gameState?.phase !== 'playing') return;
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== myPlayerId) return;
     emitThrowCard(roomId, cardId, jokerOption, requestedSuit);
   },
 
   selectTrump: (trump: Suit | null) => {
-    const { roomId, gameState } = get();
+    const { roomId, gameState, myPlayerId } = get();
     if (!roomId || gameState?.phase !== 'trump_selection') return;
+    if (gameState.players[gameState.currentPlayerIndex]?.id !== myPlayerId) return;
     emitSelectTrump(roomId, trump);
   },
 

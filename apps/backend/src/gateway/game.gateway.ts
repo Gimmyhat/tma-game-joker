@@ -10,16 +10,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import {
-  MakeBetPayload,
-  ThrowCardPayload,
-  SelectTrumpPayload,
-  GAME_CONSTANTS,
-} from '@joker/shared';
-import { RoomManager } from '../game/services/room.manager';
+import { MakeBetPayload, ThrowCardPayload, SelectTrumpPayload } from '@joker/shared';
 import { GameProcessService } from '../game/services/game-process.service';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
+import { ConnectionRegistryService } from './connection-registry.service';
 
 @Injectable()
 @WebSocketGateway({
@@ -35,16 +29,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   private readonly logger = new Logger(GameGateway.name);
 
-  // Map socket.id -> { playerId, playerName }
-  private socketToPlayer: Map<string, { id: string; name: string }> = new Map();
-
-  // Bot fill timer (before room is created)
-  private botFillTimer: NodeJS.Timeout | null = null;
-
   constructor(
-    private roomManager: RoomManager,
+    private connectionRegistry: ConnectionRegistryService,
     private gameProcess: GameProcessService,
-    private configService: ConfigService,
   ) {}
 
   afterInit(server: Server) {
@@ -64,7 +51,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       return;
     }
 
-    this.socketToPlayer.set(client.id, { id: userId, name: userName });
+    this.connectionRegistry.register(client.id, userId, userName);
 
     // DEBUG: Log all incoming events
     client.onAny((event) => {
@@ -72,21 +59,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     });
 
     // Check if player was in a game (reconnection)
-    const room = await this.roomManager.getRoomByPlayerId(userId);
-    if (room) {
-      await this.roomManager.updateSocketId(userId, client.id);
-      client.join(room.id);
-
-      this.gameProcess.clearReconnectTimeout(userId);
-
-      // Mark player as connected
-      const player = room.gameState.players.find((p) => p.id === userId);
-      if (player) {
-        player.connected = true;
-        await this.gameProcess.emitGameState(room.id);
-      }
-
-      this.logger.log(`Player ${userId} reconnected to room ${room.id}`);
+    const roomId = await this.gameProcess.handleConnection(userId, client.id);
+    if (roomId) {
+      client.join(roomId);
+      this.logger.log(`Player ${userId} reconnected to room ${roomId}`);
     }
 
     this.logger.log(`Client connected: ${client.id} (${userId})`);
@@ -96,11 +72,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    * Handle disconnection
    */
   async handleDisconnect(client: Socket): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (playerInfo) {
-      await this.roomManager.handleDisconnect(playerInfo.id);
-      this.socketToPlayer.delete(client.id);
-      this.gameProcess.startReconnectTimeout(playerInfo.id);
+      await this.gameProcess.handleDisconnect(playerInfo.id);
+      this.connectionRegistry.unregister(client.id);
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -110,37 +85,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    */
   @SubscribeMessage('find_game')
   async handleFindGame(@ConnectedSocket() client: Socket): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) {
       client.emit('error', { code: 'NOT_REGISTERED', message: 'Connection not registered' });
       return;
     }
 
-    // Check if already in a game
-    const existingRoom = await this.roomManager.getRoomByPlayerId(playerInfo.id);
-    if (existingRoom) {
+    const result = await this.gameProcess.handleFindGame(playerInfo.id, playerInfo.name, client.id);
+    if (result === 'already_in_game') {
       client.emit('error', { code: 'ALREADY_IN_GAME', message: 'Already in a game' });
-      return;
-    }
-
-    // Add to queue
-    this.roomManager.addToQueue(playerInfo.id, playerInfo.name, client.id);
-    this.logger.log(
-      `${playerInfo.name} joined queue. Queue size: ${this.roomManager.getQueueLength()}`,
-    );
-
-    // Notify all queued players
-    this.broadcastQueueStatus();
-
-    // Check if enough players
-    if (this.roomManager.canStartGame()) {
-      this.clearBotFillTimer();
-      await this.gameProcess.startGame();
-    } else {
-      // Start bot fill timer for first player
-      if (this.roomManager.getQueueLength() === 1 && !this.botFillTimer) {
-        this.startBotFillTimer();
-      }
     }
   }
 
@@ -149,38 +102,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    */
   @SubscribeMessage('leave_queue')
   async handleLeaveQueue(@ConnectedSocket() client: Socket): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
 
-    this.roomManager.removeFromQueue(playerInfo.id);
-    if (this.roomManager.getQueueLength() === 0) {
-      this.clearBotFillTimer();
-    }
-
+    this.gameProcess.handleLeaveQueue(playerInfo.id);
     client.emit('queue_left', { playerId: playerInfo.id });
-
-    // Notify remaining queued players
-    this.broadcastQueueStatus();
-  }
-
-  /**
-   * Broadcast queue status to all queued players
-   */
-  private broadcastQueueStatus(): void {
-    const sockets = this.roomManager.getQueueSockets();
-    const current = this.roomManager.getQueueLength();
-    const required = GAME_CONSTANTS.PLAYERS_COUNT;
-
-    for (const socketId of sockets) {
-      const socket = this.server.sockets.sockets.get(socketId);
-      if (socket) {
-        socket.emit('waiting_for_players', {
-          roomId: 'queue',
-          current,
-          required,
-        });
-      }
-    }
   }
 
   /**
@@ -188,62 +114,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    */
   @SubscribeMessage('leave_game')
   async handleLeaveGame(@ConnectedSocket() client: Socket): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
 
-    const room = await this.roomManager.getRoomByPlayerId(playerInfo.id);
-    if (!room) {
-      this.roomManager.removeFromQueue(playerInfo.id);
+    const result = await this.gameProcess.handleLeaveGame(playerInfo.id, playerInfo.name);
+    if (!result) return;
+
+    if (!result.roomId) {
       client.emit('left_game', { playerId: playerInfo.id });
       return;
     }
 
-    await this.roomManager.replaceWithBot(room.id, playerInfo.id);
-    client.leave(room.id);
-
-    this.server.to(room.id).emit('player_left', {
-      playerId: playerInfo.id,
-      playerName: playerInfo.name,
-      playersCount: room.gameState.players.length,
-    });
-
-    client.emit('left_game', { roomId: room.id });
-    await this.gameProcess.emitGameState(room.id);
-    this.gameProcess.startTurnTimer(room.id);
-    await this.gameProcess.processBotTurn(room.id);
-  }
-
-  /**
-   * Clear bot fill timer
-   */
-  private clearBotFillTimer(): void {
-    if (this.botFillTimer) {
-      clearTimeout(this.botFillTimer);
-      this.botFillTimer = null;
-      this.logger.log('Bot fill timer cleared (queue empty or game started)');
-    }
-  }
-
-  /**
-   * Start bot fill timer
-   */
-  private startBotFillTimer(): void {
-    this.clearBotFillTimer();
-
-    const timeoutMs =
-      Number(this.configService.get('MATCHMAKING_TIMEOUT_MS')) ||
-      GAME_CONSTANTS.MATCHMAKING_TIMEOUT_MS;
-
-    this.botFillTimer = setTimeout(async () => {
-      // Fill with bots if still waiting
-      if (this.roomManager.getQueueLength() > 0) {
-        this.logger.log('Bot fill timeout - creating game with bots');
-        await this.gameProcess.startGameWithBots();
-      }
-      this.botFillTimer = null;
-    }, timeoutMs);
-
-    this.logger.log(`Bot fill timer started (${timeoutMs}ms)`);
+    client.leave(result.roomId);
+    client.emit('left_game', { roomId: result.roomId });
   }
 
   /**
@@ -254,7 +137,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: SelectTrumpPayload,
   ): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
 
     try {
@@ -272,7 +155,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: MakeBetPayload,
   ): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
 
     try {
@@ -290,7 +173,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ThrowCardPayload,
   ): Promise<void> {
-    const playerInfo = this.socketToPlayer.get(client.id);
+    const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
 
     try {

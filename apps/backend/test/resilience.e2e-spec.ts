@@ -3,8 +3,9 @@ import { Test } from '@nestjs/testing';
 import { io, Socket } from 'socket.io-client';
 import { GameState } from '@joker/shared';
 import { AppModule } from '../src/app.module';
-import { RoomManager } from '../src/gateway/room.manager';
+import { RoomManager } from '../src/game/services/room.manager';
 import { RedisService } from '../src/database/redis.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 // TODO: Fix resilience tests. Timing issues with Bot Fill timer in test environment cause flakiness.
 // Needs reliable ConfigService mocking for timeouts.
@@ -44,9 +45,21 @@ describe.skip('Resilience (e2e)', () => {
     process.env.MATCHMAKING_TIMEOUT_MS = '60000'; // Ensure long timeout
     process.env.E2E_TEST = 'true';
 
+    const prismaMock = {
+      $connect: jest.fn(),
+      $disconnect: jest.fn(),
+      game: {
+        upsert: jest.fn(),
+        updateMany: jest.fn(),
+      },
+    };
+
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaMock)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
