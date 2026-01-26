@@ -353,18 +353,64 @@ async function start() {
             bulkDelete: { isAccessible: false, isVisible: false },
             show: {
               after: async (response: AdminRecordResponse) => {
-                const record = response.record;
-                if (!record) return response;
+                try {
+                  const record = response.record;
+                  if (!record) return response;
 
-                const playersArray = buildArrayFromParams(record.params, 'players');
-                const gameLogArray = buildArrayFromParams(record.params, 'gameLog');
-                const analysis = buildGameAnalysis(playersArray, gameLogArray);
+                  // Helper to extract JSON data whether it's flattened or not
+                  const extractJson = (key: string) => {
+                    // 1. Try direct access (if not flattened)
+                    if (record.params[key] && typeof record.params[key] === 'object') {
+                      return record.params[key] as Record<string, unknown>[];
+                    }
+                    // 2. Try parsing if it's a string
+                    if (typeof record.params[key] === 'string') {
+                      try {
+                        return JSON.parse(record.params[key] as string);
+                      } catch (e) {
+                        // ignore
+                      }
+                    }
+                    // 3. Try building from flattened params
+                    return buildArrayFromParams(record.params, key);
+                  };
 
-                record.params.playersJson = JSON.stringify(playersArray, null, 2);
-                record.params.gameLogJson = JSON.stringify(gameLogArray, null, 2);
-                record.params.analysisJson = JSON.stringify(analysis, null, 2);
+                  const playersArray = extractJson('players');
+                  const gameLogArray = extractJson('gameLog');
 
-                return response;
+                  // Safety check
+                  if (!Array.isArray(playersArray) || !Array.isArray(gameLogArray)) {
+                    console.warn('AdminJS: Failed to parse players or gameLog', {
+                      id: record.params.id,
+                      playersType: typeof record.params.players,
+                      gameLogType: typeof record.params.gameLog,
+                    });
+                    // Fallback to empty to prevent crash
+                    const safePlayers = Array.isArray(playersArray) ? playersArray : [];
+                    const safeLog = Array.isArray(gameLogArray) ? gameLogArray : [];
+
+                    record.params.playersJson = JSON.stringify(safePlayers, null, 2);
+                    record.params.gameLogJson = JSON.stringify(safeLog, null, 2);
+                    record.params.analysisJson = JSON.stringify(
+                      buildGameAnalysis(safePlayers, safeLog),
+                      null,
+                      2,
+                    );
+                    return response;
+                  }
+
+                  const analysis = buildGameAnalysis(playersArray, gameLogArray);
+
+                  record.params.playersJson = JSON.stringify(playersArray, null, 2);
+                  record.params.gameLogJson = JSON.stringify(gameLogArray, null, 2);
+                  record.params.analysisJson = JSON.stringify(analysis, null, 2);
+
+                  return response;
+                } catch (error) {
+                  console.error('AdminJS Show Hook Error:', error);
+                  // Return response anyway to avoid 500 page, just missing data
+                  return response;
+                }
               },
             },
           },
