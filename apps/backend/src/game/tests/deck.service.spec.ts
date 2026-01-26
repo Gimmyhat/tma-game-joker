@@ -583,5 +583,29 @@ describe('DeckService', () => {
 
       expect(aceFound).toBe(true);
     });
+
+    it('should ensure dealer index matches the player with the Ace', () => {
+      // Run 50 times to catch random anomalies
+      for (let i = 0; i < 50; i++) {
+        const { dealerIndex, cardsDealt } = deckService.tuzovanie(4);
+
+        // Find who has the Ace
+        let aceOwnerIndex = -1;
+
+        for (let p = 0; p < 4; p++) {
+          const hand = cardsDealt[p];
+          if (hand.length > 0) {
+            const lastCard = hand[hand.length - 1];
+            if (lastCard.type === 'standard' && (lastCard as StandardCard).rank === Rank.Ace) {
+              aceOwnerIndex = p;
+              break;
+            }
+          }
+        }
+
+        expect(aceOwnerIndex).not.toBe(-1); // Ace must be found
+        expect(aceOwnerIndex).toBe(dealerIndex); // Winner must be dealer
+      }
+    });
   });
 });

@@ -275,7 +275,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
     });
 
-    this.logger.log(`Tuzovanie started in room ${room.id}`);
+    this.logger.log(
+      `Tuzovanie started in room ${room.id}. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
+    );
 
     // Calculate delay: count total cards dealt * 200ms + 2000ms buffer
     const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
@@ -324,7 +326,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
     });
 
-    this.logger.log(`Tuzovanie started in room ${room.id} with bots`);
+    this.logger.log(
+      `Tuzovanie started in room ${room.id} with bots. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
+    );
 
     // Calculate delay
     const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
