@@ -6,7 +6,7 @@ import express from 'express';
 import session from 'express-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import componentLoader from './component-loader.js';
+import componentLoader, { Components } from './component-loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +28,247 @@ interface AdminRecordResponse {
     params: Record<string, unknown>;
   };
 }
+
+interface GameLogEntry {
+  a: string;
+  p: string;
+  t: number;
+  d?: Record<string, unknown>;
+}
+
+interface AnalysisCard {
+  cardId: string;
+  cardType: string | null;
+  suit: string | null;
+  rank: string | null;
+  jokerOption: string | null;
+  requestedSuit: string | null;
+}
+
+interface AnalysisTrick {
+  index: number;
+  leaderId: string | null;
+  winnerId: string | null;
+  winnerTricks: number | null;
+  cards: Array<{ playerId: string; card: AnalysisCard; at: number }>;
+  handsBefore?: Record<string, AnalysisCard[]>;
+  handsAfter?: Record<string, AnalysisCard[]>;
+}
+
+interface AnalysisRound {
+  round: number;
+  pulka: number;
+  cardsPerPlayer: number | null;
+  dealerId: string | null;
+  trump: string | null;
+  bets: Record<string, number>;
+  tricks: AnalysisTrick[];
+  scores: Record<string, number> | null;
+}
+
+interface AnalysisEvent {
+  index: number;
+  action: string;
+  playerId: string;
+  timestamp: number;
+  round: number;
+  pulka: number;
+  trickIndex: number | null;
+  data: Record<string, unknown> | null;
+}
+
+const cloneHands = (hands: Record<string, AnalysisCard[]>): Record<string, AnalysisCard[]> =>
+  JSON.parse(JSON.stringify(hands));
+
+const buildGameAnalysis = (
+  players: Record<string, unknown>[],
+  gameLog: Record<string, unknown>[],
+): {
+  players: Record<string, unknown>[];
+  rounds: AnalysisRound[];
+  events: AnalysisEvent[];
+  eventTypes: string[];
+  hasHands: boolean;
+} => {
+  const playersById = new Map(
+    players.map((player) => [String(player.id), player] as [string, Record<string, unknown>]),
+  );
+
+  const roundsByKey = new Map<string, AnalysisRound>();
+  const eventTypes = new Set<string>();
+
+  let currentRound = 1;
+  let currentPulka = 1;
+  let currentTrump: string | null = null;
+  let currentCardsPerPlayer: number | null = null;
+  let currentDealerId: string | null = null;
+  let currentHands: Record<string, AnalysisCard[]> | null = null;
+  let currentTrick: AnalysisTrick | null = null;
+  const events: AnalysisEvent[] = [];
+  let eventIndex = 0;
+
+  const ensureRound = (): AnalysisRound => {
+    const key = `${currentPulka}-${currentRound}`;
+    if (!roundsByKey.has(key)) {
+      roundsByKey.set(key, {
+        round: currentRound,
+        pulka: currentPulka,
+        cardsPerPlayer: currentCardsPerPlayer,
+        dealerId: currentDealerId,
+        trump: currentTrump,
+        bets: {},
+        tricks: [],
+        scores: null,
+      });
+    }
+
+    const round = roundsByKey.get(key)!;
+    if (round.trump === null) round.trump = currentTrump;
+    if (round.cardsPerPlayer === null) round.cardsPerPlayer = currentCardsPerPlayer;
+    if (round.dealerId === null) round.dealerId = currentDealerId;
+    return round;
+  };
+
+  for (const raw of gameLog) {
+    const entry = raw as unknown as GameLogEntry;
+    eventTypes.add(entry.a);
+
+    const pushEvent = (trickIndex: number | null) => {
+      events.push({
+        index: eventIndex++,
+        action: entry.a,
+        playerId: entry.p,
+        timestamp: entry.t,
+        round: currentRound,
+        pulka: currentPulka,
+        trickIndex,
+        data: entry.d ?? null,
+      });
+    };
+
+    if (entry.a === 'GAME_START') {
+      const data = entry.d ?? {};
+      currentRound = Number(data.round ?? 1);
+      currentPulka = Number(data.pulka ?? 1);
+      currentTrump = (data.trump as string | null) ?? null;
+      ensureRound();
+      pushEvent(null);
+      continue;
+    }
+
+    if (entry.a === 'ROUND_START') {
+      const data = entry.d ?? {};
+      currentRound = Number(data.round ?? currentRound);
+      currentPulka = Number(data.pulka ?? currentPulka);
+      currentCardsPerPlayer = Number(data.cardsPerPlayer ?? currentCardsPerPlayer);
+      currentDealerId = (data.dealerId as string | null) ?? null;
+      currentTrump = (data.trump as string | null) ?? currentTrump;
+
+      const round = ensureRound();
+      round.cardsPerPlayer = currentCardsPerPlayer;
+      round.dealerId = currentDealerId;
+      round.trump = currentTrump;
+
+      const handsData = data.hands as Array<{ playerId: string; hand: AnalysisCard[] }> | undefined;
+      if (handsData) {
+        currentHands = {};
+        for (const handEntry of handsData) {
+          currentHands[handEntry.playerId] = (handEntry.hand ?? []).map((card) => ({
+            ...card,
+            cardType: card.cardType ? card.cardType.toUpperCase() : null,
+          }));
+        }
+      }
+
+      pushEvent(null);
+
+      continue;
+    }
+
+    if (entry.a === 'TRUMP') {
+      currentTrump = (entry.d?.trump as string | null) ?? currentTrump;
+      ensureRound().trump = currentTrump;
+      pushEvent(null);
+      continue;
+    }
+
+    const round = ensureRound();
+
+    if (entry.a === 'BET') {
+      const amount = Number(entry.d?.amount ?? 0);
+      round.bets[entry.p] = amount;
+      pushEvent(null);
+      continue;
+    }
+
+    if (entry.a === 'CARD') {
+      if (!currentTrick) {
+        currentTrick = {
+          index: round.tricks.length + 1,
+          leaderId: entry.p,
+          winnerId: null,
+          winnerTricks: null,
+          cards: [],
+          handsBefore: currentHands ? cloneHands(currentHands) : undefined,
+        };
+        round.tricks.push(currentTrick);
+      }
+
+      const rawCardType = typeof entry.d?.cardType === 'string' ? entry.d?.cardType : null;
+      const card: AnalysisCard = {
+        cardId: String(entry.d?.cardId ?? ''),
+        cardType: rawCardType ? rawCardType.toUpperCase() : null,
+        suit: (entry.d?.suit as string | null) ?? null,
+        rank: (entry.d?.rank as string | null) ?? null,
+        jokerOption: (entry.d?.jokerOption as string | null) ?? null,
+        requestedSuit: (entry.d?.requestedSuit as string | null) ?? null,
+      };
+
+      currentTrick.cards.push({ playerId: entry.p, card, at: entry.t });
+
+      if (currentHands && currentHands[entry.p]) {
+        currentHands[entry.p] = currentHands[entry.p].filter((c) => c.cardId !== card.cardId);
+      }
+
+      pushEvent(currentTrick.index);
+
+      continue;
+    }
+
+    if (entry.a === 'TRICK_WINNER') {
+      if (currentTrick) {
+        currentTrick.winnerId = entry.p;
+        currentTrick.winnerTricks = Number(entry.d?.tricks ?? 0);
+        if (currentHands) {
+          currentTrick.handsAfter = cloneHands(currentHands);
+        }
+        pushEvent(currentTrick.index);
+      }
+      currentTrick = null;
+      continue;
+    }
+
+    if (entry.a === 'ROUND_COMPLETE') {
+      round.scores = (entry.d?.scores as Record<string, number>) ?? null;
+      pushEvent(null);
+      continue;
+    }
+
+    if (entry.a === 'PULKA_COMPLETE') {
+      currentPulka = currentPulka + 1;
+      pushEvent(null);
+      continue;
+    }
+  }
+
+  return {
+    players: [...playersById.values()],
+    rounds: [...roundsByKey.values()].sort((a, b) => a.round - b.round),
+    events,
+    eventTypes: [...eventTypes.values()].sort(),
+    hasHands: Boolean(currentHands),
+  };
+};
 
 const buildArrayFromParams = (
   params: Record<string, unknown>,
@@ -87,8 +328,7 @@ async function start() {
   // AdminJS will serve assets from /admin/frontend/assets/ and we override those routes
   const adminJs = new AdminJS({
     rootPath: '/admin',
-    // Only include componentLoader in development - production uses prebundled assets
-    ...(!IS_PRODUCTION && { componentLoader }),
+    componentLoader,
     branding: {
       companyName: 'Joker Game Admin',
       logo: false,
@@ -118,9 +358,11 @@ async function start() {
 
                 const playersArray = buildArrayFromParams(record.params, 'players');
                 const gameLogArray = buildArrayFromParams(record.params, 'gameLog');
+                const analysis = buildGameAnalysis(playersArray, gameLogArray);
 
                 record.params.playersJson = JSON.stringify(playersArray, null, 2);
                 record.params.gameLogJson = JSON.stringify(gameLogArray, null, 2);
+                record.params.analysisJson = JSON.stringify(analysis, null, 2);
 
                 return response;
               },
@@ -134,8 +376,7 @@ async function start() {
             'startedAt',
             'finishedAt',
             'winnerId',
-            'playersJson',
-            'gameLogJson',
+            'analysisJson',
             'createdAt',
           ],
           properties: {
@@ -181,7 +422,7 @@ async function start() {
               position: 5,
               isVisible: {
                 list: false,
-                show: true,
+                show: false,
                 edit: false,
                 filter: false,
               },
@@ -191,6 +432,18 @@ async function start() {
               position: 6,
               isVisible: {
                 list: false,
+                show: false,
+                edit: false,
+                filter: false,
+              },
+            },
+            analysisJson: {
+              components: {
+                show: Components.GameAnalysis,
+              },
+              position: 7,
+              isVisible: {
+                list: false,
                 show: true,
                 edit: false,
                 filter: false,
@@ -198,7 +451,7 @@ async function start() {
             },
             createdAt: {
               type: 'datetime',
-              position: 7,
+              position: 8,
             },
           },
         },
