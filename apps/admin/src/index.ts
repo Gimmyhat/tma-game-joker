@@ -21,6 +21,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@joker.game';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'change-this-in-production-please';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const ADMIN_COOKIE_SECURE = process.env.ADMIN_COOKIE_SECURE !== 'false';
 
 // Resolve public dir for prebundled assets
 const publicDir = IS_PRODUCTION
@@ -121,7 +122,7 @@ async function start() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: IS_PRODUCTION,
+      secure: IS_PRODUCTION && ADMIN_COOKIE_SECURE,
     },
   };
 
