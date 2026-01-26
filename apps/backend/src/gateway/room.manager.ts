@@ -115,6 +115,13 @@ export class RoomManager {
     // Create game state with determined dealer
     const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
 
+    // Sort cardsDealt to match gameState.players order
+    // gameState.players can be shuffled (dealer is last), so we must align cardsDealt
+    const sortedCardsDealt = gameState.players.map((p) => {
+      const originalIndex = playerIds.indexOf(p.id);
+      return cardsDealt[originalIndex];
+    });
+
     // Create room
     const room: GameRoom = {
       id: uuidv4(),
@@ -135,7 +142,7 @@ export class RoomManager {
 
     this.logger.log(`Room ${room.id} created with players: ${playerIds.join(', ')}`);
 
-    return { room, tuzovanieCards: cardsDealt };
+    return { room, tuzovanieCards: sortedCardsDealt };
   }
 
   /**
@@ -172,6 +179,12 @@ export class RoomManager {
     // Create game state with determined dealer
     const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
 
+    // Sort cardsDealt to match gameState.players order
+    const sortedCardsDealt = gameState.players.map((p) => {
+      const originalIndex = playerIds.indexOf(p.id);
+      return cardsDealt[originalIndex];
+    });
+
     // Create room
     const room: GameRoom = {
       id: uuidv4(),
@@ -194,7 +207,7 @@ export class RoomManager {
       `Room ${room.id} created with ${realPlayers.length} players and ${botsNeeded} bots`,
     );
 
-    return { room, tuzovanieCards: cardsDealt };
+    return { room, tuzovanieCards: sortedCardsDealt };
   }
 
   // ==========================================
