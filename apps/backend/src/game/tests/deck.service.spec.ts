@@ -448,6 +448,27 @@ describe('DeckService', () => {
       expect(winner).toBe(0); // Joker should win as highest trump
     });
 
+    it('should let Joker High win if Trump exists but nobody plays it', () => {
+      const table: TableCard[] = [
+        {
+          card: { type: 'joker', id: 'j1', jokerId: 1 },
+          playerId: 'p1',
+          jokerOption: JokerOption.High,
+          requestedSuit: Suit.Hearts, // Request Hearts
+        },
+        {
+          card: { type: 'standard', id: '2', suit: Suit.Hearts, rank: Rank.Ace }, // Ace of Hearts
+          playerId: 'p2',
+        },
+        { card: { type: 'standard', id: '3', suit: Suit.Clubs, rank: Rank.King }, playerId: 'p3' },
+        { card: { type: 'standard', id: '4', suit: Suit.Hearts, rank: Rank.Nine }, playerId: 'p4' },
+      ];
+
+      // Trump is Spades. Nobody played Spades.
+      const winner = deckService.determineTrickWinner(table, Suit.Spades);
+      expect(winner).toBe(0); // Joker should win
+    });
+
     it('should let trump beat requested suit for Joker Low', () => {
       const table: TableCard[] = [
         {
