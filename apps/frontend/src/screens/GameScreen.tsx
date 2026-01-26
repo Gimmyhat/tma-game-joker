@@ -36,6 +36,8 @@ export const GameScreen: React.FC = () => {
     leaveGame,
     lastError,
     clearError,
+    tuzovanieCards,
+    tuzovanieDealerIndex,
   } = useGameStore();
 
   const isMyTurn = useGameStore(selectIsMyTurn);
@@ -411,6 +413,8 @@ export const GameScreen: React.FC = () => {
             dealerIndex={gameState.dealerIndex}
             className="w-[85%] h-[65%] z-10" // Sizing relative to container
             isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
+            tuzovanieCards={tuzovanieCards}
+            tuzovanieDealerIndex={tuzovanieDealerIndex}
           />
         </div>
       </div>

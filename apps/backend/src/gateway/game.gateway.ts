@@ -272,6 +272,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room.id).emit('tuzovanie_started', {
       cardsDealt: tuzovanieCards,
       dealerIndex: room.gameState.dealerIndex,
+      players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
     });
 
     this.logger.log(`Tuzovanie started in room ${room.id}`);
@@ -320,6 +321,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room.id).emit('tuzovanie_started', {
       cardsDealt: tuzovanieCards,
       dealerIndex: room.gameState.dealerIndex,
+      players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
     });
 
     this.logger.log(`Tuzovanie started in room ${room.id} with bots`);

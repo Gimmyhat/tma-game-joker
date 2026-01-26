@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { GameState, Card, GamePhase, Suit, JokerOption, ErrorPayload } from '@joker/shared';
+import { GamePhase, JokerOption, Suit, GameState, Card, ErrorPayload } from '@joker/shared';
 import {
   getSocket,
   emitFindGame,
@@ -269,10 +269,51 @@ function setupSocketListeners(
   // Tuzovanie event
   socket.on('tuzovanie_started', (data) => {
     console.log('[Store] Tuzovanie started:', data);
+
+    // Create mock game state to switch to GameScreen
+    const mockPlayers = data.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      isBot: false, // Doesn't matter for UI
+      connected: true,
+      hand: [],
+      bet: null,
+      tricks: 0,
+      roundScores: [],
+      pulkaScores: [],
+      totalScore: 0,
+      spoiled: false,
+      hadJokerInRounds: [],
+    }));
+
+    const mockGameState: GameState = {
+      id: 'tuzovanie-temp',
+      players: mockPlayers,
+      dealerIndex: data.dealerIndex, // We know the result, but animation will reveal it
+      currentPlayerIndex: 0,
+      round: 1,
+      pulka: 1,
+      cardsPerPlayer: 1,
+      phase: GamePhase.Tuzovanie,
+      trump: null,
+      trumpCard: null,
+      table: [],
+      turnStartedAt: Date.now(),
+      turnTimeoutMs: 0,
+      history: [],
+      lastPulkaResults: null,
+      createdAt: Date.now(),
+      finishedAt: null,
+      winnerId: null,
+    };
+
     set({
       lobbyStatus: 'tuzovanie',
       tuzovanieCards: data.cardsDealt,
       tuzovanieDealerIndex: data.dealerIndex,
+      // Set GameState immediately to trigger screen switch
+      gameState: mockGameState,
+      myHand: [],
     });
   });
 

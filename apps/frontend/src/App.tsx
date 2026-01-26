@@ -5,7 +5,6 @@ import { useGameStore } from './store';
 import { GameScreen } from './screens';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
-import { TuzovanieOverlay } from './components/TuzovanieOverlay';
 
 /**
  * Lobby screen - shown before game starts
@@ -13,22 +12,10 @@ import { TuzovanieOverlay } from './components/TuzovanieOverlay';
 function LobbyScreen() {
   const { t } = useTranslation();
   const { user, isTelegram } = useTelegram();
-  const {
-    connectionStatus,
-    lobbyStatus,
-    findGame,
-    leaveQueue,
-    tuzovanieCards,
-    tuzovanieDealerIndex,
-  } = useGameStore();
+  const { connectionStatus, lobbyStatus, findGame, leaveQueue } = useGameStore();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Tuzovanie Overlay */}
-      {lobbyStatus === 'tuzovanie' && tuzovanieCards && tuzovanieDealerIndex !== null && (
-        <TuzovanieOverlay cardsDealt={tuzovanieCards} dealerIndex={tuzovanieDealerIndex} />
-      )}
-
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 opacity-10 pointer-events-none"

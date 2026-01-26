@@ -1,7 +1,15 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Player, TableCard, Suit, GamePhase, Card as CardType, JokerOption } from '@joker/shared';
+import {
+  Player,
+  TableCard,
+  Suit,
+  GamePhase,
+  Card as CardType,
+  JokerOption,
+  Rank,
+} from '@joker/shared';
 import { useGameStore } from '../store/gameStore';
 import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
@@ -18,6 +26,8 @@ interface TableProps {
   dealerIndex?: number;
   className?: string;
   isJokerTrump?: boolean;
+  tuzovanieCards?: CardType[][] | null;
+  tuzovanieDealerIndex?: number | null;
 }
 
 type Position =
@@ -40,6 +50,8 @@ export const Table: React.FC<TableProps> = ({
   dealerIndex,
   className = '',
   isJokerTrump = false,
+  tuzovanieCards = null,
+  tuzovanieDealerIndex = null,
 }) => {
   const { t } = useTranslation();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
@@ -54,6 +66,14 @@ export const Table: React.FC<TableProps> = ({
       setShowWinningAnimation(false);
     }
   }, [gamePhase]);
+
+  // Log dealer index during Tuzovanie for debug
+  React.useEffect(() => {
+    if (gamePhase === GamePhase.Tuzovanie && tuzovanieDealerIndex !== null) {
+      // Used to verify the server's decision against the visual animation
+      // console.log('Dealer Index:', tuzovanieDealerIndex);
+    }
+  }, [gamePhase, tuzovanieDealerIndex]);
 
   // Determine winner if trick is complete
   const winnerId = useMemo(() => {
@@ -314,6 +334,92 @@ export const Table: React.FC<TableProps> = ({
     });
   };
 
+  // 4. Render Tuzovanie Animation
+  const renderTuzovanie = () => {
+    if (!tuzovanieCards || gamePhase !== GamePhase.Tuzovanie) return null;
+
+    // Flatten cards into a timeline: Round 1 (P1, P2, P3, P4), Round 2...
+    const sequence: { card: CardType; playerId: string; dealIndex: number }[] = [];
+    const maxRounds = Math.max(...tuzovanieCards.map((h) => h.length));
+
+    let dealIndex = 0;
+    for (let r = 0; r < maxRounds; r++) {
+      for (let i = 0; i < players.length; i++) {
+        // Only process if player has a card this round
+        if (tuzovanieCards[i] && tuzovanieCards[i][r]) {
+          sequence.push({
+            card: tuzovanieCards[i][r],
+            playerId: players[i].id,
+            dealIndex: dealIndex++,
+          });
+        }
+      }
+    }
+
+    return sequence.map(({ card, playerId, dealIndex }) => {
+      const pos = getPlayerPosition(playerId);
+      const isAce = card.type === 'standard' && card.rank === Rank.Ace;
+
+      // Positions on the felt in front of players
+      const targetPos: Record<Position, { x: number; y: number; rotate: number }> = {
+        'bottom-center': { x: 0, y: 180, rotate: 0 },
+        'bottom-left': { x: -120, y: 120, rotate: 15 },
+        'bottom-right': { x: 120, y: 120, rotate: -15 },
+        'top-left': { x: -120, y: -120, rotate: 165 },
+        'top-center': { x: 0, y: -180, rotate: 180 },
+        'top-right': { x: 120, y: -120, rotate: 195 },
+        'left-center': { x: -200, y: 0, rotate: 90 },
+        'right-center': { x: 200, y: 0, rotate: -90 },
+      };
+
+      const t = targetPos[pos] || { x: 0, y: 0, rotate: 0 };
+
+      return (
+        <motion.div
+          key={`tuz-${playerId}-${card.id}`}
+          initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 720 }}
+          animate={{
+            x: t.x,
+            y: t.y,
+            scale: isAce ? 1.3 : 1,
+            opacity: 1,
+            rotate: t.rotate,
+          }}
+          transition={{
+            delay: dealIndex * 0.6,
+            duration: 0.8,
+            type: 'spring',
+            stiffness: 100,
+            damping: 15,
+          }}
+          className="absolute z-50 flex flex-col items-center justify-center pointer-events-none"
+        >
+          <div className="relative">
+            <Card
+              card={card}
+              size="md"
+              className={`shadow-2xl ${isAce ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-black/50' : 'border-none'}`}
+            />
+
+            {/* Dealer Badge - Show if Ace */}
+            {isAce && (
+              <motion.div
+                initial={{ opacity: 0, y: 0, scale: 0 }}
+                animate={{ opacity: 1, y: 45, scale: 1 }}
+                transition={{ delay: dealIndex * 0.6 + 0.5, type: 'spring' }}
+                className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-50"
+              >
+                <div className="bg-gradient-to-r from-yellow-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap border border-yellow-300">
+                  Dealer
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+      );
+    });
+  };
+
   const TrumpIndicator = () => {
     if (trump) {
       return (
@@ -385,13 +491,15 @@ export const Table: React.FC<TableProps> = ({
           )}
         </div>
 
-        {/* Trump Big Watermark */}
-        <TrumpIndicator />
+        {/* Trump Big Watermark - Hide during Tuzovanie */}
+        {gamePhase !== GamePhase.Tuzovanie && <TrumpIndicator />}
 
         {/* Table Cards Area */}
         <div className="absolute inset-0 z-20 overflow-visible">
           {/* Center point anchor */}
-          <div className="absolute top-1/2 left-1/2 w-0 h-0">{renderTableCards()}</div>
+          <div className="absolute top-1/2 left-1/2 w-0 h-0">
+            {gamePhase === GamePhase.Tuzovanie ? renderTuzovanie() : renderTableCards()}
+          </div>
         </div>
 
         {/* Trick Winner Notification */}
@@ -420,8 +528,8 @@ export const Table: React.FC<TableProps> = ({
       {/* Players - Positioned absolutely around the table container */}
       {orderedPlayers.map((p, i) => renderPlayer(p, i))}
 
-      {/* Current Trump Indicator - Floating near table edge top-right */}
-      {(trump || trumpCard || isJokerTrump) && (
+      {/* Current Trump Indicator - Floating near table edge top-right - Hide in Tuzovanie */}
+      {gamePhase !== GamePhase.Tuzovanie && (trump || trumpCard || isJokerTrump) && (
         <div className="absolute -top-2 -right-2 z-40 flex flex-col items-center">
           <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
             {t('game.trump.label')}

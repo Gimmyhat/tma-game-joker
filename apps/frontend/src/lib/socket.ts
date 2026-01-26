@@ -27,7 +27,11 @@ export interface ServerToClientEvents {
   player_left: (data: { playerId: string; playerName: string; playersCount: number }) => void;
 
   // Game events
-  tuzovanie_started: (data: { cardsDealt: Card[][]; dealerIndex: number }) => void;
+  tuzovanie_started: (data: {
+    cardsDealt: Card[][];
+    dealerIndex: number;
+    players: { id: string; name: string }[];
+  }) => void;
   game_started: (data: { roomId: string }) => void;
   game_state: (data: GameStateUpdate) => void;
 
