@@ -92,6 +92,47 @@ describe('App (e2e)', () => {
   const waitForState = (socket: Socket, timeoutMs = socketTimeoutMs) =>
     waitForEvent<{ state: GameState }>(socket, 'game_state', timeoutMs);
 
+  const waitForStateWithoutPlayer = (
+    socket: Socket,
+    playerId: string,
+    timeoutMs = socketTimeoutMs,
+  ) =>
+    new Promise<{ state: GameState }>((resolve, reject) => {
+      const onEvent = (payload: { state: GameState }) => {
+        const hasPlayer = payload.state.players.some((player) => player.id === playerId);
+        if (hasPlayer) return;
+        cleanup();
+        resolve(payload);
+      };
+      const onError = (payload: { message?: string } | Error) => {
+        cleanup();
+        if (payload instanceof Error) {
+          reject(payload);
+        } else {
+          reject(new Error(payload?.message ?? 'socket error'));
+        }
+      };
+      const onConnectError = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for game_state'));
+      }, timeoutMs);
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        socket.off('game_state', onEvent);
+        socket.off('error', onError);
+        socket.off('connect_error', onConnectError);
+      };
+
+      socket.on('game_state', onEvent);
+      socket.once('error', onError);
+      socket.once('connect_error', onConnectError);
+    });
+
   beforeAll(async () => {
     process.env.E2E_TEST = 'true'; // Disable Redis connection
 
@@ -234,6 +275,7 @@ describe('App (e2e)', () => {
         playerName: string;
         playersCount: number;
       }>(clients[1], 'player_left');
+      const nextStatePromise = waitForStateWithoutPlayer(clients[1], leavingPlayerId, 60000);
 
       leavingClient.emit('leave_game', { roomId });
 
@@ -243,8 +285,9 @@ describe('App (e2e)', () => {
       expect(playerLeftPayload.playerId).toBe(leavingPlayerId);
       expect(playerLeftPayload.playersCount).toBe(GAME_CONSTANTS.PLAYERS_COUNT);
 
-      const nextState = await waitForState(clients[1], 60000);
+      const nextState = await nextStatePromise;
       expect(nextState.state.players).toHaveLength(GAME_CONSTANTS.PLAYERS_COUNT);
+      expect(nextState.state.players.some((player) => player.isBot)).toBe(true);
     } finally {
       if (roomId) {
         await roomManager.cleanupRoom(roomId);
