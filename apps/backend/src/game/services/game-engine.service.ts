@@ -130,6 +130,24 @@ export class GameEngineService {
       trump: newState.trump,
     });
 
+    // Log round start with dealer and initial hands (for analysis)
+    this.gameAuditService.logAction(newState.id, 'ROUND_START', 'system', {
+      round: 1,
+      pulka: 1,
+      cardsPerPlayer: newState.cardsPerPlayer,
+      dealerId: newState.players[newState.dealerIndex]?.id ?? null,
+      trump: newState.trump,
+      hands: newState.players.map((player) => ({
+        playerId: player.id,
+        hand: player.hand.map((card) => ({
+          id: card.id,
+          type: card.type,
+          suit: card.type === 'standard' ? card.suit : null,
+          rank: card.type === 'standard' ? card.rank : null,
+        })),
+      })),
+    });
+
     return newState;
   }
 
@@ -417,6 +435,23 @@ export class GameEngineService {
         newState.trump = null;
         newState.trumpCard = null;
       }
+
+      this.gameAuditService.logAction(newState.id, 'ROUND_START', 'system', {
+        round: newState.round,
+        pulka: newState.pulka,
+        cardsPerPlayer: newState.cardsPerPlayer,
+        dealerId: newState.players[newState.dealerIndex]?.id ?? null,
+        trump: newState.trump,
+        hands: newState.players.map((player) => ({
+          playerId: player.id,
+          hand: player.hand.map((card) => ({
+            id: card.id,
+            type: card.type,
+            suit: card.type === 'standard' ? card.suit : null,
+            rank: card.type === 'standard' ? card.rank : null,
+          })),
+        })),
+      });
 
       // Transition phase
       newState.phase = this.stateMachine.needsTrumpSelection(newState)
