@@ -173,6 +173,13 @@ export class DeckService {
     }
 
     if (trump) {
+      // Special case: If Joker led with High AND requested suit IS trump,
+      // then Joker IS the highest trump and wins (unless Top joker exists, handled above)
+      if (leadCard.jokerOption === JokerOption.High && leadCard.requestedSuit === trump) {
+        // Joker wins against any trump because it IS the highest trump
+        return 0;
+      }
+
       let trumpWinnerIndex = -1;
       let trumpWinnerRank = -1;
       for (let i = 0; i < table.length; i++) {

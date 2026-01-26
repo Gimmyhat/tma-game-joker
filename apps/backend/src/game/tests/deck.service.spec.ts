@@ -428,6 +428,26 @@ describe('DeckService', () => {
       expect(winner).toBe(2);
     });
 
+    it('should let Joker High win if requested suit IS trump', () => {
+      const table: TableCard[] = [
+        {
+          card: { type: 'joker', id: 'j1', jokerId: 1 },
+          playerId: 'p1',
+          jokerOption: JokerOption.High,
+          requestedSuit: Suit.Spades, // Joker asks for Spades (TRUMP)
+        },
+        {
+          card: { type: 'standard', id: '2', suit: Suit.Spades, rank: Rank.Seven },
+          playerId: 'p2',
+        },
+        { card: { type: 'standard', id: '3', suit: Suit.Spades, rank: Rank.King }, playerId: 'p3' },
+        { card: { type: 'standard', id: '4', suit: Suit.Spades, rank: Rank.Ace }, playerId: 'p4' },
+      ];
+
+      const winner = deckService.determineTrickWinner(table, Suit.Spades);
+      expect(winner).toBe(0); // Joker should win as highest trump
+    });
+
     it('should let trump beat requested suit for Joker Low', () => {
       const table: TableCard[] = [
         {
