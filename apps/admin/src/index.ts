@@ -33,7 +33,8 @@ async function start() {
     // Use prebundled assets in production (built during Docker build)
     // In development, AdminJS bundles on-the-fly
     ...(IS_PRODUCTION && { assetsCDN: '/public' }),
-    componentLoader,
+    // Only include componentLoader in development - production uses prebundled assets
+    ...(!IS_PRODUCTION && { componentLoader }),
     branding: {
       companyName: 'Joker Game Admin',
       logo: false,
