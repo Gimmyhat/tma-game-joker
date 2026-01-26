@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../database/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { GameState } from '@joker/shared';
+import { GameState, GamePhase } from '@joker/shared';
 
 @Injectable()
 export class GameAuditService {
@@ -73,18 +73,32 @@ export class GameAuditService {
       }));
 
       // Save to Postgres
-      await this.prisma.finishedGame.create({
-        data: {
+      const isFinished = gameState.phase === GamePhase.Finished;
+      const status = isFinished ? 'FINISHED' : 'IN_PROGRESS';
+
+      await this.prisma.game.upsert({
+        where: { id: roomId },
+        create: {
           id: roomId,
+          status,
           startedAt: new Date(gameState.createdAt),
-          finishedAt: new Date(),
+          finishedAt: isFinished ? new Date() : null,
+          winnerId: gameState.winnerId,
+          players: players as any,
+          gameLog: logs as any,
+        },
+        update: {
+          status,
+          finishedAt: isFinished ? new Date() : null,
           winnerId: gameState.winnerId,
           players: players as any,
           gameLog: logs as any,
         },
       });
 
-      this.logger.log(`Game ${roomId} successfully archived to DB (${logs.length} events)`);
+      this.logger.log(
+        `Game ${roomId} successfully saved (Status: ${status}, ${logs.length} events)`,
+      );
 
       // We keep the Redis log for 24h (TTL) for hot debugging,
       // no need to delete immediately unless memory is tight.

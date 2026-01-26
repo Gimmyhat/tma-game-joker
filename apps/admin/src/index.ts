@@ -337,12 +337,12 @@ async function start() {
     resources: [
       {
         resource: {
-          model: getModelByName('FinishedGame'),
+          model: getModelByName('Game'),
           client: prisma,
         },
         options: {
           navigation: {
-            name: 'Game Analysis',
+            name: 'Games',
             icon: 'Activity',
           },
           // READ-ONLY: Disable all write operations for data integrity
@@ -369,10 +369,11 @@ async function start() {
             },
           },
           // List view columns
-          listProperties: ['id', 'startedAt', 'finishedAt', 'winnerId', 'createdAt'],
+          listProperties: ['id', 'status', 'startedAt', 'finishedAt', 'winnerId', 'createdAt'],
           // Show view properties
           showProperties: [
             'id',
+            'status',
             'startedAt',
             'finishedAt',
             'winnerId',
@@ -384,21 +385,24 @@ async function start() {
               isTitle: true,
               position: 1,
             },
-            startedAt: {
-              type: 'datetime',
+            status: {
               position: 2,
             },
-            finishedAt: {
+            startedAt: {
               type: 'datetime',
               position: 3,
             },
-            winnerId: {
+            finishedAt: {
+              type: 'datetime',
               position: 4,
+            },
+            winnerId: {
+              position: 5,
             },
             players: {
               type: 'mixed',
               isArray: true,
-              position: 5,
+              position: 6,
               isVisible: {
                 list: false,
                 show: false,
@@ -409,7 +413,7 @@ async function start() {
             gameLog: {
               type: 'mixed',
               isArray: true,
-              position: 6,
+              position: 7,
               isVisible: {
                 list: false,
                 show: false,
@@ -419,7 +423,7 @@ async function start() {
             },
             playersJson: {
               type: 'textarea',
-              position: 5,
+              position: 6,
               isVisible: {
                 list: false,
                 show: false,
@@ -429,7 +433,7 @@ async function start() {
             },
             gameLogJson: {
               type: 'textarea',
-              position: 6,
+              position: 7,
               isVisible: {
                 list: false,
                 show: false,
@@ -441,7 +445,7 @@ async function start() {
               components: {
                 show: Components.GameAnalysis,
               },
-              position: 7,
+              position: 8,
               isVisible: {
                 list: false,
                 show: true,
@@ -451,7 +455,7 @@ async function start() {
             },
             createdAt: {
               type: 'datetime',
-              position: 8,
+              position: 9,
             },
           },
         },

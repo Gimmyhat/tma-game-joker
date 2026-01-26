@@ -9,14 +9,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model FinishedGame {
-  id          String   @id @default(uuid())
+enum GameStatus {
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
+}
+
+model Game {
+  id          String     @id @default(uuid())
+  status      GameStatus @default(IN_PROGRESS)
   startedAt   DateTime
-  finishedAt  DateTime
+  finishedAt  DateTime?
   winnerId    String?
   players     Json     // Stores player metadata (id, name, score)
   gameLog     Json     // The heavy replay log
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@map("finished_games")
+  @@map("games")
 }

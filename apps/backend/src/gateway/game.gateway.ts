@@ -482,6 +482,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room.gameState.phase === GamePhase.PulkaComplete) {
       room.gameState = this.gameEngine.completePulka(room.gameState);
+      // Save game state at the end of each Pulka
+      await this.gameAuditService.saveGameRecord(room.gameState);
       this.startPulkaRecapTimer(roomId);
     }
 
