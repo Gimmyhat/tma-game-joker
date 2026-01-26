@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { GameState, GAME_CONSTANTS, Card } from '@joker/shared';
-import { GameEngineService } from '../game/services/game-engine.service';
-import { RedisService } from '../database/redis.service';
+import { GameEngineService } from './game-engine.service';
+import { RedisService } from '../../database/redis.service';
 
 interface QueuedPlayer {
   id: string;

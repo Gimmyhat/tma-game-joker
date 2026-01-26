@@ -4,110 +4,34 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { GamePhase, JokerOption, Suit, GameState, Card, ErrorPayload } from '@joker/shared';
-import {
-  getSocket,
-  emitFindGame,
-  emitLeaveQueue,
-  emitLeaveGame,
-  emitMakeBet,
-  emitThrowCard,
-  emitSelectTrump,
-  type GameSocket,
-  setUserInfo,
-} from '../lib/socket';
+import { GameState, GamePhase } from '@joker/shared';
+import { getSocket, setUserInfo, type GameSocket } from '../lib/socket';
 import { getMockUser, type TelegramUser } from '../lib/telegram';
+
+import { GameSlice, createGameSlice } from './slices/gameSlice';
+import { LobbySlice, createLobbySlice } from './slices/lobbySlice';
+import { UISlice, createUISlice } from './slices/uiSlice';
 
 // =====================================
 // Store State Types
 // =====================================
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
-export type LobbyStatus = 'idle' | 'searching' | 'waiting' | 'starting' | 'tuzovanie';
-
-export interface GameStore {
-  // Connection
-  connectionStatus: ConnectionStatus;
-
-  // User
-  user: TelegramUser | null;
-
-  // Lobby
-  lobbyStatus: LobbyStatus;
-  roomId: string | null;
-  playersInRoom: number;
-  requiredPlayers: number;
-
-  // Tuzovanie state
-  tuzovanieCards: Card[][] | null;
-  tuzovanieDealerIndex: number | null;
-
-  // Game
-  gameState: GameState | null;
-  myHand: Card[];
-  myPlayerId: string | null;
-
-  // Turn timer
-  turnExpiresAt: number | null;
-  currentTurnPlayerId: string | null;
-  pulkaRecapExpiresAt: number | null;
-
-  // Errors
-  lastError: ErrorPayload | null;
-
-  // Dev Logs
-  isDevMode: boolean;
-  gameLogs: string[];
-
-  // Actions
-  initialize: (user?: TelegramUser) => void;
-  findGame: () => void;
-  leaveQueue: () => void;
-  leaveGame: () => void;
-  makeBet: (amount: number) => void;
-  throwCard: (cardId: string, jokerOption?: JokerOption, requestedSuit?: Suit) => void;
-  selectTrump: (trump: Suit | null) => void;
-  clearError: () => void;
-  addLog: (message: string) => void;
-  toggleDevMode: (enabled?: boolean) => void;
-
-  // Internal
-  _setConnectionStatus: (status: ConnectionStatus) => void;
-  _setGameState: (state: GameState, myHand: Card[]) => void;
-  _reset: () => void;
-}
-
-// =====================================
-// Initial State
-// =====================================
-
-const initialState = {
-  connectionStatus: 'disconnected' as ConnectionStatus,
-  user: null as TelegramUser | null,
-  lobbyStatus: 'idle' as LobbyStatus,
-  roomId: null as string | null,
-  playersInRoom: 0,
-  requiredPlayers: 4,
-  tuzovanieCards: null as Card[][] | null,
-  tuzovanieDealerIndex: null as number | null,
-  gameState: null as GameState | null,
-  myHand: [] as Card[],
-  myPlayerId: null as string | null,
-  turnExpiresAt: null as number | null,
-  currentTurnPlayerId: null as string | null,
-  pulkaRecapExpiresAt: null as number | null,
-  lastError: null as ErrorPayload | null,
-  isDevMode: false,
-  gameLogs: [] as string[],
-};
+export type GameStore = GameSlice &
+  LobbySlice &
+  UISlice & {
+    initialize: (user?: TelegramUser) => void;
+    _reset: () => void;
+  };
 
 // =====================================
 // Store
 // =====================================
 
 export const useGameStore = create<GameStore>()(
-  subscribeWithSelector((set, get) => ({
-    ...initialState,
+  subscribeWithSelector((set, get, api) => ({
+    ...createGameSlice(set, get, api),
+    ...createLobbySlice(set, get, api),
+    ...createUISlice(set, get, api),
 
     initialize: (user?: TelegramUser) => {
       // Use provided user or mock for development
@@ -131,81 +55,21 @@ export const useGameStore = create<GameStore>()(
       set({ connectionStatus: 'connecting' });
     },
 
-    findGame: () => {
-      if (get().lobbyStatus !== 'idle') return;
-      set({ lobbyStatus: 'searching', lastError: null });
-      emitFindGame();
-    },
-
-    leaveQueue: () => {
-      const status = get().lobbyStatus;
-      if (status !== 'searching' && status !== 'waiting') return;
-      emitLeaveQueue();
-      set({ lobbyStatus: 'idle', roomId: null, playersInRoom: 0 });
-    },
-
-    leaveGame: () => {
-      const roomId = get().roomId;
-      if (!roomId) return;
-      emitLeaveGame(roomId);
-      get()._reset();
-    },
-
-    makeBet: (amount: number) => {
-      const { roomId, gameState } = get();
-      if (!roomId || gameState?.phase !== 'betting') return;
-      emitMakeBet(roomId, amount);
-    },
-
-    throwCard: (cardId: string, jokerOption?: JokerOption, requestedSuit?: Suit) => {
-      const { roomId, gameState } = get();
-      if (!roomId || gameState?.phase !== 'playing') return;
-      emitThrowCard(roomId, cardId, jokerOption, requestedSuit);
-    },
-
-    selectTrump: (trump: Suit | null) => {
-      const { roomId, gameState } = get();
-      if (!roomId || gameState?.phase !== 'trump_selection') return;
-      emitSelectTrump(roomId, trump);
-    },
-
-    clearError: () => {
-      set({ lastError: null });
-    },
-
-    addLog: (message: string) => {
-      if (!get().isDevMode) return;
-      const timestamp = new Date().toLocaleTimeString();
-      set((state) => ({
-        gameLogs: [...state.gameLogs, `[${timestamp}] ${message}`],
-      }));
-    },
-
-    toggleDevMode: (enabled?: boolean) => {
-      set((state) => ({
-        isDevMode: enabled !== undefined ? enabled : !state.isDevMode,
-      }));
-    },
-
-    _setConnectionStatus: (status: ConnectionStatus) => {
-      set({ connectionStatus: status });
-    },
-
-    _setGameState: (state: GameState, myHand: Card[]) => {
-      set({
-        gameState: state,
-        myHand,
-        lobbyStatus: state.phase === 'waiting' ? 'waiting' : 'idle',
-        currentTurnPlayerId: state.players[state.currentPlayerIndex]?.id || null,
-      });
-    },
-
     _reset: () => {
       set({
-        ...initialState,
-        user: get().user,
-        myPlayerId: get().myPlayerId,
         connectionStatus: get().connectionStatus,
+        lobbyStatus: 'idle',
+        roomId: null,
+        playersInRoom: 0,
+        tuzovanieCards: null,
+        tuzovanieDealerIndex: null,
+        gameState: null,
+        myHand: [],
+        turnExpiresAt: null,
+        currentTurnPlayerId: null,
+        pulkaRecapExpiresAt: null,
+        lastError: null,
+        // Keep user, playerId, isDevMode, logs
       });
     },
   })),
@@ -217,7 +81,7 @@ export const useGameStore = create<GameStore>()(
 
 function setupSocketListeners(
   socket: GameSocket,
-  set: (partial: Partial<GameStore>) => void,
+  set: (partial: Partial<GameStore> | ((state: GameStore) => Partial<GameStore>)) => void,
   get: () => GameStore,
 ): void {
   // Connection events
@@ -383,6 +247,8 @@ function setupSocketListeners(
     if (data.roomId && data.roomId !== get().roomId) {
       set({ roomId: data.roomId });
     }
+
+    // Call internal setter from GameSlice
     get()._setGameState(data.state, myHand);
   });
 

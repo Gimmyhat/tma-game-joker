@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DeckService } from './services/deck.service';
 import { MoveValidator } from './validators/move.validator';
 import { BetValidator } from './validators/bet.validator';
@@ -7,11 +7,14 @@ import { StateMachineService } from './services/state-machine.service';
 import { GameEngineService } from './services/game-engine.service';
 import { GameAuditService } from './services/game-audit.service';
 import { GameCleanupService } from './services/game-cleanup.service';
+import { RoomManager } from './services/room.manager';
+import { GameProcessService } from './services/game-process.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { DatabaseModule } from '../database/database.module';
+import { BotModule } from '../bot/bot.module';
 
 @Module({
-  imports: [PrismaModule, DatabaseModule],
+  imports: [PrismaModule, DatabaseModule, forwardRef(() => BotModule)],
   providers: [
     DeckService,
     MoveValidator,
@@ -21,6 +24,8 @@ import { DatabaseModule } from '../database/database.module';
     GameEngineService,
     GameAuditService,
     GameCleanupService,
+    RoomManager,
+    GameProcessService,
   ],
   exports: [
     DeckService,
@@ -30,6 +35,8 @@ import { DatabaseModule } from '../database/database.module';
     StateMachineService,
     GameEngineService,
     GameAuditService,
+    RoomManager,
+    GameProcessService,
   ],
 })
 export class GameModule {}

@@ -1,6 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-01-25T11:14:00Z
+**Refactored:** 2026-01-26 (Architecture V2)
 **Commit:** 5726916
 **Branch:** main
 
@@ -16,7 +17,7 @@ tma_game_joker/
 │   ├── frontend/          # React 18 + Vite + Zustand + TailwindCSS
 │   └── backend/           # NestJS + Socket.io + Redis
 ├── packages/
-│   └── shared/            # @joker/shared - types, constants, game rules (SINGLE SOURCE OF TRUTH)
+│   └── shared/            # @joker/shared - types, constants, game logic (SINGLE SOURCE OF TRUTH)
 ├── docs/                  # Technical specs (Russian)
 ├── scripts/               # Build/deploy automation
 └── docker-compose*.yml    # Dev and prod orchestration
@@ -24,27 +25,29 @@ tma_game_joker/
 
 ## WHERE TO LOOK
 
-| Task                       | Location                                           | Notes                               |
-| -------------------------- | -------------------------------------------------- | ----------------------------------- |
-| Game types/constants       | `packages/shared/src/index.ts`                     | Enums, interfaces, GAME_CONSTANTS   |
-| Game logic (authoritative) | `apps/backend/src/game/`                           | Services, validators, state machine |
-| Frontend state             | `apps/frontend/src/store/gameStore.ts`             | Zustand + socket listeners          |
-| Socket events              | `apps/frontend/src/lib/socket.ts`                  | Typed client events                 |
-| Telegram integration       | `apps/frontend/src/providers/TelegramProvider.tsx` | SDK init, dev fallback              |
-| WebSocket gateway          | `apps/backend/src/gateway/game.gateway.ts`         | All real-time events                |
-| Bot AI                     | `apps/backend/src/bot/`                            | Strategy pattern                    |
+| Task                  | Location                                           | Notes                             |
+| --------------------- | -------------------------------------------------- | --------------------------------- |
+| Game types/constants  | `packages/shared/src/index.ts`                     | Enums, interfaces, GAME_CONSTANTS |
+| Game logic (shared)   | `packages/shared/src/logic/`                       | TrickLogic, SharedMoveValidator   |
+| Backend Orchestration | `apps/backend/src/game/services/`                  | GameProcessService, RoomManager   |
+| Frontend state        | `apps/frontend/src/store/`                         | gameStore (root), slices/         |
+| Socket events         | `apps/frontend/src/lib/socket.ts`                  | Typed client events               |
+| Telegram integration  | `apps/frontend/src/providers/TelegramProvider.tsx` | SDK init, dev fallback            |
+| WebSocket gateway     | `apps/backend/src/gateway/game.gateway.ts`         | Transport layer (thin wrapper)    |
+| Bot AI                | `apps/backend/src/bot/`                            | Strategy pattern                  |
 
 ## CODE MAP
 
 | Symbol                | Type      | Location              | Role                                       |
 | --------------------- | --------- | --------------------- | ------------------------------------------ |
 | `GameState`           | interface | shared/index.ts       | Core game state shape                      |
-| `GamePhase`           | enum      | shared/index.ts       | Waiting→TrumpSelection→Betting→Playing→... |
-| `GameEngineService`   | class     | backend/game/services | State transition orchestrator              |
-| `StateMachineService` | class     | backend/game/services | Phase transition logic                     |
-| `useGameStore`        | hook      | frontend/store        | Centralized frontend state                 |
-| `GameGateway`         | class     | backend/gateway       | WebSocket event hub                        |
-| `RoomManager`         | class     | backend/gateway       | Matchmaking + room lifecycle               |
+| `TrickLogic`          | class     | shared/logic          | Trick winner determination (Client+Server) |
+| `SharedMoveValidator` | class     | shared/logic          | Move validation rules (Client+Server)      |
+| `GameEngineService`   | class     | backend/game/services | Functional state transitions (Pure logic)  |
+| `GameProcessService`  | class     | backend/game/services | Orchestrator (Timers, Bots, Events)        |
+| `RoomManager`         | class     | backend/game/services | Matchmaking, Room persistence (Redis)      |
+| `GameGateway`         | class     | backend/gateway       | Socket routing only                        |
+| `useGameStore`        | hook      | frontend/store        | Root store (combines slices)               |
 
 ## CONVENTIONS
 
@@ -52,7 +55,7 @@ tma_game_joker/
 
 - Package manager: **pnpm 8.15+** (workspace protocol)
 - Shared imports: `import { GameState } from '@joker/shared'`
-- Never duplicate types between apps - extend shared
+- **Logic Sharing**: Use `@joker/shared` for ALL core game rules. Never duplicate logic.
 
 ### Code Style
 
@@ -62,17 +65,18 @@ tma_game_joker/
 
 ### Frontend
 
-- `screens/` not `pages/` (TMA is single-page)
-- Components: "dumb" - props or selectors only
-- State changes: via socket events → gameStore, never direct mutations
-- Dev mode: `?dev=true` URL param enables mock Telegram
+- **State Slices**: `gameSlice`, `lobbySlice`, `uiSlice` pattern.
+- Components: "dumb" - props or selectors only.
+- Validation: Use `SharedMoveValidator` for UI hints.
 
 ### Backend
 
-- NestJS modules per domain (Game, Gateway, Bot, Auth, Database)
-- Functional state: `(state, action) => newState`
-- Validators isolate card game rules from engine
-- Redis for state persistence, in-memory for active rooms
+- **Architecture V2**:
+  - `GameGateway`: Transport only.
+  - `GameProcessService`: Active logic (timers, bots).
+  - `GameEngineService`: Pure functional core.
+  - `RoomManager`: State & Persistence.
+- Redis for state persistence, in-memory for active rooms.
 
 ### Testing
 
@@ -83,19 +87,17 @@ tma_game_joker/
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-- **NEVER** duplicate game logic between frontend/backend (shared is the source)
-- **NEVER** access Telegram SDK directly - use `useTelegram()` hook
-- **NEVER** emit socket events directly in components - use `lib/socket.ts` helpers
-- **NEVER** mutate gameStore state outside socket event handlers
-- **NEVER** hardcode timeouts - use `GAME_CONSTANTS` or env vars
+- **NEVER** put business logic in Gateway (use GameProcessService).
+- **NEVER** duplicate game rules (use @joker/shared).
+- **NEVER** access Telegram SDK directly - use `useTelegram()` hook.
+- **NEVER** mutate gameStore state outside socket event handlers (except UI state).
+- **NEVER** hardcode timeouts - use `GAME_CONSTANTS` or env vars.
 
 ## UNIQUE STYLES
 
 - Bot replacement on timeout: players become bots mid-game
 - Pulka structure: 4 pulkas with varying card counts per round
 - Joker cards: special handling with `JokerOption` (high/low/top/bottom)
-- Trick winner: complex rules involving trump, lead suit, jokers
-- Frontend has local `gameLogic.ts` for immediate UI feedback (backend authoritative)
 
 ## COMMANDS
 
@@ -122,11 +124,3 @@ pnpm --filter @joker/frontend test:e2e  # Playwright
 # Deploy
 docker compose -f docker-compose.prod.yml up -d
 ```
-
-## NOTES
-
-- **Lockfile artifact**: `apps/frontend/package-lock.json` exists but pnpm is used - ignore it
-- **Cyrillic docs**: `docs/*.md` in Russian, technical specs and roadmap
-- **Root artifacts**: `id_rsa.pub`, `nul`, `-p/` are dev leftovers - safe to remove
-- **CI secrets required**: `SERVER_HOST`, `SERVER_SSH_KEY` for deploy workflow
-- **Redis required**: Backend needs Redis for room state (even in dev)

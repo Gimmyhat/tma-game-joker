@@ -152,14 +152,19 @@ describe('GameAuditService', () => {
       await service.saveGameRecord(gameState);
 
       expect(redisClient.lrange).toHaveBeenCalledWith('game:audit:room-123', 0, -1);
-      expect(prismaService.finishedGame.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+
+      expect(prismaService.game.upsert).toHaveBeenCalledWith({
+        where: { id: 'room-123' },
+        create: expect.objectContaining({
           id: 'room-123',
           winnerId: 'winner',
           gameLog: expect.arrayContaining([
             expect.objectContaining({ a: 'START' }),
             expect.objectContaining({ a: 'BET' }),
           ]),
+        }),
+        update: expect.objectContaining({
+          winnerId: 'winner',
         }),
       });
     });

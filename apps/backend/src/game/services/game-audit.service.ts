@@ -16,7 +16,12 @@ export class GameAuditService {
   /**
    * Log a game action to Redis buffer
    */
-  async logAction(roomId: string, action: string, playerId: string, data: any): Promise<void> {
+  async logAction(
+    roomId: string,
+    action: string,
+    playerId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
     const client = this.redisService.getClient();
     if (!client) return;
 

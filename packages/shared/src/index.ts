@@ -208,6 +208,8 @@ export interface PlayerReplacedPayload {
   playerName: string;
 }
 
+export * from './logic';
+
 // =====================================
 // CONSTANTS
 // =====================================
@@ -230,6 +232,15 @@ export const GAME_CONSTANTS = {
   SCORE_MISS_MULTIPLIER: 10,
   SCORE_SHTANGA_PENALTY: -200,
   SCORE_PASS_BONUS: 50,
+
+  // Card Power Constants (for sorting/visuals)
+  POWER_JOKER_TOP: 1000,
+  POWER_JOKER_HIGH_TRUMP: 300,
+  POWER_JOKER_HIGH_SUIT: 199,
+  POWER_TRUMP_BASE: 200,
+  POWER_SUIT_BASE: 100,
+  POWER_JOKER_LOW: 101, // Beats off-suit (rank < 100)
+  POWER_JOKER_BOTTOM: 0,
 
   // Pulka structure
   PULKA_STRUCTURE: [

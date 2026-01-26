@@ -7,7 +7,7 @@ import {
   selectCanThrowCard,
   selectCanSelectTrump,
 } from '../store/gameStore';
-import { Card as CardType, JokerOption, Suit } from '@joker/shared';
+import { Card as CardType, JokerOption, Suit, SharedMoveValidator } from '@joker/shared';
 import Table from '../components/Table';
 import Hand from '../components/Hand';
 import { BetModal } from '../components/BetModal';
@@ -188,47 +188,7 @@ export const GameScreen: React.FC = () => {
   // Memoize playable cards to avoid recalculating on every render
   const playableCards = useMemo(() => {
     if (!canThrowCard || !myHand.length) return [];
-
-    // If I am leading (table is empty), all cards are playable
-    if (gameState.table.length === 0) return myHand;
-
-    // Logic for following suit
-    const leadCard = gameState.table[0];
-    let leadSuit: Suit | undefined;
-
-    // @ts-ignore - Assuming type property exists
-    if (leadCard.card.type === 'joker') {
-      leadSuit = leadCard.requestedSuit;
-    } else {
-      leadSuit = leadCard.card.suit;
-    }
-
-    if (!leadSuit) return myHand; // Should not happen if table not empty
-
-    // Check if I have lead suit (excluding Joker)
-    // @ts-ignore
-    const hasLeadSuit = myHand.some((c) => c.type !== 'joker' && c.suit === leadSuit);
-
-    if (hasLeadSuit) {
-      // Must play lead suit or Joker
-      // @ts-ignore
-      return myHand.filter((c) => c.type === 'joker' || c.suit === leadSuit);
-    }
-
-    // If I don't have lead suit, check for Trump
-    const trump = gameState.trump;
-    if (trump) {
-      // @ts-ignore
-      const hasTrump = myHand.some((c) => c.type !== 'joker' && c.suit === trump);
-      if (hasTrump) {
-        // Must play trump or Joker
-        // @ts-ignore
-        return myHand.filter((c) => c.type === 'joker' || c.suit === trump);
-      }
-    }
-
-    // If no lead suit and no trump (or no trump in hand), can play anything
-    return myHand;
+    return SharedMoveValidator.getValidCards(myHand, gameState.table, gameState.trump);
   }, [canThrowCard, myHand, gameState.table, gameState.trump]);
 
   // Validation Message Helper
@@ -239,31 +199,16 @@ export const GameScreen: React.FC = () => {
     if (playableCards.some((c) => c.id === card.id)) return undefined;
 
     // Analyze why it's invalid
-    if (gameState.table.length > 0) {
-      const leadCard = gameState.table[0];
-      let leadSuit: Suit | undefined;
-      // @ts-ignore
-      if (leadCard.card.type === 'joker') leadSuit = leadCard.requestedSuit;
-      else leadSuit = leadCard.card.suit;
+    const result = SharedMoveValidator.validate(myHand, card, gameState.table, gameState.trump);
 
-      // @ts-ignore
-      const hasLeadSuit = myHand.some((c) => c.type !== 'joker' && c.suit === leadSuit);
-
-      // @ts-ignore
-      if (hasLeadSuit && card.suit !== leadSuit && card.type !== 'joker') {
-        return t('game.errors.mustFollow', { suit: leadSuit });
-      }
-
-      const trump = gameState.trump;
-      // @ts-ignore
-      const hasTrump = trump && myHand.some((c) => c.type !== 'joker' && c.suit === trump);
-      // @ts-ignore
-      if (!hasLeadSuit && hasTrump && card.suit !== trump && card.type !== 'joker') {
-        return t('game.errors.mustPlayTrump', { trump });
-      }
+    if (result.reason === 'MUST_FOLLOW_SUIT') {
+      return t('game.errors.mustFollow', { suit: result.requiredSuit });
+    }
+    if (result.reason === 'MUST_PLAY_TRUMP') {
+      return t('game.errors.mustPlayTrump', { trump: result.requiredSuit });
     }
 
-    return t('game.errors.invalidCard');
+    return result.message || t('game.errors.invalidCard');
   };
 
   return (
