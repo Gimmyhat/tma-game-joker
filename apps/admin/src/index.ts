@@ -23,6 +23,60 @@ const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'change-this-in-produ
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const ADMIN_COOKIE_SECURE = process.env.ADMIN_COOKIE_SECURE !== 'false';
 
+interface AdminRecordResponse {
+  record?: {
+    params: Record<string, unknown>;
+  };
+}
+
+const buildArrayFromParams = (
+  params: Record<string, unknown>,
+  prefix: string,
+): Record<string, unknown>[] => {
+  const items: Record<number, Record<string, unknown>> = {};
+  const prefixWithDot = `${prefix}.`;
+
+  const setNestedValue = (target: Record<string, unknown>, path: string[], value: unknown) => {
+    if (path.length === 0) return;
+
+    let current: Record<string, unknown> = target;
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      if (current[key] === undefined || typeof current[key] !== 'object') {
+        current[key] = {};
+      }
+      current = current[key] as Record<string, unknown>;
+    }
+
+    current[path[path.length - 1]] = value;
+  };
+
+  for (const [key, value] of Object.entries(params)) {
+    if (!key.startsWith(prefixWithDot)) continue;
+
+    const rest = key.slice(prefixWithDot.length);
+    const [indexStr, ...pathParts] = rest.split('.');
+    const index = Number(indexStr);
+
+    if (!Number.isFinite(index)) continue;
+
+    if (!items[index]) {
+      items[index] = {};
+    }
+
+    if (pathParts.length === 0) {
+      items[index] = value as Record<string, unknown>;
+    } else {
+      setNestedValue(items[index], pathParts, value);
+    }
+  }
+
+  return Object.keys(items)
+    .map((key) => Number(key))
+    .sort((a, b) => a - b)
+    .map((key) => items[key]);
+};
+
 // Resolve public dir for prebundled assets
 const publicDir = IS_PRODUCTION
   ? path.join(__dirname, '..', 'public')
@@ -57,6 +111,20 @@ async function start() {
             edit: { isAccessible: false, isVisible: false },
             delete: { isAccessible: false, isVisible: false },
             bulkDelete: { isAccessible: false, isVisible: false },
+            show: {
+              after: async (response: AdminRecordResponse) => {
+                const record = response.record;
+                if (!record) return response;
+
+                const playersArray = buildArrayFromParams(record.params, 'players');
+                const gameLogArray = buildArrayFromParams(record.params, 'gameLog');
+
+                record.params.playersJson = JSON.stringify(playersArray, null, 2);
+                record.params.gameLogJson = JSON.stringify(gameLogArray, null, 2);
+
+                return response;
+              },
+            },
           },
           // List view columns
           listProperties: ['id', 'startedAt', 'finishedAt', 'winnerId', 'createdAt'],
@@ -66,8 +134,8 @@ async function start() {
             'startedAt',
             'finishedAt',
             'winnerId',
-            'players',
-            'gameLog',
+            'playersJson',
+            'gameLogJson',
             'createdAt',
           ],
           properties: {
@@ -90,11 +158,43 @@ async function start() {
               type: 'mixed',
               isArray: true,
               position: 5,
+              isVisible: {
+                list: false,
+                show: false,
+                edit: false,
+                filter: false,
+              },
             },
             gameLog: {
               type: 'mixed',
               isArray: true,
               position: 6,
+              isVisible: {
+                list: false,
+                show: false,
+                edit: false,
+                filter: false,
+              },
+            },
+            playersJson: {
+              type: 'textarea',
+              position: 5,
+              isVisible: {
+                list: false,
+                show: true,
+                edit: false,
+                filter: false,
+              },
+            },
+            gameLogJson: {
+              type: 'textarea',
+              position: 6,
+              isVisible: {
+                list: false,
+                show: true,
+                edit: false,
+                filter: false,
+              },
             },
             createdAt: {
               type: 'datetime',
