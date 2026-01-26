@@ -38,6 +38,7 @@ services:
       - '80:80'
     depends_on:
       - backend
+      - admin
 
   # NOTE: Admin service temporarily disabled - requires AdminJS bundling fixes
   # Uncomment when ready:
@@ -50,8 +51,9 @@ services:
       - ADMIN_PORT=3001
       - ADMIN_JS_SKIP_BUNDLE=true
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    ports:
-      - '3001:3001'
+    # Port exposed only internally via nginx proxy
+    expose:
+      - '3001'
     depends_on:
       - postgres
 
