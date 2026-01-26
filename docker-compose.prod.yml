@@ -48,6 +48,7 @@ services:
     environment:
       - NODE_ENV=production
       - ADMIN_PORT=3001
+      - ADMIN_JS_SKIP_BUNDLE=true
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     ports:
       - '3001:3001'
