@@ -39,18 +39,20 @@ services:
     depends_on:
       - backend
 
-  admin:
-    image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_ADMIN}:latest
-    restart: always
-    env_file: .env
-    environment:
-      - NODE_ENV=production
-      - ADMIN_PORT=3001
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    ports:
-      - '3001:3001'
-    depends_on:
-      - postgres
+  # NOTE: Admin service temporarily disabled - requires AdminJS bundling fixes
+  # Uncomment when ready:
+  # admin:
+  #   image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_ADMIN}:latest
+  #   restart: always
+  #   env_file: .env
+  #   environment:
+  #     - NODE_ENV=production
+  #     - ADMIN_PORT=3001
+  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #   ports:
+  #     - '3001:3001'
+  #   depends_on:
+  #     - postgres
 
 volumes:
   redis_data:
