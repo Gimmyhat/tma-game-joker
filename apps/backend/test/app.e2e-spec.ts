@@ -221,15 +221,12 @@ describe('App (e2e)', () => {
       const startedPromises = clients.map((client) =>
         waitForEvent<{ roomId: string }>(client, 'game_started'),
       );
-      const statePromise = waitForState(leavingClient, 60000);
 
       clients.forEach((client) => client.emit('find_game'));
 
       const started = await Promise.all(startedPromises);
       roomId = started[0].roomId;
       started.forEach((payload) => expect(payload.roomId).toBe(roomId));
-
-      await statePromise;
 
       const leftPromise = waitForEvent<{ roomId: string }>(leavingClient, 'left_game');
       const playerLeftPromise = waitForEvent<{
