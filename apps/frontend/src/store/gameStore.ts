@@ -23,7 +23,7 @@ import { getMockUser, type TelegramUser } from '../lib/telegram';
 // =====================================
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
-export type LobbyStatus = 'idle' | 'searching' | 'waiting' | 'starting';
+export type LobbyStatus = 'idle' | 'searching' | 'waiting' | 'starting' | 'tuzovanie';
 
 export interface GameStore {
   // Connection
@@ -37,6 +37,10 @@ export interface GameStore {
   roomId: string | null;
   playersInRoom: number;
   requiredPlayers: number;
+
+  // Tuzovanie state
+  tuzovanieCards: Card[][] | null;
+  tuzovanieDealerIndex: number | null;
 
   // Game
   gameState: GameState | null;
@@ -84,6 +88,8 @@ const initialState = {
   roomId: null as string | null,
   playersInRoom: 0,
   requiredPlayers: 4,
+  tuzovanieCards: null as Card[][] | null,
+  tuzovanieDealerIndex: null as number | null,
   gameState: null as GameState | null,
   myHand: [] as Card[],
   myPlayerId: null as string | null,
@@ -258,6 +264,16 @@ function setupSocketListeners(
   socket.on('player_left', (data) => {
     console.log('[Store] Player left:', data);
     set({ playersInRoom: data.playersCount });
+  });
+
+  // Tuzovanie event
+  socket.on('tuzovanie_started', (data) => {
+    console.log('[Store] Tuzovanie started:', data);
+    set({
+      lobbyStatus: 'tuzovanie',
+      tuzovanieCards: data.cardsDealt,
+      tuzovanieDealerIndex: data.dealerIndex,
+    });
   });
 
   // Game events

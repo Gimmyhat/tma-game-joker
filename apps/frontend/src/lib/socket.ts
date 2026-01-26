@@ -15,6 +15,7 @@ import type {
   PlayerReplacedPayload,
   JokerOption,
   Suit,
+  Card,
 } from '@joker/shared';
 
 // Server events (received from server)
@@ -26,6 +27,7 @@ export interface ServerToClientEvents {
   player_left: (data: { playerId: string; playerName: string; playersCount: number }) => void;
 
   // Game events
+  tuzovanie_started: (data: { cardsDealt: Card[][]; dealerIndex: number }) => void;
   game_started: (data: { roomId: string }) => void;
   game_state: (data: GameStateUpdate) => void;
 

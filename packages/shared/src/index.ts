@@ -23,6 +23,7 @@ export enum Rank {
 
 export enum GamePhase {
   Waiting = 'waiting',
+  Tuzovanie = 'tuzovanie',
   TrumpSelection = 'trump_selection',
   Betting = 'betting',
   Playing = 'playing',

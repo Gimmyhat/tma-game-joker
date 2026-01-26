@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Player, TableCard, Suit, GamePhase, Card as CardType } from '@joker/shared';
+import { Player, TableCard, Suit, GamePhase, Card as CardType, JokerOption } from '@joker/shared';
 import { useGameStore } from '../store/gameStore';
 import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
@@ -252,11 +252,51 @@ export const Table: React.FC<TableProps> = ({
           style={{ zIndex: 20 + i }}
         >
           <Card card={tc.card} size="md" className="shadow-2xl border-none" />
-          {/* Show Joker Request */}
-          {tc.requestedSuit && (
+          {/* Joker Action / Request Badge */}
+          {tc.jokerOption ? (
+            <div
+              className={`absolute -top-14 left-1/2 -translate-x-1/2 text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-xl whitespace-nowrap shadow-[0_4px_10px_rgba(0,0,0,0.4)] flex items-center gap-1.5 border-2 backdrop-blur-md z-30 transition-transform duration-300
+                ${
+                  tc.jokerOption === JokerOption.Top
+                    ? 'bg-amber-900/90 border-amber-400 text-amber-100'
+                    : tc.jokerOption === JokerOption.Bottom
+                      ? 'bg-purple-900/90 border-purple-400 text-purple-100'
+                      : 'bg-slate-900/90 border-slate-500 text-white'
+                }
+              `}
+              style={{ transform: `rotate(${-finalRotation}deg)` }}
+            >
+              <span className="text-sm leading-none filter drop-shadow-sm">
+                {tc.jokerOption === JokerOption.High && '⬆️'}
+                {tc.jokerOption === JokerOption.Low && '⬇️'}
+                {tc.jokerOption === JokerOption.Top && '👑'}
+                {tc.jokerOption === JokerOption.Bottom && '🛡️'}
+              </span>
+              <span className="mt-[1px]">
+                {tc.jokerOption === JokerOption.High && t('game.joker.high', 'HIGH')}
+                {tc.jokerOption === JokerOption.Low && t('game.joker.low', 'LOW')}
+                {tc.jokerOption === JokerOption.Top && t('game.joker.take', 'TAKE')}
+                {tc.jokerOption === JokerOption.Bottom && t('game.joker.pass', 'PASS')}
+              </span>
+              {tc.requestedSuit && (
+                <>
+                  <div className="w-px h-3 bg-current opacity-30 mx-0.5" />
+                  <SuitIcon
+                    suit={tc.requestedSuit}
+                    className={`w-3.5 h-3.5 ${
+                      tc.requestedSuit === Suit.Hearts || tc.requestedSuit === Suit.Diamonds
+                        ? 'text-red-500'
+                        : 'text-white'
+                    }`}
+                  />
+                </>
+              )}
+            </div>
+          ) : tc.requestedSuit ? (
+            /* Fallback for legacy/other cases */
             <div
               className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg flex items-center gap-2 border border-white/10"
-              style={{ transform: `rotate(${-finalRotation}deg)` }} // Counter-rotate to keep text horizontal
+              style={{ transform: `rotate(${-finalRotation}deg)` }}
             >
               <span className="opacity-80">{t('game.table.req')}</span>
               <SuitIcon
@@ -268,7 +308,7 @@ export const Table: React.FC<TableProps> = ({
                 }`}
               />
             </div>
-          )}
+          ) : null}
         </motion.div>
       );
     });

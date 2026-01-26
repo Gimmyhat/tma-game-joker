@@ -32,7 +32,8 @@
       "trump_selection": "Выберите козырь",
       "playing": "Сделайте ход",
       "finished": "Завершено",
-      "waiting": "Ожидание"
+      "waiting": "Ожидание",
+      "tuzovanie": "Тузование"
     },
     "dealerRestriction": "Ограничение дилера",
     "dealerRestrictionText": "Вы дилер. Вы не можете поставить",
@@ -91,7 +92,11 @@
       "beatsHighest": "Бьет старшую",
       "takeLow": "Забрать по младшей",
       "beatsLowest": "Бьет младшую",
-      "back": "Назад"
+      "back": "Назад",
+      "badgeHigh": "Ст",
+      "badgeLow": "Мл",
+      "badgeTop": "Заберу",
+      "badgeBottom": "Отдам"
     },
     "errors": {
       "mustFollow": "Нужно ходить в {{suit}}",

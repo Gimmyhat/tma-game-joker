@@ -34,13 +34,20 @@ export class GameEngineService {
   /**
    * Create a new game with 4 players
    */
-  createGame(playerIds: string[], playerNames: string[]): GameState {
+  createGame(
+    playerIds: string[],
+    playerNames: string[],
+    predefinedDealerIndex?: number,
+  ): GameState {
     if (playerIds.length !== 4) {
       throw new Error('Game requires exactly 4 players');
     }
 
-    // Perform tuzovanie to determine first dealer
-    const { dealerIndex } = this.deckService.tuzovanie(4);
+    // Perform tuzovanie to determine first dealer if not predefined
+    const dealerIndex =
+      predefinedDealerIndex !== undefined
+        ? predefinedDealerIndex
+        : this.deckService.tuzovanie(4).dealerIndex;
 
     const players: Player[] = playerIds.map((id, index) => ({
       id,
@@ -82,6 +89,13 @@ export class GameEngineService {
     };
 
     return gameState;
+  }
+
+  /**
+   * Perform tuzovanie to select dealer
+   */
+  tuzovanie(playersCount: number) {
+    return this.deckService.tuzovanie(playersCount);
   }
 
   /**

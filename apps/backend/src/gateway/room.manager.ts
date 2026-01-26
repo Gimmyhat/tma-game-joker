@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, GAME_CONSTANTS } from '@joker/shared';
+import { GameState, GAME_CONSTANTS, Card } from '@joker/shared';
 import { GameEngineService } from '../game/services/game-engine.service';
 import { RedisService } from '../database/redis.service';
 
@@ -98,7 +98,7 @@ export class RoomManager {
   /**
    * Create game room from queued players
    */
-  async createRoom(): Promise<GameRoom | null> {
+  async createRoom(): Promise<{ room: GameRoom; tuzovanieCards: Card[][] } | null> {
     if (this.queue.length < GAME_CONSTANTS.PLAYERS_COUNT) {
       return null;
     }
@@ -109,8 +109,11 @@ export class RoomManager {
     const playerIds = players.map((p) => p.id);
     const playerNames = players.map((p) => p.name);
 
-    // Create game state
-    const gameState = this.gameEngine.createGame(playerIds, playerNames);
+    // Perform tuzovanie
+    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+
+    // Create game state with determined dealer
+    const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
 
     // Create room
     const room: GameRoom = {
@@ -132,13 +135,13 @@ export class RoomManager {
 
     this.logger.log(`Room ${room.id} created with players: ${playerIds.join(', ')}`);
 
-    return room;
+    return { room, tuzovanieCards: cardsDealt };
   }
 
   /**
    * Create room with bots filling remaining slots
    */
-  async createRoomWithBots(): Promise<GameRoom | null> {
+  async createRoomWithBots(): Promise<{ room: GameRoom; tuzovanieCards: Card[][] } | null> {
     if (this.queue.length === 0) {
       return null;
     }
@@ -163,8 +166,11 @@ export class RoomManager {
     const playerIds = allPlayers.map((p) => p.id);
     const playerNames = allPlayers.map((p) => p.name);
 
-    // Create game state
-    const gameState = this.gameEngine.createGame(playerIds, playerNames);
+    // Perform tuzovanie
+    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+
+    // Create game state with determined dealer
+    const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
 
     // Create room
     const room: GameRoom = {
@@ -188,7 +194,7 @@ export class RoomManager {
       `Room ${room.id} created with ${realPlayers.length} players and ${botsNeeded} bots`,
     );
 
-    return room;
+    return { room, tuzovanieCards: cardsDealt };
   }
 
   // ==========================================

@@ -32,7 +32,8 @@
       "trump_selection": "Choose Trump",
       "playing": "Play a Card",
       "finished": "Finished",
-      "waiting": "Waiting"
+      "waiting": "Waiting",
+      "tuzovanie": "Drawing for Dealer"
     },
     "dealerRestriction": "Dealer Restriction",
     "dealerRestrictionText": "You are the dealer. You cannot bet",

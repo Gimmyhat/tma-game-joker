@@ -255,37 +255,57 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Start game with queued players
    */
   private async startGame(): Promise<void> {
-    const room = await this.roomManager.createRoom();
-    if (!room) return;
+    const result = await this.roomManager.createRoom();
+    if (!result) return;
 
-    // Start the game
-    room.gameState = this.gameEngine.startGame(room.gameState);
-    await this.roomManager.updateGameState(room.id, room.gameState);
+    const { room, tuzovanieCards } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
       const socket = this.server.sockets.sockets.get(socketId);
       if (socket) {
         socket.join(room.id);
-        socket.emit('game_started', { roomId: room.id });
       }
     }
 
-    this.logger.log(`Game started in room ${room.id}`);
-    await this.emitGameState(room.id);
-    this.startTurnTimer(room.id);
+    // Emit tuzovanie event
+    this.server.to(room.id).emit('tuzovanie_started', {
+      cardsDealt: tuzovanieCards,
+      dealerIndex: room.gameState.dealerIndex,
+    });
+
+    this.logger.log(`Tuzovanie started in room ${room.id}`);
+
+    // Calculate delay: count total cards dealt * 200ms + 2000ms buffer
+    const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
+    const delayMs = totalCards * 200 + 2000;
+
+    setTimeout(async () => {
+      // Check if room still exists (players might disconnect)
+      const currentRoom = this.roomManager.getRoomSync(room.id);
+      if (!currentRoom) return;
+
+      // Start the game logic
+      currentRoom.gameState = this.gameEngine.startGame(currentRoom.gameState);
+      await this.roomManager.updateGameState(currentRoom.id, currentRoom.gameState);
+
+      // Notify start
+      this.server.to(currentRoom.id).emit('game_started', { roomId: currentRoom.id });
+
+      this.logger.log(`Game started in room ${currentRoom.id}`);
+      await this.emitGameState(currentRoom.id);
+      this.startTurnTimer(currentRoom.id);
+    }, delayMs);
   }
 
   /**
    * Start game with bots
    */
   private async startGameWithBots(): Promise<void> {
-    const room = await this.roomManager.createRoomWithBots();
-    if (!room) return;
+    const result = await this.roomManager.createRoomWithBots();
+    if (!result) return;
 
-    // Start the game
-    room.gameState = this.gameEngine.startGame(room.gameState);
-    await this.roomManager.updateGameState(room.id, room.gameState);
+    const { room, tuzovanieCards } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
@@ -293,16 +313,40 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const socket = this.server.sockets.sockets.get(socketId);
       if (socket) {
         socket.join(room.id);
-        socket.emit('game_started', { roomId: room.id });
       }
     }
 
-    this.logger.log(`Game started in room ${room.id} with bots`);
-    await this.emitGameState(room.id);
-    this.startTurnTimer(room.id);
+    // Emit tuzovanie event
+    this.server.to(room.id).emit('tuzovanie_started', {
+      cardsDealt: tuzovanieCards,
+      dealerIndex: room.gameState.dealerIndex,
+    });
 
-    // If it's a bot's turn, make bot move
-    await this.processBotTurn(room.id);
+    this.logger.log(`Tuzovanie started in room ${room.id} with bots`);
+
+    // Calculate delay
+    const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
+    const delayMs = totalCards * 200 + 2000;
+
+    setTimeout(async () => {
+      // Check if room still exists
+      const currentRoom = this.roomManager.getRoomSync(room.id);
+      if (!currentRoom) return;
+
+      // Start the game
+      currentRoom.gameState = this.gameEngine.startGame(currentRoom.gameState);
+      await this.roomManager.updateGameState(currentRoom.id, currentRoom.gameState);
+
+      // Notify start
+      this.server.to(currentRoom.id).emit('game_started', { roomId: currentRoom.id });
+
+      this.logger.log(`Game started in room ${currentRoom.id} with bots`);
+      await this.emitGameState(currentRoom.id);
+      this.startTurnTimer(currentRoom.id);
+
+      // If it's a bot's turn, make bot move
+      await this.processBotTurn(currentRoom.id);
+    }, delayMs);
   }
 
   /**
