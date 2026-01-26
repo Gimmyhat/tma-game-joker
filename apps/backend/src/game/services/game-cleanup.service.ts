@@ -19,7 +19,7 @@ export class GameCleanupService {
       cutoffDate.setDate(cutoffDate.getDate() - 3);
 
       // Update games older than 3 days: clear gameLog, keep metadata
-      const result = await this.prisma.finishedGame.updateMany({
+      const result = await this.prisma.game.updateMany({
         where: {
           finishedAt: {
             lt: cutoffDate,

@@ -8,7 +8,7 @@ describe('GameCleanupService', () => {
 
   beforeEach(async () => {
     const prismaServiceMock = {
-      finishedGame: {
+      game: {
         updateMany: jest.fn(),
       },
     };
@@ -23,12 +23,12 @@ describe('GameCleanupService', () => {
 
   it('should clean up old logs', async () => {
     // @ts-ignore
-    prismaService.finishedGame.updateMany.mockResolvedValue({ count: 5 });
+    prismaService.game.updateMany.mockResolvedValue({ count: 5 });
 
     await service.handleLogCleanup();
 
     // @ts-ignore
-    expect(prismaService.finishedGame.updateMany).toHaveBeenCalledWith({
+    expect(prismaService.game.updateMany).toHaveBeenCalledWith({
       where: {
         finishedAt: {
           lt: expect.any(Date), // 3 days ago
