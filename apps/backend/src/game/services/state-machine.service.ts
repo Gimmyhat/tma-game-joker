@@ -31,6 +31,16 @@ export class StateMachineService {
         }
         break;
 
+      case GamePhase.Tuzovanie:
+        // Tuzovanie is a pre-game phase, transitions are handled manually
+        if (event.type === 'GAME_START') {
+          if (this.needsTrumpSelection(state)) {
+            return GamePhase.TrumpSelection;
+          }
+          return GamePhase.Betting;
+        }
+        break;
+
       case GamePhase.TrumpSelection:
         if (event.type === 'TRUMP_SELECTED') {
           return GamePhase.Betting;
@@ -187,6 +197,7 @@ export class StateMachineService {
   canTransition(currentPhase: GamePhase, event: GameEvent): boolean {
     const validTransitions: Record<GamePhase, string[]> = {
       [GamePhase.Waiting]: ['GAME_START'],
+      [GamePhase.Tuzovanie]: ['GAME_START'],
       [GamePhase.TrumpSelection]: ['TRUMP_SELECTED'],
       [GamePhase.Betting]: ['ALL_BETS_PLACED'],
       [GamePhase.Playing]: ['CARD_PLAYED'],
