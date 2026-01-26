@@ -4,4 +4,8 @@ import { ComponentLoader } from 'adminjs';
 // It's needed for @adminjs/bundler to work
 const componentLoader = new ComponentLoader();
 
+export const Components = {
+  GameAnalysis: componentLoader.add('GameAnalysis', './components/GameAnalysis/index'),
+};
+
 export default componentLoader;
