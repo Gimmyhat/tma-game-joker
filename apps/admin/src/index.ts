@@ -170,13 +170,15 @@ const buildGameAnalysis = (
       round.trump = currentTrump;
 
       const handsData = data.hands as Array<{ playerId: string; hand: AnalysisCard[] }> | undefined;
-      if (handsData) {
+      if (handsData && Array.isArray(handsData)) {
         currentHands = {};
         for (const handEntry of handsData) {
-          currentHands[handEntry.playerId] = (handEntry.hand ?? []).map((card) => ({
-            ...card,
-            cardType: card.cardType ? card.cardType.toUpperCase() : null,
-          }));
+          if (handEntry && handEntry.playerId) {
+            currentHands[handEntry.playerId] = (handEntry.hand ?? []).map((card) => ({
+              ...card,
+              cardType: card.cardType ? card.cardType.toUpperCase() : null,
+            }));
+          }
         }
       }
 
@@ -407,7 +409,7 @@ async function start() {
                 } catch (error) {
                   // DEBUG: Show error in winnerId
                   if (response.record) {
-                    response.record.params.winnerId = `ERROR: ${(error as Error).message}`;
+                    response.record.params.winnerId = `ERROR: ${(error as Error).message} | Stack: ${(error as Error).stack?.split('\n')[1] || 'no stack'}`;
                   }
                   return response;
                 }
