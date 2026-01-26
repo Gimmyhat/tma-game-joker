@@ -360,30 +360,35 @@ export const Table: React.FC<TableProps> = ({
       const pos = getPlayerPosition(playerId);
       const isAce = card.type === 'standard' && card.rank === Rank.Ace;
 
-      // Positions on the felt in front of players
+      // Positions on the felt closer to players (near the edge)
       const targetPos: Record<Position, { x: number; y: number; rotate: number }> = {
-        'bottom-center': { x: 0, y: 180, rotate: 0 },
-        'bottom-left': { x: -120, y: 120, rotate: 15 },
-        'bottom-right': { x: 120, y: 120, rotate: -15 },
-        'top-left': { x: -120, y: -120, rotate: 165 },
-        'top-center': { x: 0, y: -180, rotate: 180 },
-        'top-right': { x: 120, y: -120, rotate: 195 },
-        'left-center': { x: -200, y: 0, rotate: 90 },
-        'right-center': { x: 200, y: 0, rotate: -90 },
+        'bottom-center': { x: 0, y: 220, rotate: 0 },
+        'bottom-left': { x: -150, y: 160, rotate: 30 },
+        'bottom-right': { x: 150, y: 160, rotate: -30 },
+        'top-left': { x: -150, y: -160, rotate: 150 },
+        'top-center': { x: 0, y: -220, rotate: 180 },
+        'top-right': { x: 150, y: -160, rotate: 210 },
+        'left-center': { x: -250, y: 0, rotate: 90 },
+        'right-center': { x: 250, y: 0, rotate: -90 },
       };
 
       const t = targetPos[pos] || { x: 0, y: 0, rotate: 0 };
 
+      // Add messy randomness (+/- 10 degrees)
+      // Use card ID hash for stable randomness
+      const hash = card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const randomAngle = (hash % 20) - 10;
+
       return (
         <motion.div
           key={`tuz-${playerId}-${card.id}`}
-          initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 720 }}
+          initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 0 }} // No spin
           animate={{
             x: t.x,
             y: t.y,
             scale: isAce ? 1.3 : 1,
             opacity: 1,
-            rotate: t.rotate,
+            rotate: t.rotate + randomAngle, // Messy alignment
           }}
           transition={{
             delay: dealIndex * 0.6,
