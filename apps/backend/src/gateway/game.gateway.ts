@@ -279,9 +279,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `Tuzovanie started in room ${room.id}. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
     );
 
-    // Calculate delay: count total cards dealt * 200ms + 2000ms buffer
+    // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
     const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
-    const delayMs = totalCards * 200 + 2000;
+    const delayMs = totalCards * 600 + 4000;
 
     setTimeout(async () => {
       // Check if room still exists (players might disconnect)
@@ -330,9 +330,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `Tuzovanie started in room ${room.id} with bots. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
     );
 
-    // Calculate delay
+    // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
     const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
-    const delayMs = totalCards * 200 + 2000;
+    const delayMs = totalCards * 600 + 4000;
 
     setTimeout(async () => {
       // Check if room still exists
