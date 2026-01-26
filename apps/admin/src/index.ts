@@ -357,6 +357,10 @@ async function start() {
                   const record = response.record;
                   if (!record) return response;
 
+                  // DEBUG: Show available keys in winnerId field to debug fetching issues
+                  const debugKeys = Object.keys(record.params).filter((k) => !k.includes('.'));
+                  record.params.winnerId = `DEBUG KEYS: ${debugKeys.join(', ')}`;
+
                   // Helper to extract JSON data whether it's flattened or not
                   const extractJson = (key: string) => {
                     // 1. Try direct access (if not flattened)
@@ -380,12 +384,6 @@ async function start() {
 
                   // Safety check
                   if (!Array.isArray(playersArray) || !Array.isArray(gameLogArray)) {
-                    console.warn('AdminJS: Failed to parse players or gameLog', {
-                      id: record.params.id,
-                      playersType: typeof record.params.players,
-                      gameLogType: typeof record.params.gameLog,
-                    });
-                    // Fallback to empty to prevent crash
                     const safePlayers = Array.isArray(playersArray) ? playersArray : [];
                     const safeLog = Array.isArray(gameLogArray) ? gameLogArray : [];
 
@@ -407,8 +405,10 @@ async function start() {
 
                   return response;
                 } catch (error) {
-                  console.error('AdminJS Show Hook Error:', error);
-                  // Return response anyway to avoid 500 page, just missing data
+                  // DEBUG: Show error in winnerId
+                  if (response.record) {
+                    response.record.params.winnerId = `ERROR: ${(error as Error).message}`;
+                  }
                   return response;
                 }
               },
