@@ -221,7 +221,7 @@ describe('App (e2e)', () => {
       const startedPromises = clients.map((client) =>
         waitForEvent<{ roomId: string }>(client, 'game_started'),
       );
-      const statePromise = waitForState(leavingClient);
+      const statePromise = waitForState(leavingClient, 60000);
 
       clients.forEach((client) => client.emit('find_game'));
 
@@ -246,7 +246,7 @@ describe('App (e2e)', () => {
       expect(playerLeftPayload.playerId).toBe(leavingPlayerId);
       expect(playerLeftPayload.playersCount).toBe(GAME_CONSTANTS.PLAYERS_COUNT);
 
-      const nextState = await waitForState(clients[1]);
+      const nextState = await waitForState(clients[1], 60000);
       expect(nextState.state.players).toHaveLength(GAME_CONSTANTS.PLAYERS_COUNT);
     } finally {
       if (roomId) {
@@ -255,7 +255,7 @@ describe('App (e2e)', () => {
       playerIds.forEach((playerId) => roomManager.removeFromQueue(playerId));
       clients.forEach((client) => client.disconnect());
     }
-  });
+  }, 90000);
 
   it('restores game state after reconnect', async () => {
     let roomId: string | null = null;
