@@ -28,11 +28,10 @@ const publicDir = IS_PRODUCTION
   : path.join(process.cwd(), 'public');
 
 async function start() {
+  // In production with ADMIN_JS_SKIP_BUNDLE=true, we don't need assetsCDN
+  // AdminJS will serve assets from /admin/frontend/assets/ and we override those routes
   const adminJs = new AdminJS({
     rootPath: '/admin',
-    // Use prebundled assets in production (built during Docker build)
-    // In development, AdminJS bundles on-the-fly
-    ...(IS_PRODUCTION && { assetsCDN: '/public' }),
     // Only include componentLoader in development - production uses prebundled assets
     ...(!IS_PRODUCTION && { componentLoader }),
     branding: {
@@ -108,9 +107,10 @@ async function start() {
 
   const app = express();
 
-  // Serve prebundled AdminJS assets in production
+  // In production, serve prebundled AdminJS assets
+  // AdminJS expects assets at /admin/frontend/assets/
   if (IS_PRODUCTION) {
-    app.use('/public', express.static(publicDir));
+    app.use('/admin/frontend/assets', express.static(publicDir));
     console.log(`📁 Serving static assets from ${publicDir}`);
   }
 
