@@ -95,10 +95,13 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   const leadSuitInfo = leadSuit ? suits.find((s) => s.type === leadSuit) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      {/* 
+         Removed the full-screen backdrop div.
+         The container is pointer-events-none so clicks pass through to the table.
+      */}
 
-      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative pointer-events-auto w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="p-6 text-center border-b border-slate-800 relative">
           {step === 'suit' && (
