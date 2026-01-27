@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { GameState, GamePhase, GAME_CONSTANTS } from '@joker/shared';
+import { GameState, GamePhase, GAME_CONSTANTS, TrumpSelectionTrigger } from '@joker/shared';
 
 export type GameEvent =
   | { type: 'GAME_START' }
   | { type: 'TRUMP_SELECTED' }
+  | { type: 'REDEAL' }
   | { type: 'ALL_BETS_PLACED' }
   | { type: 'CARD_PLAYED' }
   | { type: 'TRICK_COMPLETE' }
@@ -113,10 +114,33 @@ export class StateMachineService {
 
   /**
    * Check if trump selection is needed for current round
-   * Trump is selected by player for 9-card rounds (pulka 2 and 4)
+   * Trump selection is required when:
+   * 1. 9-card rounds (pulka 2 and 4) - full deal, no card for trump
+   * 2. Joker was flipped as trump card
    */
   needsTrumpSelection(state: GameState): boolean {
-    return state.cardsPerPlayer === 9;
+    // 9-card rounds always need trump selection (full deal - no upcard)
+    if (state.cardsPerPlayer === 9) {
+      return true;
+    }
+    // Joker flipped as trump card - first player decides
+    if (state.trumpCard?.type === 'joker') {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Determine the trigger for trump selection
+   */
+  getTrumpSelectionTrigger(state: GameState): TrumpSelectionTrigger | null {
+    if (state.cardsPerPlayer === 9) {
+      return 'FULL_DEAL_ROUND';
+    }
+    if (state.trumpCard?.type === 'joker') {
+      return 'JOKER_UPCARD';
+    }
+    return null;
   }
 
   /**

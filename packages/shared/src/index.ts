@@ -41,6 +41,48 @@ export enum JokerOption {
 }
 
 // =====================================
+// TRUMP SELECTION TYPES
+// =====================================
+
+export enum TrumpDecisionType {
+  Suit = 'SUIT',
+  NoTrump = 'NO_TRUMP',
+  Redeal = 'REDEAL',
+}
+
+export type TrumpDecision =
+  | { type: TrumpDecisionType.Suit; suit: Suit }
+  | { type: TrumpDecisionType.NoTrump }
+  | { type: TrumpDecisionType.Redeal };
+
+export type TrumpSelectionTrigger = 'FULL_DEAL_ROUND' | 'JOKER_UPCARD';
+
+export interface TrumpSelectionState {
+  /** Player who must choose trump */
+  chooserPlayerId: string;
+  /** Seat index of chooser */
+  chooserSeatIndex: number;
+  /** Number of cards visible to chooser (always 3) */
+  visibleCardCount: number;
+  /** Allowed options for this selection */
+  allowed: {
+    suits: Suit[];
+    noTrump: boolean;
+    redeal: boolean;
+  };
+  /** Current redeal count for this round */
+  redealCount: number;
+  /** Maximum allowed redeals */
+  maxRedeals: number;
+  /** Server timestamp when selection times out */
+  deadlineTs: number;
+  /** What triggered trump selection */
+  trigger: TrumpSelectionTrigger;
+  /** Cards that were not yet dealt (for completing deal after selection) */
+  pendingCards?: Card[][];
+}
+
+// =====================================
 // CARD TYPES
 // =====================================
 
@@ -140,6 +182,9 @@ export interface GameState {
   trumpCard: Card | null; // The actual card that determined trump (shown on table)
   table: TableCard[];
 
+  // Trump selection (only present during TrumpSelection phase with partial deal)
+  trumpSelection?: TrumpSelectionState;
+
   // Timing
   turnStartedAt: number;
   turnTimeoutMs: number;
@@ -180,7 +225,7 @@ export interface ThrowCardPayload {
 
 export interface SelectTrumpPayload {
   roomId: string;
-  trump: Suit | null;
+  decision: TrumpDecision;
 }
 
 // =====================================
@@ -225,6 +270,11 @@ export const GAME_CONSTANTS = {
   MATCHMAKING_TIMEOUT_MS: 60_000,
   PULKA_RECAP_TIMEOUT_MS: 60_000, // 1 minute
   TRICK_RECAP_TIMEOUT_MS: 3000, // 3 seconds delay after each trick
+
+  // Trump Selection
+  TRUMP_SELECTION_VISIBLE_CARDS: 3, // Cards shown to chooser before trump decision
+  TRUMP_SELECTION_TIMEOUT_MS: 60_000, // 1 minute to choose trump
+  TRUMP_SELECTION_MAX_REDEALS: 2, // Maximum allowed redeals
 
   // Scoring
   SCORE_TOOK_OWN_MULTIPLIER: 50,

@@ -1,23 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store';
-import {
-  selectIsMyTurn,
-  selectCanMakeBet,
-  selectCanThrowCard,
-  selectCanSelectTrump,
-} from '../store/gameStore';
+import { selectIsMyTurn, selectCanMakeBet, selectCanThrowCard } from '../store/gameStore';
 import { Card as CardType, JokerOption, Suit, SharedMoveValidator } from '@joker/shared';
 import Table from '../components/Table';
 import Hand from '../components/Hand';
 import { BetModal } from '../components/BetModal';
-import { TrumpSelector } from '../components/TrumpSelector';
 import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { PulkaResultsModal, ScoreSheetModal } from '../components/game';
+import { PulkaResultsModal, ScoreSheetModal, TrumpSelectionModal } from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
 
@@ -31,7 +25,6 @@ export const GameScreen: React.FC = () => {
     myPlayerId,
     makeBet,
     throwCard,
-    selectTrump,
     turnExpiresAt,
     leaveGame,
     lastError,
@@ -43,7 +36,6 @@ export const GameScreen: React.FC = () => {
   const isMyTurn = useGameStore(selectIsMyTurn);
   const canMakeBet = useGameStore(selectCanMakeBet);
   const canThrowCard = useGameStore(selectCanThrowCard);
-  const canSelectTrump = useGameStore(selectCanSelectTrump);
 
   // Local State
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
@@ -403,13 +395,8 @@ export const GameScreen: React.FC = () => {
         otherPlayersBetsSum={otherPlayersBetsSum}
       />
 
-      {/* Trump Selector */}
-      <TrumpSelector
-        isOpen={canSelectTrump}
-        onSelect={selectTrump}
-        // @ts-ignore
-        isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
-      />
+      {/* Trump Selection Modal */}
+      <TrumpSelectionModal />
 
       {/* Joker Options */}
       <JokerOptionModal

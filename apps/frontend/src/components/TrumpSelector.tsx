@@ -1,28 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Suit } from '@joker/shared';
+import { Suit, TrumpDecision, TrumpDecisionType, TrumpSelectionState } from '@joker/shared';
 import { SuitIcon } from './SuitIcon';
 
 interface TrumpSelectorProps {
   isOpen: boolean;
-  onSelect: (suit: Suit | null) => void;
+  onSelect: (decision: TrumpDecision) => void;
   isJokerTrump?: boolean;
+  trumpSelection?: TrumpSelectionState | null;
 }
 
 export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
   isOpen,
   onSelect,
   isJokerTrump = false,
+  trumpSelection,
 }) => {
   const { t } = useTranslation();
   const [selectedSuit, setSelectedSuit] = useState<Suit | null | 'none'>('none');
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // If Joker is trump, default to No Trump is natural, but we explicitly set it
       setSelectedSuit('none');
     }
   }, [isOpen]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isOpen || !trumpSelection?.deadlineTs) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining = Math.max(0, Math.floor((trumpSelection.deadlineTs - Date.now()) / 1000));
+      setTimeLeft(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, trumpSelection?.deadlineTs]);
 
   if (!isOpen) return null;
 
@@ -33,6 +52,27 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
     { type: Suit.Spades, color: 'text-slate-200', label: t('game.trump.spades') },
   ];
 
+  const canRedeal = trumpSelection?.allowed.redeal ?? false;
+  const redealCount = trumpSelection?.redealCount ?? 0;
+  const maxRedeals = trumpSelection?.maxRedeals ?? 2;
+  const redealsRemaining = maxRedeals - redealCount;
+
+  const handleConfirm = () => {
+    if (selectedSuit === 'none') return;
+
+    if (selectedSuit === null) {
+      onSelect({ type: TrumpDecisionType.NoTrump });
+    } else {
+      onSelect({ type: TrumpDecisionType.Suit, suit: selectedSuit });
+    }
+  };
+
+  const handleRedeal = () => {
+    if (canRedeal) {
+      onSelect({ type: TrumpDecisionType.Redeal });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-center pt-20 pointer-events-none">
       {/* Semi-transparent overlay only for top part, leaving hand visible */}
@@ -41,7 +81,16 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
       <div className="relative w-full max-w-sm bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 pointer-events-auto backdrop-blur-md">
         <div className="p-4 text-center border-b border-slate-800">
           <h2 className="text-xl font-bold text-white">{t('game.trump.choose')}</h2>
-          <p className="text-slate-400 text-xs mt-1">{t('game.trump.subtitle')}</p>
+          <p className="text-slate-400 text-xs mt-1">
+            {trumpSelection?.trigger === 'JOKER_UPCARD'
+              ? t('game.trump.jokerTrigger', 'Joker flipped - you decide!')
+              : t('game.trump.subtitle')}
+          </p>
+          {timeLeft !== null && (
+            <p className="text-amber-400 text-sm mt-2 font-mono">
+              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+            </p>
+          )}
         </div>
 
         <div className="p-4 space-y-3">
@@ -84,8 +133,19 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
             {isJokerTrump ? t('game.trump.noTrumpJoker') : t('game.trump.noTrump')}
           </button>
 
+          {/* Redeal button */}
+          {canRedeal && (
+            <button
+              onClick={handleRedeal}
+              className="w-full p-3 rounded-xl border border-blue-700 bg-blue-900/50 font-bold text-sm transition-all duration-200 flex items-center justify-center text-blue-300 hover:bg-blue-900 hover:border-blue-600"
+            >
+              <span className="mr-2">🔄</span>
+              {t('game.trump.redeal', 'Redeal')} ({redealsRemaining}/{maxRedeals})
+            </button>
+          )}
+
           <button
-            onClick={() => onSelect(selectedSuit === 'none' ? null : selectedSuit)}
+            onClick={handleConfirm}
             disabled={selectedSuit === 'none'}
             className={`
               w-full py-3 mt-1 rounded-xl font-bold text-base tracking-wide transition-all duration-200

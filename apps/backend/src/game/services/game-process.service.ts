@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
-import { GamePhase, GAME_CONSTANTS, GameState } from '@joker/shared';
+import { GamePhase, GAME_CONSTANTS, GameState, TrumpDecision } from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
 import { RoomManager } from './room.manager';
 import { BotService } from '../../bot/bot.service';
@@ -46,13 +46,13 @@ export class GameProcessService {
   /**
    * Process user trump selection
    */
-  async processUserTrump(roomId: string, playerId: string, trump: any): Promise<void> {
+  async processUserTrump(roomId: string, playerId: string, decision: TrumpDecision): Promise<void> {
     const room = this.roomManager.getRoomSync(roomId);
     if (!room) {
       throw new Error('Room not found');
     }
 
-    room.gameState = this.gameEngine.selectTrump(room.gameState, playerId, trump);
+    room.gameState = this.gameEngine.selectTrump(room.gameState, playerId, decision);
     await this.roomManager.updateGameState(room.id, room.gameState);
 
     await this.emitGameState(room.id);
@@ -253,7 +253,7 @@ export class GameProcessService {
     const result = await this.roomManager.createRoom();
     if (!result) return;
 
-    const { room, tuzovanieCards } = result;
+    const { room, tuzovanieCards, tuzovanieSequence, tuzovanieAcePlayerId } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
@@ -266,8 +266,16 @@ export class GameProcessService {
     // Emit tuzovanie event
     this.server.to(room.id).emit('tuzovanie_started', {
       cardsDealt: tuzovanieCards,
+      dealSequence: tuzovanieSequence,
       dealerIndex: room.gameState.dealerIndex,
       players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
+    });
+
+    this.gameAuditService.logAction(room.id, 'TUZOVANIE', 'system', {
+      dealerIndex: room.gameState.dealerIndex,
+      dealerPlayerId:
+        tuzovanieAcePlayerId ?? room.gameState.players[room.gameState.dealerIndex]?.id ?? null,
+      dealSequence: tuzovanieSequence,
     });
 
     this.logger.log(
@@ -275,7 +283,7 @@ export class GameProcessService {
     );
 
     // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
-    const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
+    const totalCards = tuzovanieSequence.length;
     const delayMs = totalCards * 600 + 4000;
 
     setTimeout(async () => {
@@ -303,7 +311,7 @@ export class GameProcessService {
     const result = await this.roomManager.createRoomWithBots();
     if (!result) return;
 
-    const { room, tuzovanieCards } = result;
+    const { room, tuzovanieCards, tuzovanieSequence, tuzovanieAcePlayerId } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
@@ -317,8 +325,16 @@ export class GameProcessService {
     // Emit tuzovanie event
     this.server.to(room.id).emit('tuzovanie_started', {
       cardsDealt: tuzovanieCards,
+      dealSequence: tuzovanieSequence,
       dealerIndex: room.gameState.dealerIndex,
       players: room.gameState.players.map((p) => ({ id: p.id, name: p.name })),
+    });
+
+    this.gameAuditService.logAction(room.id, 'TUZOVANIE', 'system', {
+      dealerIndex: room.gameState.dealerIndex,
+      dealerPlayerId:
+        tuzovanieAcePlayerId ?? room.gameState.players[room.gameState.dealerIndex]?.id ?? null,
+      dealSequence: tuzovanieSequence,
     });
 
     this.logger.log(
@@ -326,7 +342,7 @@ export class GameProcessService {
     );
 
     // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
-    const totalCards = tuzovanieCards.reduce((acc, hand) => acc + hand.length, 0);
+    const totalCards = tuzovanieSequence.length;
     const delayMs = totalCards * 600 + 4000;
 
     setTimeout(async () => {
@@ -379,9 +395,9 @@ export class GameProcessService {
     try {
       switch (room.gameState.phase) {
         case GamePhase.TrumpSelection: {
-          // Bot picks random trump or no trump
-          const trump = this.botService.selectTrump();
-          room.gameState = this.gameEngine.selectTrump(room.gameState, botId, trump);
+          // Bot picks trump using BotService
+          const decision = this.botService.selectTrumpDecision(room.gameState, botId);
+          room.gameState = this.gameEngine.selectTrump(room.gameState, botId, decision);
           break;
         }
 
@@ -560,7 +576,9 @@ export class GameProcessService {
 
     // Get timeout from config or default
     const timeoutMs =
-      Number(this.configService.get('TURN_TIMEOUT_MS')) || GAME_CONSTANTS.TURN_TIMEOUT_MS;
+      room.gameState.turnTimeoutMs ??
+      Number(this.configService.get('TURN_TIMEOUT_MS')) ||
+      GAME_CONSTANTS.TURN_TIMEOUT_MS;
 
     // Emit timer started event
     const socketId = this.roomManager.getSocketId(roomId, currentPlayerId);

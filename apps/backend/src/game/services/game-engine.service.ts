@@ -10,6 +10,10 @@ import {
   RoundHistory,
   GAME_CONSTANTS,
   resolveTimeoutMs,
+  TrumpDecision,
+  TrumpDecisionType,
+  TrumpSelectionState,
+  Card,
 } from '@joker/shared';
 import { ConfigService } from '@nestjs/config';
 import { DeckService } from './deck.service';
@@ -108,40 +112,124 @@ export class GameEngineService {
     const deck = this.deckService.shuffle(this.deckService.createDeck());
     const { hands, remainingDeck } = this.deckService.deal(deck, 4, newState.cardsPerPlayer);
 
-    // Assign hands to players
-    for (let i = 0; i < 4; i++) {
-      newState.players[i] = {
-        ...newState.players[i],
-        hand: hands[i],
-        bet: null,
-        tricks: 0,
+    // Determine trump (for non-9-card rounds)
+    let trumpCard: Card | null = null;
+    let trump: Suit | null = null;
+
+    if (newState.cardsPerPlayer !== 9 && remainingDeck.length > 0) {
+      const trumpResult = this.deckService.determineTrumpWithCard(remainingDeck);
+      trump = trumpResult.trump;
+      trumpCard = trumpResult.trumpCard;
+    }
+
+    // Check if trump selection is needed
+    const trigger = this.stateMachine.getTrumpSelectionTrigger({
+      ...newState,
+      cardsPerPlayer: newState.cardsPerPlayer,
+      trumpCard,
+    });
+
+    if (trigger) {
+      // Partial deal: only give 3 cards to the first player (chooser)
+      const chooserIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
+      const visibleCardCount = GAME_CONSTANTS.TRUMP_SELECTION_VISIBLE_CARDS;
+
+      // Give chooser only 3 cards, others get nothing yet
+      for (let i = 0; i < 4; i++) {
+        if (i === chooserIndex) {
+          // Chooser gets only first 3 cards
+          newState.players[i] = {
+            ...newState.players[i],
+            hand: hands[i].slice(0, visibleCardCount),
+            bet: null,
+            tricks: 0,
+          };
+        } else {
+          // Others get no cards yet
+          newState.players[i] = {
+            ...newState.players[i],
+            hand: [],
+            bet: null,
+            tricks: 0,
+          };
+        }
+      }
+
+      // Store pending cards for later
+      const pendingCards: Card[][] = [];
+      for (let i = 0; i < 4; i++) {
+        if (i === chooserIndex) {
+          // Remaining cards for chooser (after first 3)
+          pendingCards[i] = hands[i].slice(visibleCardCount);
+        } else {
+          // All cards for other players
+          pendingCards[i] = hands[i];
+        }
+      }
+
+      // Set up trump selection state
+      newState.trumpSelection = {
+        chooserPlayerId: newState.players[chooserIndex].id,
+        chooserSeatIndex: chooserIndex,
+        visibleCardCount,
+        allowed: {
+          suits: [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades],
+          noTrump: true,
+          redeal: true,
+        },
+        redealCount: 0,
+        maxRedeals: GAME_CONSTANTS.TRUMP_SELECTION_MAX_REDEALS,
+        deadlineTs: Date.now() + this.getTrumpSelectionTimeoutMs(),
+        trigger,
+        pendingCards,
       };
 
-      // Check for joker in hand
-      const hasJoker = hands[i].some((card) => card.type === 'joker');
-      newState.players[i].hadJokerInRounds.push(hasJoker);
-    }
+      newState.trump = null;
+      newState.trumpCard = trumpCard; // Keep the joker card visible if it triggered selection
+      newState.phase = GamePhase.TrumpSelection;
+      newState.currentPlayerIndex = chooserIndex;
 
-    // Determine trump (for non-9-card rounds)
-    if (newState.cardsPerPlayer !== 9) {
-      const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
+      // Track joker in hand for chooser only (they have partial hand)
+      const hasJoker = newState.players[chooserIndex].hand.some((card) => card.type === 'joker');
+      newState.players[chooserIndex].hadJokerInRounds.push(hasJoker);
+    } else {
+      // Normal deal: all cards to all players
+      for (let i = 0; i < 4; i++) {
+        newState.players[i] = {
+          ...newState.players[i],
+          hand: hands[i],
+          bet: null,
+          tricks: 0,
+        };
+
+        // Check for joker in hand
+        const hasJoker = hands[i].some((card) => card.type === 'joker');
+        newState.players[i].hadJokerInRounds.push(hasJoker);
+      }
+
       newState.trump = trump;
       newState.trumpCard = trumpCard;
-    } else {
-      // For 9-card rounds, trump is selected by player (trumpCard stays null)
-      newState.trumpCard = null;
+      newState.phase = this.stateMachine.transition(newState, { type: 'GAME_START' });
+      newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
     }
 
-    // Transition to betting (or trump selection for 9-card rounds)
-    newState.phase = this.stateMachine.transition(newState, { type: 'GAME_START' });
-    newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
     newState.turnStartedAt = Date.now();
+    newState.turnTimeoutMs =
+      newState.phase === GamePhase.TrumpSelection
+        ? this.getTrumpSelectionTimeoutMs()
+        : this.getTurnTimeoutMs();
 
     // Log start
     this.gameAuditService.logAction(newState.id, 'GAME_START', 'system', {
       round: 1,
       pulka: 1,
       trump: newState.trump,
+      trumpSelection: newState.trumpSelection
+        ? {
+            trigger: newState.trumpSelection.trigger,
+            chooserPlayerId: newState.trumpSelection.chooserPlayerId,
+          }
+        : null,
     });
 
     // Log round start with dealer and initial hands (for analysis)
@@ -166,9 +254,10 @@ export class GameEngineService {
   }
 
   /**
-   * Select trump (for 9-card rounds only)
+   * Select trump (for special rounds with partial deal)
+   * Handles Suit, NoTrump, and Redeal decisions
    */
-  selectTrump(state: GameState, playerId: string, trump: Suit | null): GameState {
+  selectTrump(state: GameState, playerId: string, decision: TrumpDecision): GameState {
     if (state.phase !== GamePhase.TrumpSelection) {
       throw new Error('Not in trump selection phase');
     }
@@ -178,12 +267,156 @@ export class GameEngineService {
       throw new Error('Not your turn to select trump');
     }
 
+    const trumpSelection = state.trumpSelection;
+    if (!trumpSelection) {
+      throw new Error('No trump selection state');
+    }
+
+    if (trumpSelection.chooserPlayerId !== playerId) {
+      throw new Error('Only the chooser can select trump');
+    }
+
+    // Handle Redeal
+    if (decision.type === TrumpDecisionType.Redeal) {
+      if (!trumpSelection.allowed.redeal) {
+        throw new Error('Redeal not allowed');
+      }
+      if (trumpSelection.redealCount >= trumpSelection.maxRedeals) {
+        throw new Error('Maximum redeals reached');
+      }
+      return this.handleRedeal(state);
+    }
+
     const newState = { ...state };
-    newState.trump = trump;
+
+    // Set trump based on decision
+    if (decision.type === TrumpDecisionType.Suit) {
+      newState.trump = decision.suit;
+    } else {
+      // NoTrump
+      newState.trump = null;
+    }
+
+    // Complete the deal - give remaining cards to all players
+    if (trumpSelection.pendingCards) {
+      for (let i = 0; i < 4; i++) {
+        const currentHand = newState.players[i].hand;
+        const pendingCards = trumpSelection.pendingCards[i] || [];
+        newState.players[i] = {
+          ...newState.players[i],
+          hand: [...currentHand, ...pendingCards],
+        };
+
+        // Track joker in full hand (for players other than chooser)
+        if (i !== trumpSelection.chooserSeatIndex) {
+          const hasJoker = newState.players[i].hand.some((card) => card.type === 'joker');
+          newState.players[i].hadJokerInRounds.push(hasJoker);
+        } else {
+          // Update chooser's joker tracking with full hand
+          const hasJoker = newState.players[i].hand.some((card) => card.type === 'joker');
+          const roundIndex = newState.players[i].hadJokerInRounds.length - 1;
+          if (roundIndex >= 0) {
+            newState.players[i].hadJokerInRounds[roundIndex] = hasJoker;
+          }
+        }
+      }
+    }
+
+    // Clear trump selection state
+    newState.trumpSelection = undefined;
+
+    // Transition to betting phase
     newState.phase = this.stateMachine.transition(newState, { type: 'TRUMP_SELECTED' });
+    newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
     newState.turnStartedAt = Date.now();
 
-    this.gameAuditService.logAction(newState.id, 'TRUMP', playerId, { trump });
+    this.gameAuditService.logAction(newState.id, 'TRUMP', playerId, {
+      decision: decision.type,
+      trump: newState.trump,
+    });
+
+    return newState;
+  }
+
+  /**
+   * Handle redeal - reshuffle and deal again
+   */
+  private handleRedeal(state: GameState): GameState {
+    const trumpSelection = state.trumpSelection;
+    if (!trumpSelection) {
+      throw new Error('No trump selection state');
+    }
+
+    const newState = { ...state };
+
+    // Increment redeal count
+    const newRedealCount = trumpSelection.redealCount + 1;
+
+    // Create new deck and deal
+    const deck = this.deckService.shuffle(this.deckService.createDeck());
+    const { hands, remainingDeck } = this.deckService.deal(deck, 4, newState.cardsPerPlayer);
+
+    // Determine trump card (for non-9-card rounds)
+    let trumpCard: Card | null = null;
+    if (newState.cardsPerPlayer !== 9 && remainingDeck.length > 0) {
+      const trumpResult = this.deckService.determineTrumpWithCard(remainingDeck);
+      trumpCard = trumpResult.trumpCard;
+    }
+
+    // Check trigger for the new deal
+    const trigger = this.stateMachine.getTrumpSelectionTrigger({
+      ...newState,
+      trumpCard,
+    });
+
+    const chooserIndex = trumpSelection.chooserSeatIndex;
+    const visibleCardCount = GAME_CONSTANTS.TRUMP_SELECTION_VISIBLE_CARDS;
+
+    // Partial deal again
+    for (let i = 0; i < 4; i++) {
+      if (i === chooserIndex) {
+        newState.players[i] = {
+          ...newState.players[i],
+          hand: hands[i].slice(0, visibleCardCount),
+        };
+      } else {
+        newState.players[i] = {
+          ...newState.players[i],
+          hand: [],
+        };
+      }
+    }
+
+    // Store pending cards
+    const pendingCards: Card[][] = [];
+    for (let i = 0; i < 4; i++) {
+      if (i === chooserIndex) {
+        pendingCards[i] = hands[i].slice(visibleCardCount);
+      } else {
+        pendingCards[i] = hands[i];
+      }
+    }
+
+    // Update trump selection state
+    newState.trumpSelection = {
+      ...trumpSelection,
+      redealCount: newRedealCount,
+      allowed: {
+        ...trumpSelection.allowed,
+        redeal: newRedealCount < trumpSelection.maxRedeals,
+      },
+      deadlineTs: Date.now() + this.getTrumpSelectionTimeoutMs(),
+      trigger: trigger || trumpSelection.trigger,
+      pendingCards,
+    };
+
+    newState.trumpCard = trumpCard;
+    newState.turnStartedAt = Date.now();
+    newState.turnTimeoutMs = this.getTrumpSelectionTimeoutMs();
+
+    this.gameAuditService.logAction(newState.id, 'REDEAL', trumpSelection.chooserPlayerId, {
+      redealCount: newRedealCount,
+    });
 
     return newState;
   }
@@ -424,59 +657,139 @@ export class GameEngineService {
       newState.dealerIndex = this.stateMachine.getNextDealerIndex(newState.dealerIndex);
       newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
 
-      // Deal new cards
-      const deck = this.deckService.shuffle(this.deckService.createDeck());
-      const { hands, remainingDeck } = this.deckService.deal(deck, 4, newState.cardsPerPlayer);
+      // Deal new cards with partial deal support
+      this.dealNewRound(newState);
 
-      for (let i = 0; i < 4; i++) {
-        newState.players[i] = {
-          ...newState.players[i],
-          hand: hands[i],
-          bet: null,
-          tricks: 0,
-        };
-
-        const hasJoker = hands[i].some((card) => card.type === 'joker');
-        newState.players[i].hadJokerInRounds.push(hasJoker);
-      }
-
-      // Determine trump for non-9-card rounds
-      if (newState.cardsPerPlayer !== 9) {
-        const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
-        newState.trump = trump;
-        newState.trumpCard = trumpCard;
-      } else {
-        newState.trump = null;
-        newState.trumpCard = null;
-      }
-
-      this.gameAuditService.logAction(newState.id, 'ROUND_START', 'system', {
-        round: newState.round,
-        pulka: newState.pulka,
-        cardsPerPlayer: newState.cardsPerPlayer,
-        dealerId: newState.players[newState.dealerIndex]?.id ?? null,
-        trump: newState.trump,
-        hands: newState.players.map((player) => ({
-          playerId: player.id,
-          hand: player.hand.map((card) => ({
-            id: card.id,
-            type: card.type,
-            suit: card.type === 'standard' ? card.suit : null,
-            rank: card.type === 'standard' ? card.rank : null,
-          })),
-        })),
-      });
-
-      // Transition phase
-      newState.phase = this.stateMachine.needsTrumpSelection(newState)
-        ? GamePhase.TrumpSelection
-        : GamePhase.Betting;
+      // Use trump selection timeout if partial deal was triggered
+      newState.turnTimeoutMs =
+        newState.phase === GamePhase.TrumpSelection
+          ? this.getTrumpSelectionTimeoutMs()
+          : this.getTurnTimeoutMs();
     }
 
     newState.table = [];
     newState.turnStartedAt = Date.now();
 
     return newState;
+  }
+
+  /**
+   * Deal cards for a new round, with partial deal support for trump selection
+   */
+  private dealNewRound(state: GameState): void {
+    const deck = this.deckService.shuffle(this.deckService.createDeck());
+    const { hands, remainingDeck } = this.deckService.deal(deck, 4, state.cardsPerPlayer);
+
+    // Determine trump card (for non-9-card rounds)
+    let trumpCard: Card | null = null;
+    let trump: Suit | null = null;
+
+    if (state.cardsPerPlayer !== 9 && remainingDeck.length > 0) {
+      const trumpResult = this.deckService.determineTrumpWithCard(remainingDeck);
+      trump = trumpResult.trump;
+      trumpCard = trumpResult.trumpCard;
+    }
+
+    // Check if trump selection is needed
+    const trigger = this.stateMachine.getTrumpSelectionTrigger({
+      ...state,
+      trumpCard,
+    });
+
+    if (trigger) {
+      // Partial deal
+      const chooserIndex = this.stateMachine.getFirstPlayerIndex(state.dealerIndex);
+      const visibleCardCount = GAME_CONSTANTS.TRUMP_SELECTION_VISIBLE_CARDS;
+
+      for (let i = 0; i < 4; i++) {
+        if (i === chooserIndex) {
+          state.players[i] = {
+            ...state.players[i],
+            hand: hands[i].slice(0, visibleCardCount),
+            bet: null,
+            tricks: 0,
+          };
+        } else {
+          state.players[i] = {
+            ...state.players[i],
+            hand: [],
+            bet: null,
+            tricks: 0,
+          };
+        }
+      }
+
+      // Store pending cards
+      const pendingCards: Card[][] = [];
+      for (let i = 0; i < 4; i++) {
+        if (i === chooserIndex) {
+          pendingCards[i] = hands[i].slice(visibleCardCount);
+        } else {
+          pendingCards[i] = hands[i];
+        }
+      }
+
+      // Track joker for chooser's partial hand
+      const hasJoker = state.players[chooserIndex].hand.some((card) => card.type === 'joker');
+      state.players[chooserIndex].hadJokerInRounds.push(hasJoker);
+
+      state.trumpSelection = {
+        chooserPlayerId: state.players[chooserIndex].id,
+        chooserSeatIndex: chooserIndex,
+        visibleCardCount,
+        allowed: {
+          suits: [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades],
+          noTrump: true,
+          redeal: true,
+        },
+        redealCount: 0,
+        maxRedeals: GAME_CONSTANTS.TRUMP_SELECTION_MAX_REDEALS,
+        deadlineTs: Date.now() + this.getTrumpSelectionTimeoutMs(),
+        trigger,
+        pendingCards,
+      };
+
+      state.trump = null;
+      state.trumpCard = trumpCard;
+      state.phase = GamePhase.TrumpSelection;
+      state.currentPlayerIndex = chooserIndex;
+    } else {
+      // Normal full deal
+      for (let i = 0; i < 4; i++) {
+        state.players[i] = {
+          ...state.players[i],
+          hand: hands[i],
+          bet: null,
+          tricks: 0,
+        };
+
+        const hasJoker = hands[i].some((card) => card.type === 'joker');
+        state.players[i].hadJokerInRounds.push(hasJoker);
+      }
+
+      state.trump = trump;
+      state.trumpCard = trumpCard;
+      state.trumpSelection = undefined;
+      state.phase = GamePhase.Betting;
+    }
+
+    this.gameAuditService.logAction(state.id, 'ROUND_START', 'system', {
+      round: state.round,
+      pulka: state.pulka,
+      cardsPerPlayer: state.cardsPerPlayer,
+      dealerId: state.players[state.dealerIndex]?.id ?? null,
+      trump: state.trump,
+      trumpSelection: state.trumpSelection ? { trigger: state.trumpSelection.trigger } : null,
+      hands: state.players.map((player) => ({
+        playerId: player.id,
+        hand: player.hand.map((card) => ({
+          id: card.id,
+          type: card.type,
+          suit: card.type === 'standard' ? card.suit : null,
+          rank: card.type === 'standard' ? card.rank : null,
+        })),
+      })),
+    });
   }
 
   /**
@@ -563,41 +876,18 @@ export class GameEngineService {
         };
       }
 
-      // Deal new cards
-      const deck = this.deckService.shuffle(this.deckService.createDeck());
-      const { hands, remainingDeck } = this.deckService.deal(deck, 4, newState.cardsPerPlayer);
+      // Deal new cards with partial deal support
+      this.dealNewRound(newState);
 
-      for (let i = 0; i < 4; i++) {
-        newState.players[i] = {
-          ...newState.players[i],
-          hand: hands[i],
-          bet: null,
-          tricks: 0,
-        };
-
-        const hasJoker = hands[i].some((card) => card.type === 'joker');
-        newState.players[i].hadJokerInRounds.push(hasJoker);
-      }
-
-      // Determine trump for non-9-card rounds
-      if (newState.cardsPerPlayer !== 9) {
-        const { trump, trumpCard } = this.deckService.determineTrumpWithCard(remainingDeck);
-        newState.trump = trump;
-        newState.trumpCard = trumpCard;
-      } else {
-        newState.trump = null;
-        newState.trumpCard = null;
-      }
-
-      // Transition phase
-      newState.phase = this.stateMachine.needsTrumpSelection(newState)
-        ? GamePhase.TrumpSelection
-        : GamePhase.Betting;
+      // Use trump selection timeout if partial deal was triggered
+      newState.turnTimeoutMs =
+        newState.phase === GamePhase.TrumpSelection
+          ? this.getTrumpSelectionTimeoutMs()
+          : this.getTurnTimeoutMs();
     }
 
     newState.table = [];
     newState.turnStartedAt = Date.now();
-    newState.turnTimeoutMs = this.getTurnTimeoutMs(); // Reset to normal turn timeout
 
     return newState;
   }
@@ -613,6 +903,13 @@ export class GameEngineService {
     return resolveTimeoutMs(
       this.configService.get<string>('PULKA_RECAP_TIMEOUT_MS'),
       GAME_CONSTANTS.PULKA_RECAP_TIMEOUT_MS,
+    );
+  }
+
+  private getTrumpSelectionTimeoutMs(): number {
+    return resolveTimeoutMs(
+      this.configService.get<string>('TRUMP_SELECTION_TIMEOUT_MS'),
+      GAME_CONSTANTS.TRUMP_SELECTION_TIMEOUT_MS,
     );
   }
 

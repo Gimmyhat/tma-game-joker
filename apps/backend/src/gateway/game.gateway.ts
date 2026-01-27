@@ -130,7 +130,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   }
 
   /**
-   * Select trump (9-card rounds)
+   * Select trump (special rounds with partial deal)
    */
   @SubscribeMessage('select_trump')
   async handleSelectTrump(
@@ -141,7 +141,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     if (!playerInfo) return;
 
     try {
-      await this.gameProcess.processUserTrump(payload.roomId, playerInfo.id, payload.trump);
+      await this.gameProcess.processUserTrump(payload.roomId, playerInfo.id, payload.decision);
     } catch (err) {
       client.emit('error', { code: 'INVALID_TRUMP', message: (err as Error).message });
     }

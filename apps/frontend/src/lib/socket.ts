@@ -16,6 +16,7 @@ import type {
   JokerOption,
   Suit,
   Card,
+  TrumpDecision,
 } from '@joker/shared';
 
 // Server events (received from server)
@@ -203,6 +204,6 @@ export function emitThrowCard(
   getSocket().emit('throw_card', { roomId, cardId, jokerOption, requestedSuit });
 }
 
-export function emitSelectTrump(roomId: string, trump: Suit | null): void {
-  getSocket().emit('select_trump', { roomId, trump });
+export function emitSelectTrump(roomId: string, decision: TrumpDecision): void {
+  getSocket().emit('select_trump', { roomId, decision });
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, GAME_CONSTANTS, Card } from '@joker/shared';
+import { GameState, GAME_CONSTANTS, Card, Rank } from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
 import { RedisService } from '../../database/redis.service';
 
@@ -18,6 +18,12 @@ interface GameRoom {
   sockets: Map<string, string>; // playerId -> socketId
   botFillTimeout?: NodeJS.Timeout;
   turnTimeout?: NodeJS.Timeout;
+}
+
+interface TuzovanieDeal {
+  playerId: string;
+  card: Card;
+  dealIndex: number;
 }
 
 @Injectable()
@@ -98,7 +104,12 @@ export class RoomManager {
   /**
    * Create game room from queued players
    */
-  async createRoom(): Promise<{ room: GameRoom; tuzovanieCards: Card[][] } | null> {
+  async createRoom(): Promise<{
+    room: GameRoom;
+    tuzovanieCards: Card[][];
+    tuzovanieSequence: TuzovanieDeal[];
+    tuzovanieAcePlayerId: string | null;
+  } | null> {
     if (this.queue.length < GAME_CONSTANTS.PLAYERS_COUNT) {
       return null;
     }
@@ -111,6 +122,10 @@ export class RoomManager {
 
     // Perform tuzovanie
     const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+    const { sequence: tuzovanieSequence, acePlayerId } = this.buildTuzovanieSequence(
+      cardsDealt,
+      playerIds,
+    );
 
     // Create game state with determined dealer
     const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
@@ -142,13 +157,23 @@ export class RoomManager {
 
     this.logger.log(`Room ${room.id} created with players: ${playerIds.join(', ')}`);
 
-    return { room, tuzovanieCards: sortedCardsDealt };
+    return {
+      room,
+      tuzovanieCards: sortedCardsDealt,
+      tuzovanieSequence,
+      tuzovanieAcePlayerId: acePlayerId,
+    };
   }
 
   /**
    * Create room with bots filling remaining slots
    */
-  async createRoomWithBots(): Promise<{ room: GameRoom; tuzovanieCards: Card[][] } | null> {
+  async createRoomWithBots(): Promise<{
+    room: GameRoom;
+    tuzovanieCards: Card[][];
+    tuzovanieSequence: TuzovanieDeal[];
+    tuzovanieAcePlayerId: string | null;
+  } | null> {
     if (this.queue.length === 0) {
       return null;
     }
@@ -175,6 +200,10 @@ export class RoomManager {
 
     // Perform tuzovanie
     const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+    const { sequence: tuzovanieSequence, acePlayerId } = this.buildTuzovanieSequence(
+      cardsDealt,
+      playerIds,
+    );
 
     // Create game state with determined dealer
     const gameState = this.gameEngine.createGame(playerIds, playerNames, dealerIndex);
@@ -207,7 +236,43 @@ export class RoomManager {
       `Room ${room.id} created with ${realPlayers.length} players and ${botsNeeded} bots`,
     );
 
-    return { room, tuzovanieCards: sortedCardsDealt };
+    return {
+      room,
+      tuzovanieCards: sortedCardsDealt,
+      tuzovanieSequence,
+      tuzovanieAcePlayerId: acePlayerId,
+    };
+  }
+
+  private buildTuzovanieSequence(
+    cardsDealt: Card[][],
+    playerIds: string[],
+  ): {
+    sequence: TuzovanieDeal[];
+    acePlayerId: string | null;
+  } {
+    const sequence: TuzovanieDeal[] = [];
+    const maxRounds = Math.max(...cardsDealt.map((hand) => hand.length));
+
+    let dealIndex = 0;
+    for (let r = 0; r < maxRounds; r++) {
+      for (let p = 0; p < playerIds.length; p++) {
+        const card = cardsDealt[p]?.[r];
+        if (!card) continue;
+
+        sequence.push({
+          playerId: playerIds[p],
+          card,
+          dealIndex: dealIndex++,
+        });
+      }
+    }
+
+    const aceDeal = sequence.find(
+      (entry) => entry.card.type === 'standard' && entry.card.rank === Rank.Ace,
+    );
+
+    return { sequence, acePlayerId: aceDeal?.playerId ?? null };
   }
 
   // ==========================================

@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-01-23
+**Последнее обновление:** 2026-01-26
 **Текущий статус:** 🚧 Sprint 3: Frontend (In Progress)
 
 ---
@@ -9,7 +9,6 @@
 
 1. ✅ **Server**: SSH access configured for `203.31.40.28` (alias `hosting-vds`)
 2. ✅ **Security**: Password authentication disabled (key-only access)
-
 
 ---
 
@@ -26,7 +25,7 @@ Backend готов и протестирован. Frontend активно раз
 4.  ✅ ~~**Frontend**: UI компоненты (Card, Hand, Table, PlayerInfo)~~
 5.  ✅ ~~**Frontend**: Модальные окна (BetModal, TrumpSelector, JokerOptionModal)~~
 6.  🛠 **Frontend**: Интеграция компонентов в GameScreen
-7.  🛠 **Frontend**: E2E тестирование с backend
+7.  ✅ ~~**Frontend**: E2E тестирование с backend~~
 
 ---
 
@@ -86,6 +85,7 @@ Backend готов и протестирован. Frontend активно раз
 - [x] S3-11: JokerOptionModal
 - [ ] S3-12: GameScreen (интеграция всех компонентов)
 - [ ] S3-13: Animations & polish
+- [x] S3-14: E2E тесты (backend + frontend)
 
 ---
 

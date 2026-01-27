@@ -1,6 +1,14 @@
 import { StateCreator } from 'zustand';
 import { GameStore } from '../gameStore';
-import { GameState, Card, JokerOption, Suit } from '@joker/shared';
+import {
+  GameState,
+  Card,
+  JokerOption,
+  Suit,
+  TrumpDecision,
+  TrumpDecisionType,
+  TrumpSelectionState,
+} from '@joker/shared';
 import { emitLeaveGame, emitMakeBet, emitThrowCard, emitSelectTrump } from '../../lib/socket';
 import { TelegramUser } from '../../lib/telegram';
 
@@ -13,10 +21,17 @@ export interface GameSlice {
   currentTurnPlayerId: string | null;
   pulkaRecapExpiresAt: number | null;
 
+  // Derived selectors for trump selection
+  isTrumpChooser: () => boolean;
+  getTrumpSelection: () => TrumpSelectionState | null;
+
   leaveGame: () => void;
   makeBet: (amount: number) => void;
   throwCard: (cardId: string, jokerOption?: JokerOption, requestedSuit?: Suit) => void;
-  selectTrump: (trump: Suit | null) => void;
+  selectTrump: (decision: TrumpDecision) => void;
+  selectTrumpSuit: (suit: Suit) => void;
+  selectNoTrump: () => void;
+  requestRedeal: () => void;
 
   _setGameState: (state: GameState, myHand: Card[]) => void;
 }
@@ -29,6 +44,17 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
   turnExpiresAt: null,
   currentTurnPlayerId: null,
   pulkaRecapExpiresAt: null,
+
+  isTrumpChooser: () => {
+    const { gameState, myPlayerId } = get();
+    if (!gameState?.trumpSelection || !myPlayerId) return false;
+    return gameState.trumpSelection.chooserPlayerId === myPlayerId;
+  },
+
+  getTrumpSelection: () => {
+    const { gameState } = get();
+    return gameState?.trumpSelection || null;
+  },
 
   leaveGame: () => {
     const roomId = get().roomId;
@@ -51,11 +77,23 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     emitThrowCard(roomId, cardId, jokerOption, requestedSuit);
   },
 
-  selectTrump: (trump: Suit | null) => {
+  selectTrump: (decision: TrumpDecision) => {
     const { roomId, gameState, myPlayerId } = get();
     if (!roomId || gameState?.phase !== 'trump_selection') return;
-    if (gameState.players[gameState.currentPlayerIndex]?.id !== myPlayerId) return;
-    emitSelectTrump(roomId, trump);
+    if (gameState.trumpSelection?.chooserPlayerId !== myPlayerId) return;
+    emitSelectTrump(roomId, decision);
+  },
+
+  selectTrumpSuit: (suit: Suit) => {
+    get().selectTrump({ type: TrumpDecisionType.Suit, suit });
+  },
+
+  selectNoTrump: () => {
+    get().selectTrump({ type: TrumpDecisionType.NoTrump });
+  },
+
+  requestRedeal: () => {
+    get().selectTrump({ type: TrumpDecisionType.Redeal });
   },
 
   _setGameState: (state: GameState, myHand: Card[]) => {

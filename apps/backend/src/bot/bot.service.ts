@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GameState, Suit } from '@joker/shared';
+import { GameState, Suit, TrumpDecision } from '@joker/shared';
 import { RandomValidMoveStrategy, BotMove } from './strategies/random-valid-move.strategy';
 
 @Injectable()
@@ -21,9 +21,16 @@ export class BotService {
   }
 
   /**
-   * Выбрать козырь за бота
+   * Выбрать козырь за бота (legacy)
    */
   selectTrump(): Suit | null {
     return this.strategy.selectTrump();
+  }
+
+  /**
+   * Выбрать козырь с полным решением (новая механика с partial deal)
+   */
+  selectTrumpDecision(state: GameState, playerId: string): TrumpDecision {
+    return this.strategy.selectTrumpDecision(state, playerId);
   }
 }
