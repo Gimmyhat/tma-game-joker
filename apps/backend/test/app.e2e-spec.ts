@@ -514,6 +514,22 @@ describe('App (e2e)', () => {
 
       const initialStates = await Promise.all(initialStatePromises);
       let currentState = initialStates[0].state;
+      expect([GamePhase.Betting, GamePhase.TrumpSelection]).toContain(currentState.phase);
+
+      // Handle Trump Selection if needed
+      if (currentState.phase === GamePhase.TrumpSelection && currentState.trumpSelection) {
+        const chooserId = currentState.trumpSelection.chooserPlayerId;
+        const socketIndex = playerIds.indexOf(chooserId);
+        const chooserSocket = clients[socketIndex];
+
+        const nextStatePromise = waitForState(clients[0]);
+        chooserSocket.emit('select_trump', {
+          roomId: activeRoomId,
+          decision: { type: 'SUIT', suit: Suit.Hearts },
+        });
+        currentState = (await nextStatePromise).state;
+      }
+
       expect(currentState.phase).toBe(GamePhase.Betting);
 
       for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
