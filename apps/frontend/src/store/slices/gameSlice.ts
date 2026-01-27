@@ -8,6 +8,7 @@ import {
   TrumpDecision,
   TrumpDecisionType,
   TrumpSelectionState,
+  sortCards,
 } from '@joker/shared';
 import { emitLeaveGame, emitMakeBet, emitThrowCard, emitSelectTrump } from '../../lib/socket';
 import { TelegramUser } from '../../lib/telegram';
@@ -97,9 +98,12 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
   },
 
   _setGameState: (state: GameState, myHand: Card[]) => {
+    // Sort cards before updating state
+    const sortedHand = sortCards(myHand, state.trump);
+
     set({
       gameState: state,
-      myHand,
+      myHand: sortedHand,
       lobbyStatus: state.phase === 'waiting' ? 'waiting' : 'idle',
       currentTurnPlayerId: state.players[state.currentPlayerIndex]?.id || null,
     });

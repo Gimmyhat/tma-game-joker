@@ -250,7 +250,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
                             key={player.id}
                             className="border-r-2 border-blue-900/50 p-1 text-center text-xl font-bold"
                           >
-                            {summary.pulkaAverage > 0 ? summary.pulkaAverage : ''}
+                            {summary.rounds.some((r) => r.bid !== null) ? summary.pulkaAverage : ''}
                           </td>
                         );
                       })}
@@ -263,14 +263,13 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
                       <td colSpan={2} className="border-r-2 border-blue-900/50 bg-blue-50/50"></td>
                       {tablePlayers.map((player) => {
                         const summary = player.pulkaSummaries[pulkaIdx];
-                        // Only show if pulka is finished (has average)
-                        const show = summary.pulkaAverage > 0 || summary.cumulativeTotal !== 0;
+                        const hasPlayed = summary.rounds.some((r) => r.bid !== null);
                         return (
                           <td
                             key={player.id}
                             className="border-r-2 border-blue-900/50 p-2 text-center text-2xl font-black text-blue-900"
                           >
-                            {show ? summary.cumulativeTotal : ''}
+                            {hasPlayed ? summary.cumulativeTotal : ''}
                           </td>
                         );
                       })}
