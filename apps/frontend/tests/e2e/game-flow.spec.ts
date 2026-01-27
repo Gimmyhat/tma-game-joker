@@ -39,10 +39,24 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     const betPlaced = new Set<number>();
     const start = Date.now();
 
-    while (betPlaced.size < pages.length && Date.now() - start < 45000) {
+    while (betPlaced.size < pages.length && Date.now() - start < 60000) {
       for (let i = 0; i < pages.length; i += 1) {
         if (betPlaced.has(i)) continue;
         const page = pages[i];
+
+        // Check for Trump Selection first
+        const trumpModal = page.getByText(/Choose Trump|Выберите козырь/i);
+        if (await trumpModal.isVisible()) {
+          // If trump selection appears, select Hearts to proceed
+          const heartsButton = page.getByRole('button', { name: /Hearts|Черви/i }).first();
+          if (await heartsButton.isVisible()) {
+            await heartsButton.click();
+            await expect(trumpModal).toBeHidden({ timeout: 10000 });
+            // Note: we don't mark as betPlaced yet, we just handled the interruption
+            continue;
+          }
+        }
+
         const modal = page.getByText(/Make Your Bet|Ваша ставка/i);
         const visible = await modal.isVisible();
         if (!visible) continue;
