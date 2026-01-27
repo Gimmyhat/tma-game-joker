@@ -1,4 +1,4 @@
-import { Card, Rank, Suit } from '../index';
+import { Card, Suit } from '../index';
 
 /**
  * Sorts cards for display in player's hand.
