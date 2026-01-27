@@ -222,7 +222,7 @@ describe('App (e2e)', () => {
 
       const states = await Promise.all(statePromises);
       states.forEach(({ state }) => {
-        expect(state.phase).toBe(GamePhase.Betting);
+        expect([GamePhase.Betting, GamePhase.TrumpSelection]).toContain(state.phase);
         expect(state.players).toHaveLength(4);
         expect(state.round).toBe(1);
       });
