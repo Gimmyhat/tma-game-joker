@@ -11,6 +11,7 @@ import {
   StandardCard,
   Suit,
   TableCard,
+  TrumpDecisionType,
 } from '@joker/shared';
 import { AppModule } from '../src/app.module';
 import { GameEngineService } from '../src/game/services/game-engine.service';
@@ -707,6 +708,17 @@ describe('App (e2e)', () => {
 
     expect(state.round).toBe(2);
     expect(state.cardsPerPlayer).toBe(2);
+    expect([GamePhase.Betting, GamePhase.TrumpSelection]).toContain(state.phase);
+
+    // Handle Trump Selection if needed (auto-select to proceed for test consistency)
+    if (state.phase === GamePhase.TrumpSelection && state.trumpSelection) {
+      const chooserId = state.trumpSelection.chooserPlayerId;
+      state = gameEngine.selectTrump(state, chooserId, {
+        type: TrumpDecisionType.Suit,
+        suit: Suit.Hearts,
+      });
+    }
+
     expect(state.phase).toBe(GamePhase.Betting);
     expect(state.history.length).toBe(1);
     expect(state.players.find((player) => player.id === orderedPlayerIds[1])?.roundScores[0]).toBe(
