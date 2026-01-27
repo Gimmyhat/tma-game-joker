@@ -1,7 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
-import { GamePhase, GAME_CONSTANTS, GameState, TrumpDecision } from '@joker/shared';
+import {
+  GamePhase,
+  GAME_CONSTANTS,
+  GameState,
+  TrumpDecision,
+  PlayerBadges,
+  hasJokersInHand,
+} from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
 import { RoomManager } from './room.manager';
 import { BotService } from '../../bot/bot.service';
@@ -577,8 +584,7 @@ export class GameProcessService {
     // Get timeout from config or default
     const timeoutMs =
       room.gameState.turnTimeoutMs ??
-      Number(this.configService.get('TURN_TIMEOUT_MS')) ||
-      GAME_CONSTANTS.TURN_TIMEOUT_MS;
+      (Number(this.configService.get('TURN_TIMEOUT_MS')) || GAME_CONSTANTS.TURN_TIMEOUT_MS);
 
     // Emit timer started event
     const socketId = this.roomManager.getSocketId(roomId, currentPlayerId);
@@ -642,15 +648,35 @@ export class GameProcessService {
   }
 
   /**
-   * Sanitize state - hide other players' hands
+   * Sanitize state - hide other players' hands and add computed badges
    */
   private sanitizeStateForPlayer(state: GameState, playerId: string): GameState {
+    const isPulkaComplete = state.phase === GamePhase.PulkaComplete;
+
     return {
       ...state,
-      players: state.players.map((p) => ({
-        ...p,
-        hand: p.id === playerId ? p.hand : [], // Only show own hand
-      })),
+      players: state.players.map((p) => {
+        const isOwnHand = p.id === playerId;
+
+        // Calculate badges for this player
+        const badges: PlayerBadges = {
+          // Only show joker badge for own hand (other players' jokers hidden)
+          hasJokers: isOwnHand ? hasJokersInHand(p.hand) : false,
+          // Spoiled is visible to everyone
+          spoiled: p.spoiled,
+          // Perfect pulka only shown at pulka completion
+          perfectPulka: isPulkaComplete && !p.spoiled,
+          // Achievements are visible to everyone
+          tookAll: p.tookAllInPulka ?? false,
+          perfectPass: p.perfectPassInPulka ?? false,
+        };
+
+        return {
+          ...p,
+          hand: isOwnHand ? p.hand : [], // Only show own hand
+          badges,
+        };
+      }),
     };
   }
 

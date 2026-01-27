@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import { GAME_CONSTANTS, RoundHistory } from '@joker/shared';
+import { PlayerBadges } from '../PlayerBadges';
 
 interface ScoreSheetModalProps {
   isOpen: boolean;
@@ -106,9 +107,12 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({
                     className="p-3 border-r border-[#2c3e50] min-w-[100px] bg-[#0f172a]"
                   >
                     <div className="flex flex-col items-center">
-                      <span className="font-bold text-gray-100 truncate max-w-[120px]">
-                        {player.name}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-gray-100 truncate max-w-[120px]">
+                          {player.name}
+                        </span>
+                        {player.badges && <PlayerBadges badges={player.badges} size="sm" />}
+                      </div>
                       <span className="text-[11px] text-amber-500 font-mono mt-1 px-2 py-0.5 rounded bg-amber-950/30 border border-amber-900/50">
                         {player.totalScore} pts
                       </span>

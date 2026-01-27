@@ -133,7 +133,7 @@ describe('ScoringService', () => {
       tableHistory: [],
     });
 
-    it('should give premium to clean player', () => {
+    it('should give premium to clean player using their OWN max score', () => {
       const players: Player[] = [
         createPlayer('p1', { spoiled: false }),
         createPlayer('p2', { spoiled: true }),
@@ -142,6 +142,7 @@ describe('ScoringService', () => {
       ];
 
       // Need at least 2 rounds - highest from all except last
+      // p1's max = 150, p2's max = 50
       const history: RoundHistory[] = [
         createRoundHistory({ p1: 150, p2: 50, p3: 20, p4: 100 }),
         createRoundHistory({ p1: 100, p2: 30, p3: 50, p4: 50 }), // Last round - excluded
@@ -150,10 +151,46 @@ describe('ScoringService', () => {
       const result = service.calculatePulkaPremiumsAdvanced(players, history);
       expect(result).toBeDefined();
 
-      // p1 gets premium (highest from first round = 150)
+      // p1 gets +150 (their OWN max from first round)
       expect(result.playerScores['p1']).toBe(150);
-      // p2 (next clockwise) loses 150
+      // p2 (next clockwise) loses -50 (p2's OWN max, NOT p1's 150!)
+      expect(result.playerScores['p2']).toBe(-50);
+    });
+
+    it('should use per-player max scores (Georgian Joker rule)', () => {
+      // This test specifically verifies the fix:
+      // Premium player gets +self_max, neighbor gets -neighbor_max
+      const players: Player[] = [
+        createPlayer('p1', { spoiled: false }), // Clean - gets premium
+        createPlayer('p2', { spoiled: true }), // Spoiled - gets penalty from p1
+        createPlayer('p3', { spoiled: true }),
+        createPlayer('p4', { spoiled: true }),
+      ];
+
+      // From the screenshot example:
+      // p1 scores: 100, 40, 100, 100, 100, 100, 200 -> self_max = 200
+      // p2 scores: 150, 50, 50, 50, 50, 50, 100 -> neighbor_max = 150
+      const history: RoundHistory[] = [
+        createRoundHistory({ p1: 100, p2: 150, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 40, p2: 50, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 100, p2: 50, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 100, p2: 50, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 100, p2: 50, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 100, p2: 50, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 200, p2: 100, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 50, p2: 50, p3: 50, p4: 50 }), // Last round - excluded
+      ];
+
+      const result = service.calculatePulkaPremiumsAdvanced(players, history);
+
+      // p1 gets +200 (their own max)
+      expect(result.playerScores['p1']).toBe(200);
+      // p2 gets -150 (p2's own max, NOT p1's 200!)
       expect(result.playerScores['p2']).toBe(-150);
+
+      // Verify premium record
+      expect(result.premiums[0].received).toBe(200);
+      expect(result.premiums[0].takenAmount).toBe(150);
     });
 
     it('should not subtract from next player if they are also on premium', () => {
@@ -165,6 +202,7 @@ describe('ScoringService', () => {
       ];
 
       // Need at least 2 rounds - highest is taken from all except last
+      // p1 max = 100, p2 max = 100, p3 max = 50
       const history: RoundHistory[] = [
         createRoundHistory({ p1: 100, p2: 100, p3: 50, p4: 50 }),
         createRoundHistory({ p1: 50, p2: 50, p3: 50, p4: 50 }), // Last round - excluded
@@ -172,15 +210,15 @@ describe('ScoringService', () => {
 
       const result = service.calculatePulkaPremiumsAdvanced(players, history);
 
-      // p1: prev=p4 (spoiled) -> receives=true; next=p2 (clean) -> subtracts=false
-      // p2: prev=p1 (clean) -> receives=false; next=p3 (spoiled) -> subtracts=true
-      // Result: p1 +100, p2 0, p3 -100
+      // p1: prev=p4 (spoiled) -> receives=true (+100); next=p2 (clean) -> subtracts=false
+      // p2: prev=p1 (clean) -> receives=false; next=p3 (spoiled) -> subtracts=true (-50 from p3)
+      // Result: p1 +100, p2 0, p3 -50 (p3's OWN max)
       expect(result.playerScores['p1']).toBe(100);
       expect(result.playerScores['p2']).toBe(0);
-      expect(result.playerScores['p3']).toBe(-100);
+      expect(result.playerScores['p3']).toBe(-50);
     });
 
-    it('should handle 3 adjacent clean players', () => {
+    it('should handle 3 adjacent clean players with per-player max', () => {
       const players: Player[] = [
         createPlayer('p1', { spoiled: false }),
         createPlayer('p2', { spoiled: false }),
@@ -188,22 +226,23 @@ describe('ScoringService', () => {
         createPlayer('p4', { spoiled: true }),
       ];
 
-      // Need at least 2 rounds
+      // Each player has different max scores
+      // p1 max = 100, p2 max = 80, p3 max = 60, p4 max = 40
       const history: RoundHistory[] = [
-        createRoundHistory({ p1: 100, p2: 100, p3: 100, p4: 50 }),
+        createRoundHistory({ p1: 100, p2: 80, p3: 60, p4: 40 }),
         createRoundHistory({ p1: 50, p2: 50, p3: 50, p4: 50 }), // Last - excluded
       ];
 
       const result = service.calculatePulkaPremiumsAdvanced(players, history);
 
-      // p1: prev=p4 (spoiled) -> receives=true; next=p2 (clean) -> subtracts=false
+      // p1: prev=p4 (spoiled) -> receives=true (+100); next=p2 (clean) -> subtracts=false
       // p2: prev=p1 (clean) -> receives=false; next=p3 (clean) -> subtracts=false
-      // p3: prev=p2 (clean) -> receives=false; next=p4 (spoiled) -> subtracts=true
-      // Result: p1 +100, p2 0, p3 0, p4 -100
+      // p3: prev=p2 (clean) -> receives=false; next=p4 (spoiled) -> subtracts=true (-40)
+      // Result: p1 +100, p2 0, p3 0, p4 -40 (p4's OWN max)
       expect(result.playerScores['p1']).toBe(100);
       expect(result.playerScores['p2']).toBe(0);
       expect(result.playerScores['p3']).toBe(0);
-      expect(result.playerScores['p4']).toBe(-100);
+      expect(result.playerScores['p4']).toBe(-40);
     });
 
     it('should handle all 4 players clean (rare case)', () => {
@@ -266,6 +305,48 @@ describe('ScoringService', () => {
       // Highest from first round only = 100
       expect(result.highestTrickScore).toBe(100);
       expect(result.playerScores['p1']).toBe(100);
+    });
+
+    it('should give no penalty if neighbor has no positive scores', () => {
+      const players: Player[] = [
+        createPlayer('p1', { spoiled: false }),
+        createPlayer('p2', { spoiled: true }),
+        createPlayer('p3', { spoiled: true }),
+        createPlayer('p4', { spoiled: true }),
+      ];
+
+      // p1 has positive scores, but p2 only has negative/zero
+      const history: RoundHistory[] = [
+        createRoundHistory({ p1: 100, p2: -200, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 50, p2: 0, p3: 50, p4: 50 }),
+        createRoundHistory({ p1: 50, p2: 50, p3: 50, p4: 50 }), // Last round - excluded
+      ];
+
+      const result = service.calculatePulkaPremiumsAdvanced(players, history);
+
+      // p1 gets +100 (their own max)
+      expect(result.playerScores['p1']).toBe(100);
+      // p2 has no positive scores in non-last rounds, so penalty = 0
+      expect(result.playerScores['p2']).toBe(0);
+    });
+
+    it('should return no premiums for single-round pulka (no rounds to exclude)', () => {
+      const players: Player[] = [
+        createPlayer('p1', { spoiled: false }),
+        createPlayer('p2', { spoiled: true }),
+        createPlayer('p3', { spoiled: true }),
+        createPlayer('p4', { spoiled: true }),
+      ];
+
+      // Only 1 round = nothing left after excluding last
+      const history: RoundHistory[] = [createRoundHistory({ p1: 100, p2: 50, p3: 50, p4: 50 })];
+
+      const result = service.calculatePulkaPremiumsAdvanced(players, history);
+
+      // No rounds to calculate from
+      expect(result.highestTrickScore).toBe(0);
+      expect(result.playerScores['p1']).toBe(0);
+      expect(result.playerScores['p2']).toBe(0);
     });
   });
 

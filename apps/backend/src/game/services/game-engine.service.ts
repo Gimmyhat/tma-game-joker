@@ -14,6 +14,8 @@ import {
   TrumpDecisionType,
   TrumpSelectionState,
   Card,
+  checkTookAll,
+  checkPerfectPass,
 } from '@joker/shared';
 import { ConfigService } from '@nestjs/config';
 import { DeckService } from './deck.service';
@@ -616,16 +618,21 @@ export class GameEngineService {
       newState.cardsPerPlayer,
     );
 
-    // Apply scores and check for spoilage
+    // Apply scores and check for spoilage, track badge flags
     for (const result of roundResults) {
       const playerIndex = newState.players.findIndex((p) => p.id === result.playerId);
       const player = newState.players[playerIndex];
+      const bet = player.bet ?? 0;
+      const tricks = player.tricks;
 
       newState.players[playerIndex] = {
         ...player,
         roundScores: [...player.roundScores, result.score],
         totalScore: player.totalScore + result.score,
         spoiled: player.spoiled || !result.tookOwn,
+        // Track badge achievements for this pulka
+        tookAllInPulka: player.tookAllInPulka || checkTookAll(bet, tricks, newState.cardsPerPlayer),
+        perfectPassInPulka: player.perfectPassInPulka || checkPerfectPass(bet, tricks),
       };
     }
 
@@ -868,11 +875,13 @@ export class GameEngineService {
       newState.dealerIndex = this.stateMachine.getNextDealerIndex(newState.dealerIndex);
       newState.currentPlayerIndex = this.stateMachine.getFirstPlayerIndex(newState.dealerIndex);
 
-      // Reset spoiled for new pulka
+      // Reset spoiled and badge tracking for new pulka
       for (let i = 0; i < 4; i++) {
         newState.players[i] = {
           ...newState.players[i],
           spoiled: false,
+          tookAllInPulka: false,
+          perfectPassInPulka: false,
         };
       }
 

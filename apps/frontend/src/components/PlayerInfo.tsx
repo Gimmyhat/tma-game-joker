@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@joker/shared';
+import { PlayerBadges } from './PlayerBadges';
 
 interface PlayerInfoProps {
   player: Player;
@@ -123,6 +124,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           <span className="text-xs font-bold text-white tracking-wide truncate max-w-[100px] uppercase">
             {player.name}
           </span>
+          {player.badges && <PlayerBadges badges={player.badges} size="sm" />}
           {player.isBot && (
             <span className="text-[9px] px-1 py-0.5 bg-slate-700 rounded border border-slate-600 text-slate-300 leading-none">
               {t('game.player.bot')}

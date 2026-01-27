@@ -160,8 +160,17 @@ export class ScoringService {
   }
 
   /**
-   * Apply complex premium rules when multiple adjacent players are clean
-   * Rule: If 3 players in a row are clean (1, 2, 3):
+   * Apply Georgian Joker premium rules.
+   *
+   * PREMIUM RULE ("Popular Georgian Joker"):
+   * When a player completes ALL contracts in a pulka (bet === tricks for all rounds):
+   *
+   * 1. PREMIUM_PLAYER gets +self_max (their OWN highest positive score, excluding last round)
+   * 2. NEIGHBOR_CLOCKWISE (next player) gets -neighbor_max (THEIR OWN highest positive score)
+   *
+   * IMPORTANT: Each player's bonus/penalty is based on THEIR OWN max, not a global max!
+   *
+   * Complex adjacency rules still apply:
    * - Player 1: Gets premium, doesn't subtract from 2 (who's on premium)
    * - Player 2: Doesn't get (1 tried to subtract), doesn't subtract from 3 (on premium)
    * - Player 3: Doesn't get (2 tried to subtract), DOES subtract from 4 (not on premium)
@@ -175,8 +184,10 @@ export class ScoringService {
     // Build clean status array
     const isClean: boolean[] = players.map((p) => !p.spoiled);
 
-    // Find highest trick score (excluding last round)
+    // Exclude last round from premium calculation
     const roundsExceptLast = pulkaHistory.slice(0, -1);
+
+    // Global highest (for backward compatibility / logging)
     const highestTrickScore = this.getHighestTrickScore(roundsExceptLast);
 
     const premiums: PremiumResult[] = [];
@@ -186,22 +197,22 @@ export class ScoringService {
       playerScores[player.id] = 0;
     }
 
-    if (highestTrickScore === 0) {
-      return { playerScores, premiums, highestTrickScore };
+    // No rounds to calculate from (pulka with only 1 round = no premium possible)
+    if (roundsExceptLast.length === 0) {
+      return { playerScores, premiums, highestTrickScore: 0 };
     }
 
     // For each player, determine:
-    // 1. Do they receive premium?
-    // 2. Do they subtract from next?
+    // 1. Do they receive premium? -> +self_max
+    // 2. Do they subtract from next? -> neighbor gets -neighbor_max
     for (let i = 0; i < playerCount; i++) {
       if (!isClean[i]) continue;
 
       const prevIdx = (i - 1 + playerCount) % playerCount;
       const nextIdx = (i + 1) % playerCount;
 
-      // Receives if previous player is NOT clean (or this is position 0 and no clean prev in circle)
-      // More precisely: receives if previous player didn't "try" to subtract
-      // Previous player tries to subtract if they are clean
+      // Receives if previous player is NOT clean
+      // (previous player didn't "try" to subtract from this player)
       const prevTriedToSubtract = isClean[prevIdx];
       const receives = !prevTriedToSubtract;
 
@@ -209,20 +220,29 @@ export class ScoringService {
       const nextIsClean = isClean[nextIdx];
       const subtracts = !nextIsClean;
 
+      // Calculate per-player max scores (excluding last round)
+      const selfMax = this.getPlayerHighestPositiveScore(players[i].id, roundsExceptLast);
+      const neighborMax = subtracts
+        ? this.getPlayerHighestPositiveScore(players[nextIdx].id, roundsExceptLast)
+        : 0;
+
       const premium: PremiumResult = {
         playerId: players[i].id,
-        received: receives ? highestTrickScore : 0,
+        received: receives ? selfMax : 0,
         takenFromPlayerId: subtracts ? players[nextIdx].id : null,
-        takenAmount: subtracts ? highestTrickScore : 0,
+        takenAmount: subtracts ? neighborMax : 0,
       };
 
       premiums.push(premium);
 
-      if (receives) {
-        playerScores[players[i].id] += highestTrickScore;
+      // Apply to scores
+      if (receives && selfMax > 0) {
+        playerScores[players[i].id] += selfMax;
+        console.log(`Premium: ${players[i].name} receives +${selfMax} (their own max)`);
       }
-      if (subtracts) {
-        playerScores[players[nextIdx].id] -= highestTrickScore;
+      if (subtracts && neighborMax > 0) {
+        playerScores[players[nextIdx].id] -= neighborMax;
+        console.log(`Premium: ${players[nextIdx].name} penalized -${neighborMax} (their own max)`);
       }
     }
 
@@ -230,7 +250,7 @@ export class ScoringService {
   }
 
   /**
-   * Get highest score from round history
+   * Get highest score from round history (global - any player)
    */
   private getHighestTrickScore(history: RoundHistory[]): number {
     let highest = 0;
@@ -240,6 +260,24 @@ export class ScoringService {
         if (score > highest) {
           highest = score;
         }
+      }
+    }
+
+    return highest;
+  }
+
+  /**
+   * Get highest POSITIVE score for a specific player from round history
+   * Used for Georgian Joker premium calculation where each player's
+   * premium/penalty is based on their OWN max score, not a global max.
+   */
+  private getPlayerHighestPositiveScore(playerId: string, history: RoundHistory[]): number {
+    let highest = 0;
+
+    for (const round of history) {
+      const score = round.scores[playerId];
+      if (score !== undefined && score > highest) {
+        highest = score;
       }
     }
 

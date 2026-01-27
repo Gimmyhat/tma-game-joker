@@ -112,6 +112,23 @@ export interface TableCard {
 // PLAYER TYPES
 // =====================================
 
+/**
+ * Visual badges displayed next to player names in score table
+ * Georgian Joker "Popular" variant rules
+ */
+export interface PlayerBadges {
+  /** 🎭 Player has joker(s) in hand */
+  hasJokers: boolean;
+  /** ❌ Player failed a contract this pulka (bet >= 1, tricks < bet) */
+  spoiled: boolean;
+  /** ⭐ Player completed ALL contracts in pulka (only shown at pulka end) */
+  perfectPulka: boolean;
+  /** 💎 Player "took all" at least once this pulka (bet === tricks === roundLength) */
+  tookAll: boolean;
+  /** ⚡ Player had perfect pass at least once this pulka (bet === 0, tricks === 0) */
+  perfectPass: boolean;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -132,6 +149,13 @@ export interface Player {
   // Pulka state
   spoiled: boolean;
   hadJokerInRounds: boolean[];
+
+  // Badge tracking (accumulated during pulka, reset at pulka start)
+  tookAllInPulka?: boolean;
+  perfectPassInPulka?: boolean;
+
+  // Computed badges for display (set by backend before sending to client)
+  badges?: PlayerBadges;
 }
 
 // =====================================
