@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Player, RoundHistory, GAME_CONSTANTS } from '@joker/shared';
+import {
+  Player,
+  RoundHistory,
+  GAME_CONSTANTS,
+  FinalGameResults,
+  PlayerRanking,
+  PulkaSummary,
+  ScoreSheetRoundEntry,
+} from '@joker/shared';
 
 export interface RoundScoreResult {
   playerId: string;
@@ -306,6 +314,116 @@ export class ScoringService {
     return {
       winnerId: sorted[0].id,
       rankings: sorted,
+    };
+  }
+
+  /**
+   * Calculate detailed final results for the scoresheet
+   */
+  calculateFinalResultsDetailed(
+    players: Player[],
+    history: RoundHistory[],
+    gameId: string,
+  ): FinalGameResults {
+    // 1. Calculate rankings first to determine places
+    const { rankings: sortedPlayers } = this.calculateFinalResults(players);
+    const placeMap = new Map(sortedPlayers.map((p, i) => [p.id, i + 1]));
+
+    const scoreSheetPlayers = players; // Use original seat order for processing, but we need seatIndex
+
+    const rankings: PlayerRanking[] = scoreSheetPlayers.map((player, seatIndex) => {
+      const playerId = player.id;
+      const pulkaSummaries: PulkaSummary[] = [];
+      let previousPulkaCumulativeTotal = 0;
+
+      // Process each pulka
+      GAME_CONSTANTS.PULKA_STRUCTURE.forEach((structure) => {
+        const pulkaNum = structure.pulka;
+        const pulkaRounds: ScoreSheetRoundEntry[] = [];
+        let pulkaRoundScoresSum = 0;
+
+        // Gather round entries
+        structure.rounds.forEach((roundNum, idx) => {
+          const roundHistory = history.find((h) => h.round === roundNum);
+          if (roundHistory) {
+            const bet = roundHistory.bets[playerId];
+            const tricks = roundHistory.tricks[playerId];
+            const score = roundHistory.scores[playerId];
+            // Joker count from history (default to 0 if missing)
+            const jokerCount = roundHistory.jokerCounts?.[playerId] ?? 0;
+
+            pulkaRounds.push({
+              roundNumber: roundNum,
+              cardsPerPlayer: roundHistory.cardsPerPlayer,
+              bid: bet,
+              bidMade: bet !== null && tricks !== null && bet === tricks, // Dot if contract made
+              tricks: tricks ?? 0,
+              score: score ?? 0,
+              jokerCount: jokerCount as 0 | 1 | 2,
+            });
+
+            pulkaRoundScoresSum += score ?? 0;
+          } else {
+            // Placeholder for incomplete games/rounds
+            pulkaRounds.push({
+              roundNumber: roundNum,
+              cardsPerPlayer: structure.cardsPerRound[idx],
+              bid: null,
+              bidMade: false,
+              tricks: 0,
+              score: 0,
+              jokerCount: 0,
+            });
+          }
+        });
+
+        // Calculate average
+        const pulkaAverage = pulkaRounds.length > 0 ? pulkaRoundScoresSum / pulkaRounds.length : 0;
+        // Format to 1 decimal place usually, but store as number here
+        const formattedAvg = Number(pulkaAverage.toFixed(1));
+
+        // Get cumulative total from player state if available
+        // player.pulkaScores stores [totalAfterP1, totalAfterP2, ...]
+        const cumulativeTotal = player.pulkaScores[pulkaNum - 1] ?? 0;
+
+        // Calculate premium: (Total After This Pulka) - (Total After Prev Pulka) - (Sum of Rounds)
+        // If it's first pulka: Total After P1 - 0 - Sum Rounds
+        const totalGainedInPulka = cumulativeTotal - previousPulkaCumulativeTotal;
+        const premiumScore = totalGainedInPulka - pulkaRoundScoresSum;
+
+        pulkaSummaries.push({
+          pulkaNumber: pulkaNum,
+          rounds: pulkaRounds,
+          pulkaAverage: formattedAvg,
+          cumulativeTotal,
+          premiumScore,
+        });
+
+        previousPulkaCumulativeTotal = cumulativeTotal;
+      });
+
+      return {
+        playerId,
+        playerName: player.name,
+        place: (placeMap.get(playerId) ?? 4) as 1 | 2 | 3 | 4,
+        totalScore: player.totalScore,
+        pulkaSummaries,
+        isWinner: placeMap.get(playerId) === 1,
+        seatIndex,
+      };
+    });
+
+    // Sort rankings by place for the final result list?
+    // The requirement says "rankings" usually implies sorted order.
+    // However, for the scoresheet view, we often want seat order.
+    // The type definition says "rankings: PlayerRanking[]", usually sorted 1st to 4th.
+    // Let's return them sorted by place. The frontend can re-sort by seatIndex if needed for table.
+    rankings.sort((a, b) => a.place - b.place);
+
+    return {
+      gameId,
+      finishedAt: Date.now(),
+      rankings,
     };
   }
 }

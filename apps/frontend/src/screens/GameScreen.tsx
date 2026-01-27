@@ -11,7 +11,12 @@ import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { PulkaResultsModal, ScoreSheetModal, TrumpSelectionModal } from '../components/game';
+import {
+  PulkaResultsModal,
+  TrumpSelectionModal,
+  VictoryScreen,
+  HandwrittenScoreSheet,
+} from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
 
@@ -31,6 +36,8 @@ export const GameScreen: React.FC = () => {
     clearError,
     tuzovanieCards,
     tuzovanieDealerIndex,
+    showScoreSheet,
+    setShowScoreSheet,
   } = useGameStore();
 
   const isMyTurn = useGameStore(selectIsMyTurn);
@@ -41,7 +48,7 @@ export const GameScreen: React.FC = () => {
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-  const [isScoreSheetOpen, setIsScoreSheetOpen] = useState(false);
+  // isScoreSheetOpen replaced by global state
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
@@ -276,7 +283,7 @@ export const GameScreen: React.FC = () => {
           <div className="flex items-center gap-2">
             <LanguageSwitcher className="scale-75 origin-right" />
             <button
-              onClick={() => setIsScoreSheetOpen(true)}
+              onClick={() => setShowScoreSheet(true)}
               className="p-2 rounded-lg bg-black/40 hover:bg-black/60 border border-white/10 text-amber-400 transition-colors backdrop-blur-sm"
               title={t('game.scoreSheet', 'Score Sheet')}
             >
@@ -420,9 +427,12 @@ export const GameScreen: React.FC = () => {
       <PulkaResultsModal />
 
       {/* Score Sheet Modal */}
-      <ScoreSheetModal isOpen={isScoreSheetOpen} onClose={() => setIsScoreSheetOpen(false)} />
+      {showScoreSheet && <HandwrittenScoreSheet onClose={() => setShowScoreSheet(false)} />}
 
-      {/* Game Over Modal */}
+      {/* Game Over / Victory Screen */}
+      <VictoryScreen />
+
+      {/* Legacy Game Over Modal (Fallback) */}
       <GameOverModal />
 
       {/* Dev Logs */}

@@ -68,7 +68,8 @@ interface GameAnalysis {
 // --- Helpers ---
 
 const getSuitSymbol = (suit: string | null) => {
-  switch (suit) {
+  if (!suit) return '';
+  switch (suit.toUpperCase()) {
     case 'HEARTS':
       return '♥';
     case 'DIAMONDS':
@@ -83,7 +84,8 @@ const getSuitSymbol = (suit: string | null) => {
 };
 
 const getSuitColor = (suit: string | null) => {
-  switch (suit) {
+  if (!suit) return '#64748b';
+  switch (suit.toUpperCase()) {
     case 'HEARTS':
     case 'DIAMONDS':
       return '#e11d48'; // Rose-600
@@ -95,8 +97,82 @@ const getSuitColor = (suit: string | null) => {
   }
 };
 
+const getSuitName = (suit: string | null): string => {
+  if (!suit) return '';
+  switch (suit.toUpperCase()) {
+    case 'HEARTS':
+      return 'Hearts';
+    case 'DIAMONDS':
+      return 'Diamonds';
+    case 'CLUBS':
+      return 'Clubs';
+    case 'SPADES':
+      return 'Spades';
+    case 'NO_TRUMP':
+      return 'No Trump';
+    default:
+      return suit;
+  }
+};
+
+const getRankDisplay = (rank: string | number | null): string => {
+  if (rank === null || rank === undefined) return '?';
+  const numRank = typeof rank === 'string' ? parseInt(rank, 10) : rank;
+  switch (numRank) {
+    case 14:
+      return 'A';
+    case 13:
+      return 'K';
+    case 12:
+      return 'Q';
+    case 11:
+      return 'J';
+    case 10:
+      return '10';
+    default:
+      return String(numRank);
+  }
+};
+
+const getJokerOptionDisplay = (option: string | null): string => {
+  if (!option) return '';
+  switch (option.toUpperCase()) {
+    case 'HIGH':
+      return 'HIGH';
+    case 'LOW':
+      return 'LOW';
+    case 'TOP':
+      return 'TAKE';
+    case 'BOTTOM':
+      return 'GIVE';
+    default:
+      return option;
+  }
+};
+
+const getJokerOptionColor = (option: string | null): string => {
+  if (!option) return '#7c3aed';
+  switch (option.toUpperCase()) {
+    case 'HIGH':
+      return '#10b981'; // Emerald
+    case 'LOW':
+      return '#06b6d4'; // Cyan
+    case 'TOP':
+      return '#f59e0b'; // Amber
+    case 'BOTTOM':
+      return '#8b5cf6'; // Purple
+    default:
+      return '#7c3aed';
+  }
+};
+
 const CardView: React.FC<{ card: AnalysisCard }> = ({ card }) => {
   if (card.cardType === 'JOKER') {
+    const optionDisplay = getJokerOptionDisplay(card.jokerOption);
+    const optionColor = getJokerOptionColor(card.jokerOption);
+    const requestedSuitSymbol = getSuitSymbol(card.requestedSuit);
+    const requestedSuitColor = getSuitColor(card.requestedSuit);
+
     return (
       <Box
         as="span"
@@ -107,24 +183,28 @@ const CardView: React.FC<{ card: AnalysisCard }> = ({ card }) => {
         px="sm"
         mr="xs"
         mb="xs"
-        bg="primary.10"
         style={{
           borderRadius: '6px',
-          border: '1px solid #7c3aed',
-          color: '#7c3aed',
+          border: `2px solid ${optionColor}`,
+          backgroundColor: `${optionColor}15`,
+          color: optionColor,
           fontWeight: 600,
           fontSize: '13px',
           minWidth: '36px',
         }}
       >
         <Icon icon="Star" size={12} style={{ marginRight: 4 }} />
-        JOKER {card.jokerOption ? `(${card.jokerOption.substring(0, 1)})` : ''}
+        <span style={{ marginRight: requestedSuitSymbol ? 4 : 0 }}>{optionDisplay || 'JOKER'}</span>
+        {requestedSuitSymbol && (
+          <span style={{ color: requestedSuitColor, fontWeight: 700 }}>{requestedSuitSymbol}</span>
+        )}
       </Box>
     );
   }
 
   const symbol = getSuitSymbol(card.suit);
   const color = getSuitColor(card.suit);
+  const rankDisplay = getRankDisplay(card.rank);
 
   return (
     <Box
@@ -142,13 +222,13 @@ const CardView: React.FC<{ card: AnalysisCard }> = ({ card }) => {
         border: '1px solid #e2e8f0',
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         fontWeight: 600,
-        fontSize: '13px',
-        minWidth: '36px',
+        fontSize: '14px',
+        minWidth: '42px',
         color,
       }}
     >
-      <span style={{ marginRight: 2 }}>{card.rank}</span>
-      <span>{symbol}</span>
+      <span style={{ marginRight: 2 }}>{rankDisplay}</span>
+      <span style={{ fontSize: '16px' }}>{symbol}</span>
     </Box>
   );
 };
@@ -275,17 +355,24 @@ const GameAnalysisComponent: React.FC<BasePropertyProps> = (props) => {
                 <Box textAlign="center">
                   <Label>Trump</Label>
                   <Box flex alignItems="center" gap="sm">
-                    {currentRound.trump === 'NO_TRUMP' ? (
+                    {currentRound.trump === 'NO_TRUMP' ||
+                    currentRound.trump?.toUpperCase() === 'NO_TRUMP' ? (
                       <Badge variant="light">NO TRUMP</Badge>
-                    ) : (
+                    ) : currentRound.trump ? (
                       <>
-                        <Text fontSize="3xl" lineHeight="1">
+                        <Text
+                          fontSize="3xl"
+                          lineHeight="1"
+                          style={{ color: getSuitColor(currentRound.trump) }}
+                        >
                           {getSuitSymbol(currentRound.trump)}
                         </Text>
-                        <Text fontWeight="bold" color={getSuitColor(currentRound.trump)}>
-                          {currentRound.trump}
+                        <Text fontWeight="bold" style={{ color: getSuitColor(currentRound.trump) }}>
+                          {getSuitName(currentRound.trump)}
                         </Text>
                       </>
+                    ) : (
+                      <Badge variant="light">Unknown</Badge>
                     )}
                   </Box>
                 </Box>
@@ -387,27 +474,52 @@ const GameAnalysisComponent: React.FC<BasePropertyProps> = (props) => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {trick.cards.map((c, cIdx) => (
-                            <TableRow key={cIdx}>
-                              <TableCell>
-                                <Text
-                                  fontWeight={c.playerId === trick.winnerId ? 'bold' : 'normal'}
-                                >
-                                  {getPlayerName(c.playerId)}
-                                </Text>
-                              </TableCell>
-                              <TableCell>
-                                <CardView card={c.card} />
-                              </TableCell>
-                              <TableCell>
-                                {c.playerId === trick.leaderId && (
-                                  <Badge size="sm" variant="info">
-                                    LEAD
-                                  </Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {trick.cards.map((c, cIdx) => {
+                            const isWinner = c.playerId === trick.winnerId;
+                            const isLead = c.playerId === trick.leaderId;
+                            const isTrump =
+                              c.card.cardType !== 'JOKER' &&
+                              c.card.suit?.toUpperCase() === currentRound.trump?.toUpperCase();
+
+                            return (
+                              <TableRow
+                                key={cIdx}
+                                style={{
+                                  backgroundColor: isWinner ? '#f0fdf4' : 'transparent',
+                                }}
+                              >
+                                <TableCell>
+                                  <Box flex alignItems="center" gap="sm">
+                                    <Text fontWeight={isWinner ? 'bold' : 'normal'}>
+                                      {getPlayerName(c.playerId)}
+                                    </Text>
+                                    {isWinner && (
+                                      <Badge size="sm" variant="success">
+                                        ✓ WIN
+                                      </Badge>
+                                    )}
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Box flex alignItems="center" gap="xs">
+                                    <CardView card={c.card} />
+                                    {isTrump && (
+                                      <Badge size="sm" variant="primary">
+                                        TRUMP
+                                      </Badge>
+                                    )}
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  {isLead && (
+                                    <Badge size="sm" variant="info">
+                                      LEAD
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
 

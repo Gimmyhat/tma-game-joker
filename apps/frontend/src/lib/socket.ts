@@ -17,6 +17,7 @@ import type {
   Suit,
   Card,
   TrumpDecision,
+  GameFinishedPayload,
 } from '@joker/shared';
 
 // Server events (received from server)
@@ -35,6 +36,8 @@ export interface ServerToClientEvents {
   }) => void;
   game_started: (data: { roomId: string }) => void;
   game_state: (data: GameStateUpdate) => void;
+  'game:finished': (data: GameFinishedPayload) => void;
+  game_finished: (data: any) => void; // Legacy
 
   // Turn events
   turn_timer: (data: TurnTimerPayload) => void;

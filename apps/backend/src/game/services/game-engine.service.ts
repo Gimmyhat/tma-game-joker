@@ -16,6 +16,7 @@ import {
   Card,
   checkTookAll,
   checkPerfectPass,
+  FinalGameResults,
 } from '@joker/shared';
 import { ConfigService } from '@nestjs/config';
 import { DeckService } from './deck.service';
@@ -68,6 +69,7 @@ export class GameEngineService {
       totalScore: 0,
       spoiled: false,
       hadJokerInRounds: [],
+      jokerCountPerRound: [],
     }));
 
     const scoreSheetPlayers = this.orderPlayersForScoreSheet(players, dealerIndex);
@@ -191,9 +193,11 @@ export class GameEngineService {
       newState.phase = GamePhase.TrumpSelection;
       newState.currentPlayerIndex = chooserIndex;
 
-      // Track joker in hand for chooser only (they have partial hand)
-      const hasJoker = newState.players[chooserIndex].hand.some((card) => card.type === 'joker');
-      newState.players[chooserIndex].hadJokerInRounds.push(hasJoker);
+      // Track joker count in hand for chooser only (they have partial hand)
+      const jokerCount = newState.players[chooserIndex].hand.filter((card) => card.type === 'joker')
+        .length as 0 | 1 | 2;
+      newState.players[chooserIndex].hadJokerInRounds.push(jokerCount > 0);
+      newState.players[chooserIndex].jokerCountPerRound.push(jokerCount);
     } else {
       // Normal deal: all cards to all players
       for (let i = 0; i < 4; i++) {
@@ -205,8 +209,9 @@ export class GameEngineService {
         };
 
         // Check for joker in hand
-        const hasJoker = hands[i].some((card) => card.type === 'joker');
-        newState.players[i].hadJokerInRounds.push(hasJoker);
+        const jokerCount = hands[i].filter((card) => card.type === 'joker').length as 0 | 1 | 2;
+        newState.players[i].hadJokerInRounds.push(jokerCount > 0);
+        newState.players[i].jokerCountPerRound.push(jokerCount);
       }
 
       newState.trump = trump;
@@ -309,16 +314,20 @@ export class GameEngineService {
           hand: [...currentHand, ...pendingCards],
         };
 
-        // Track joker in full hand (for players other than chooser)
+        // Track joker count in full hand (for players other than chooser)
         if (i !== trumpSelection.chooserSeatIndex) {
-          const hasJoker = newState.players[i].hand.some((card) => card.type === 'joker');
-          newState.players[i].hadJokerInRounds.push(hasJoker);
+          const jokerCount = newState.players[i].hand.filter((card) => card.type === 'joker')
+            .length as 0 | 1 | 2;
+          newState.players[i].hadJokerInRounds.push(jokerCount > 0);
+          newState.players[i].jokerCountPerRound.push(jokerCount);
         } else {
           // Update chooser's joker tracking with full hand
-          const hasJoker = newState.players[i].hand.some((card) => card.type === 'joker');
+          const jokerCount = newState.players[i].hand.filter((card) => card.type === 'joker')
+            .length as 0 | 1 | 2;
           const roundIndex = newState.players[i].hadJokerInRounds.length - 1;
           if (roundIndex >= 0) {
-            newState.players[i].hadJokerInRounds[roundIndex] = hasJoker;
+            newState.players[i].hadJokerInRounds[roundIndex] = jokerCount > 0;
+            newState.players[i].jokerCountPerRound[roundIndex] = jokerCount;
           }
         }
       }
@@ -646,6 +655,13 @@ export class GameEngineService {
       tricks: Object.fromEntries(newState.players.map((p) => [p.id, p.tricks])),
       scores: Object.fromEntries(roundResults.map((r) => [r.playerId, r.score])),
       tableHistory: [], // TODO: Track full table history if needed
+      jokerCounts: Object.fromEntries(
+        newState.players.map((p) => {
+          // Get joker count for current round (last entry in jokerCountPerRound)
+          const count = p.jokerCountPerRound[p.jokerCountPerRound.length - 1] ?? 0;
+          return [p.id, count as 0 | 1 | 2];
+        }),
+      ),
     };
     newState.history.push(roundHistory);
 
@@ -736,9 +752,11 @@ export class GameEngineService {
         }
       }
 
-      // Track joker for chooser's partial hand
-      const hasJoker = state.players[chooserIndex].hand.some((card) => card.type === 'joker');
-      state.players[chooserIndex].hadJokerInRounds.push(hasJoker);
+      // Track joker count for chooser's partial hand
+      const jokerCount = state.players[chooserIndex].hand.filter((card) => card.type === 'joker')
+        .length as 0 | 1 | 2;
+      state.players[chooserIndex].hadJokerInRounds.push(jokerCount > 0);
+      state.players[chooserIndex].jokerCountPerRound.push(jokerCount);
 
       state.trumpSelection = {
         chooserPlayerId: state.players[chooserIndex].id,
@@ -770,8 +788,9 @@ export class GameEngineService {
           tricks: 0,
         };
 
-        const hasJoker = hands[i].some((card) => card.type === 'joker');
-        state.players[i].hadJokerInRounds.push(hasJoker);
+        const jokerCount = hands[i].filter((card) => card.type === 'joker').length as 0 | 1 | 2;
+        state.players[i].hadJokerInRounds.push(jokerCount > 0);
+        state.players[i].jokerCountPerRound.push(jokerCount);
       }
 
       state.trump = trump;
@@ -928,5 +947,16 @@ export class GameEngineService {
       ordered.push(players[(dealerIndex + offset) % players.length]);
     }
     return ordered;
+  }
+
+  /**
+   * Calculate detailed final results
+   */
+  calculateFinalResultsDetailed(state: GameState): FinalGameResults {
+    return this.scoringService.calculateFinalResultsDetailed(
+      state.players,
+      state.history,
+      state.id,
+    );
   }
 }

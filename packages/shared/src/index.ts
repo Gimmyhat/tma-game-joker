@@ -148,7 +148,10 @@ export interface Player {
 
   // Pulka state
   spoiled: boolean;
+  /** @deprecated Use RoundHistory.jokerCounts instead */
   hadJokerInRounds: boolean[];
+  /** Number of jokers in hand at start of each round (0, 1, or 2) */
+  jokerCountPerRound: (0 | 1 | 2)[];
 
   // Badge tracking (accumulated during pulka, reset at pulka start)
   tookAllInPulka?: boolean;
@@ -171,6 +174,8 @@ export interface RoundHistory {
   tricks: Record<string, number>;
   scores: Record<string, number>;
   tableHistory: TableCard[][];
+  /** Number of jokers each player had at round start (for scoresheet display) */
+  jokerCounts: Record<string, 0 | 1 | 2>;
 }
 
 export interface PremiumResult {
@@ -221,6 +226,60 @@ export interface GameState {
   createdAt: number;
   finishedAt: number | null;
   winnerId: string | null;
+}
+
+// =====================================
+// FINAL RESULTS TYPES (for end-game scoresheet)
+// =====================================
+
+/** Single round entry for the handwritten scoresheet */
+export interface ScoreSheetRoundEntry {
+  roundNumber: number;
+  cardsPerPlayer: number;
+  /** Bid amount (null if not yet placed) */
+  bid: number | null;
+  /** True if player made their contract (bet === tricks) */
+  bidMade: boolean;
+  tricks: number;
+  score: number;
+  /** Number of jokers player had at round start (0, 1, or 2) - shown as dots on vertical line */
+  jokerCount: 0 | 1 | 2;
+}
+
+/** Summary of a single pulka for one player */
+export interface PulkaSummary {
+  pulkaNumber: number;
+  rounds: ScoreSheetRoundEntry[];
+  /** Average score per round in this pulka (X row in scoresheet) */
+  pulkaAverage: number;
+  /** Cumulative total score after this pulka (including premiums) */
+  cumulativeTotal: number;
+  /** Premium bonus/penalty applied at pulka end */
+  premiumScore: number;
+}
+
+/** Individual player's final ranking */
+export interface PlayerRanking {
+  playerId: string;
+  playerName: string;
+  /** Final place (1-4) */
+  place: 1 | 2 | 3 | 4;
+  /** Final total score */
+  totalScore: number;
+  /** Detailed pulka-by-pulka breakdown */
+  pulkaSummaries: PulkaSummary[];
+  /** True if this player won (place === 1) */
+  isWinner: boolean;
+  /** Original seat index (for podium display order) */
+  seatIndex: number;
+}
+
+/** Complete final game results */
+export interface FinalGameResults {
+  gameId: string;
+  finishedAt: number;
+  /** All players ranked by final score */
+  rankings: PlayerRanking[];
 }
 
 // =====================================
@@ -275,6 +334,16 @@ export interface TurnTimerPayload {
 export interface PlayerReplacedPayload {
   playerId: string;
   playerName: string;
+}
+
+/** Payload for game:finished event - sent when game ends */
+export interface GameFinishedPayload {
+  /** Full game results with rankings and scoresheet data */
+  results: FinalGameResults;
+  /** Receiving player's final place (1-4) */
+  yourPlace: 1 | 2 | 3 | 4;
+  /** True if receiving player won (yourPlace === 1) */
+  isVictory: boolean;
 }
 
 export * from './logic';

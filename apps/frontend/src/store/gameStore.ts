@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { GameState, GamePhase } from '@joker/shared';
+import { GameState, GamePhase, GameFinishedPayload } from '@joker/shared';
 import { getSocket, setUserInfo, type GameSocket } from '../lib/socket';
 import { getMockUser, type TelegramUser } from '../lib/telegram';
 
@@ -148,6 +148,7 @@ function setupSocketListeners(
       totalScore: 0,
       spoiled: false,
       hadJokerInRounds: [],
+      jokerCountPerRound: [],
     }));
 
     const mockGameState: GameState = {
@@ -281,6 +282,11 @@ function setupSocketListeners(
 
   socket.on('player_replaced', (data) => {
     console.log('[Store] Player replaced by bot:', data);
+  });
+
+  socket.on('game:finished', (data: GameFinishedPayload) => {
+    console.log('[Store] Game finished (detailed):', data);
+    get().setFinalResults(data.results, data.yourPlace);
   });
 
   // Errors

@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Закрыть"
+  },
   "lobby": {
     "title": "Джокер",
     "subtitle": "Карточная игра",
@@ -17,8 +20,14 @@
   "game": {
     "loading": "Загрузка игры...",
     "trickWon": "{{player}} выиграл!",
-    "victory": "Победа!",
+    "victory": "ПОБЕДА!",
+    "victoryDesc": "Вы заняли первое место в одиночной игре",
+    "resultDesc": "Вы заняли {{place}} место",
     "gameOver": "Игра окончена",
+    "finished": "ИГРА ОКОНЧЕНА",
+    "scoreSheet": "Лист счета",
+    "viewScoreSheet": "Посмотреть лист счета",
+    "matchResults": "Результаты матча",
     "congrats": "Поздравляем с победой!",
     "winnerIs": "Победитель: {{name}}",
     "you": "Вы",
@@ -88,10 +97,10 @@
       "requestHighest": "Требовать старшую карту",
       "lowRequest": "По младшей",
       "requestLowest": "Требовать младшую карту",
-      "takeHigh": "Забрать по старшей",
-      "beatsHighest": "Бьет старшую",
-      "takeLow": "Забрать по младшей",
-      "beatsLowest": "Бьет младшую",
+      "takeHigh": "Заберу",
+      "beatsHighest": "Всегда выигрывает взятку",
+      "takeLow": "Отдам",
+      "beatsLowest": "Всегда проигрывает взятку",
       "back": "Назад",
       "badgeHigh": "Ст",
       "badgeLow": "Мл",

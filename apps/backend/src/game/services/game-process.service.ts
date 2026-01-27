@@ -8,6 +8,7 @@ import {
   TrumpDecision,
   PlayerBadges,
   hasJokersInHand,
+  GameFinishedPayload,
 } from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
 import { RoomManager } from './room.manager';
@@ -548,14 +549,40 @@ export class GameProcessService {
 
     this.logger.log(`Game finished in room ${roomId}. Winner: ${room.gameState.winnerId}`);
 
-    this.server.to(roomId).emit('game_finished', {
-      winnerId: room.gameState.winnerId,
-      finalScores: room.gameState.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        score: p.totalScore,
-      })),
-    });
+    // Calculate detailed results
+    const results = this.gameEngine.calculateFinalResultsDetailed(room.gameState);
+
+    // Send personalized results to each player
+    for (const [playerId, socketId] of room.sockets) {
+      if (!socketId) continue;
+
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (!socket) continue;
+
+      const ranking = results.rankings.find((r) => r.playerId === playerId);
+      // Default to 4th place if not found (should not happen)
+      const yourPlace = ranking ? ranking.place : 4;
+      const isVictory = yourPlace === 1;
+
+      const payload: GameFinishedPayload = {
+        results,
+        yourPlace,
+        isVictory,
+      };
+
+      // Emit new event (v2) with full detailed stats
+      socket.emit('game:finished', payload);
+
+      // Keep legacy event for backward compatibility until frontend is fully updated
+      socket.emit('game_finished', {
+        winnerId: room.gameState.winnerId,
+        finalScores: room.gameState.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          score: p.totalScore,
+        })),
+      });
+    }
 
     // Save game record to DB (Audit Log)
     await this.gameAuditService.saveGameRecord(room.gameState);

@@ -88,10 +88,10 @@
       "requestHighest": "Request Highest Card",
       "lowRequest": "Low Request",
       "requestLowest": "Request Lowest Card",
-      "takeHigh": "Take High",
-      "beatsHighest": "Beats Highest",
-      "takeLow": "Take Low",
-      "beatsLowest": "Beats Lowest",
+      "takeHigh": "Take Trick",
+      "beatsHighest": "Always wins the trick",
+      "takeLow": "Give Away",
+      "beatsLowest": "Always loses the trick",
       "back": "Back"
     },
     "errors": {
