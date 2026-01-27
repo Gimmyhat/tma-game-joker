@@ -8,6 +8,7 @@ import {
   Suit,
   SharedMoveValidator,
   calculateForbiddenBet,
+  sortCards,
 } from '@joker/shared';
 import Table from '../components/Table';
 import Hand from '../components/Hand';
@@ -57,6 +58,12 @@ export const GameScreen: React.FC = () => {
   }, [gameState]);
 
   const isTimerFrozen = humanPlayerCount <= 1;
+
+  // Memoized sorted hand to ensure correct order
+  const sortedHand = useMemo(() => {
+    if (!gameState) return [];
+    return sortCards(myHand, gameState.trump);
+  }, [myHand, gameState?.trump]);
 
   // Local State
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
@@ -383,7 +390,7 @@ export const GameScreen: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-2 pointer-events-none">
         <div className="w-full max-w-5xl pointer-events-auto">
           <Hand
-            cards={myHand}
+            cards={sortedHand}
             onCardClick={handleCardClick}
             playableCards={playableCards}
             disabled={!canThrowCard}
