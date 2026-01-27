@@ -101,15 +101,6 @@ function setupSocketListeners(
   });
 
   // Room events
-  socket.on('room_joined', (data) => {
-    console.log('[Store] Room joined:', data);
-    set({
-      roomId: data.roomId,
-      playersInRoom: data.playersCount,
-      lobbyStatus: 'waiting',
-    });
-  });
-
   socket.on('waiting_for_players', (data) => {
     console.log('[Store] Waiting for players:', data);
     set({
@@ -120,14 +111,19 @@ function setupSocketListeners(
     });
   });
 
-  socket.on('player_joined', (data) => {
-    console.log('[Store] Player joined:', data);
-    set({ playersInRoom: data.playersCount });
-  });
-
   socket.on('player_left', (data) => {
     console.log('[Store] Player left:', data);
     set({ playersInRoom: data.playersCount });
+  });
+
+  socket.on('queue_left', (data) => {
+    console.log('[Store] Queue left:', data);
+    get()._reset();
+  });
+
+  socket.on('left_game', (data) => {
+    console.log('[Store] Left game:', data);
+    get()._reset();
   });
 
   // Tuzovanie event
@@ -272,14 +268,6 @@ function setupSocketListeners(
   });
 
   // Player status events
-  socket.on('player_disconnected', (data) => {
-    console.log('[Store] Player disconnected:', data);
-  });
-
-  socket.on('player_reconnected', (data) => {
-    console.log('[Store] Player reconnected:', data);
-  });
-
   socket.on('player_replaced', (data) => {
     console.log('[Store] Player replaced by bot:', data);
   });

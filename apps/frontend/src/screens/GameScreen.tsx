@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store';
 import { selectIsMyTurn, selectCanMakeBet, selectCanThrowCard } from '../store/gameStore';
-import { Card as CardType, JokerOption, Suit, SharedMoveValidator } from '@joker/shared';
+import {
+  Card as CardType,
+  JokerOption,
+  Suit,
+  SharedMoveValidator,
+  calculateForbiddenBet,
+} from '@joker/shared';
 import Table from '../components/Table';
 import Hand from '../components/Hand';
 import { BetModal } from '../components/BetModal';
@@ -166,18 +172,18 @@ export const GameScreen: React.FC = () => {
     const myIndex = gameState.players.findIndex((p) => p.id === myPlayerId);
     if (myIndex === -1 || myIndex !== gameState.dealerIndex) return undefined;
 
-    const otherBets = gameState.players
-      .filter((p) => p.id !== myPlayerId)
-      .map((p) => p.bet)
-      .filter((bet): bet is number => bet !== null);
+    const currentBets = gameState.players.map((p) => p.bet);
+    const otherBetsPlaced = currentBets.every((bet, index) => index === myIndex || bet !== null);
+    if (!otherBetsPlaced) return undefined;
 
-    if (otherBets.length !== gameState.players.length - 1) return undefined;
+    const forbidden = calculateForbiddenBet(
+      currentBets,
+      gameState.cardsPerPlayer,
+      myIndex,
+      gameState.dealerIndex,
+    );
 
-    const sum = otherBets.reduce((acc, bet) => acc + bet, 0);
-    const forbidden = gameState.cardsPerPlayer - sum;
-
-    if (forbidden < 0 || forbidden > gameState.cardsPerPlayer) return undefined;
-    return forbidden;
+    return forbidden ?? undefined;
   }, [gameState, myPlayerId]);
 
   // Determine current turn player name

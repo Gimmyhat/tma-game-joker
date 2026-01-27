@@ -6,8 +6,7 @@ import {
   GAME_CONSTANTS,
   GameState,
   TrumpDecision,
-  PlayerBadges,
-  hasJokersInHand,
+  calculatePlayerBadges,
   GameFinishedPayload,
 } from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
@@ -292,7 +291,8 @@ export class GameProcessService {
 
     // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
     const totalCards = tuzovanieSequence.length;
-    const delayMs = totalCards * 600 + 4000;
+    const delayMs =
+      totalCards * GAME_CONSTANTS.TUZOVANIE_CARD_DELAY_MS + GAME_CONSTANTS.TUZOVANIE_BUFFER_MS;
 
     setTimeout(async () => {
       // Check if room still exists (players might disconnect)
@@ -351,7 +351,8 @@ export class GameProcessService {
 
     // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
     const totalCards = tuzovanieSequence.length;
-    const delayMs = totalCards * 600 + 4000;
+    const delayMs =
+      totalCards * GAME_CONSTANTS.TUZOVANIE_CARD_DELAY_MS + GAME_CONSTANTS.TUZOVANIE_BUFFER_MS;
 
     setTimeout(async () => {
       // Check if room still exists
@@ -387,7 +388,7 @@ export class GameProcessService {
     // Add small delay for UX
     setTimeout(async () => {
       await this.makeBotMove(roomId, currentPlayer.id);
-    }, 1000);
+    }, GAME_CONSTANTS.BOT_MOVE_DELAY_MS);
   }
 
   /**
@@ -451,7 +452,7 @@ export class GameProcessService {
    */
   handleTrickCompletionWithDelay(roomId: string): void {
     // Set a timeout to complete the trick
-    const delay = GAME_CONSTANTS.TRICK_RECAP_TIMEOUT_MS || 2000;
+    const delay = GAME_CONSTANTS.TRICK_RECAP_TIMEOUT_MS;
 
     setTimeout(async () => {
       const room = this.roomManager.getRoomSync(roomId);
@@ -593,7 +594,7 @@ export class GameProcessService {
     // Cleanup after delay
     setTimeout(async () => {
       await this.roomManager.cleanupRoom(roomId);
-    }, 30000);
+    }, GAME_CONSTANTS.GAME_CLEANUP_DELAY_MS);
   }
 
   /**
@@ -686,17 +687,7 @@ export class GameProcessService {
         const isOwnHand = p.id === playerId;
 
         // Calculate badges for this player
-        const badges: PlayerBadges = {
-          // Only show joker badge for own hand (other players' jokers hidden)
-          hasJokers: isOwnHand ? hasJokersInHand(p.hand) : false,
-          // Spoiled is visible to everyone
-          spoiled: p.spoiled,
-          // Perfect pulka only shown at pulka completion
-          perfectPulka: isPulkaComplete && !p.spoiled,
-          // Achievements are visible to everyone
-          tookAll: p.tookAllInPulka ?? false,
-          perfectPass: p.perfectPassInPulka ?? false,
-        };
+        const badges = calculatePlayerBadges(p, isPulkaComplete, isOwnHand);
 
         return {
           ...p,

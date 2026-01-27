@@ -363,6 +363,10 @@ export const GAME_CONSTANTS = {
   MATCHMAKING_TIMEOUT_MS: 60_000,
   PULKA_RECAP_TIMEOUT_MS: 60_000, // 1 minute
   TRICK_RECAP_TIMEOUT_MS: 3000, // 3 seconds delay after each trick
+  TUZOVANIE_CARD_DELAY_MS: 600,
+  TUZOVANIE_BUFFER_MS: 4000,
+  BOT_MOVE_DELAY_MS: 1000,
+  GAME_CLEANUP_DELAY_MS: 30_000,
 
   // Trump Selection
   TRUMP_SELECTION_VISIBLE_CARDS: 3, // Cards shown to chooser before trump decision

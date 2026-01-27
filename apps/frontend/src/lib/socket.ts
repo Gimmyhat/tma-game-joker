@@ -23,10 +23,10 @@ import type {
 // Server events (received from server)
 export interface ServerToClientEvents {
   // Room events
-  room_joined: (data: { roomId: string; playersCount: number }) => void;
   waiting_for_players: (data: { roomId: string; current: number; required: number }) => void;
-  player_joined: (data: { playerId: string; playerName: string; playersCount: number }) => void;
   player_left: (data: { playerId: string; playerName: string; playersCount: number }) => void;
+  queue_left: (data: { playerId: string }) => void;
+  left_game: (data: { playerId?: string; roomId?: string }) => void;
 
   // Game events
   tuzovanie_started: (data: {
@@ -40,13 +40,10 @@ export interface ServerToClientEvents {
   game_finished: (data: any) => void; // Legacy
 
   // Turn events
-  turn_timer: (data: TurnTimerPayload) => void;
   turn_timer_started: (data: TurnTimerPayload) => void;
   pulka_recap_started: (data: { expiresAt: number }) => void;
 
   // Player status
-  player_disconnected: (data: { playerId: string; playerName: string }) => void;
-  player_reconnected: (data: { playerId: string; playerName: string }) => void;
   player_replaced: (data: PlayerReplacedPayload) => void;
 
   // Errors

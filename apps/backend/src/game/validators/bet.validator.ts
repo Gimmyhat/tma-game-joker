@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ValidationResult } from '@joker/shared';
+import { ValidationResult, calculateForbiddenBet } from '@joker/shared';
 
 @Injectable()
 export class BetValidator {
@@ -37,19 +37,19 @@ export class BetValidator {
       };
     }
 
-    // Calculate sum of existing bets
-    const sumBets = currentBets
-      .filter((bet): bet is number => bet !== null)
-      .reduce((sum, bet) => sum + bet, 0);
-
     // Check if this is the last player (dealer)
     const isLastPlayer = playerIndex === dealerIndex;
 
     if (isLastPlayer) {
       // Last player cannot make a bet that equals the remaining amount
-      const forbiddenBet = roundLength - sumBets;
+      const forbiddenBet = calculateForbiddenBet(
+        currentBets,
+        roundLength,
+        playerIndex,
+        dealerIndex,
+      );
 
-      if (newBet === forbiddenBet && forbiddenBet >= 0 && forbiddenBet <= roundLength) {
+      if (forbiddenBet !== null && newBet === forbiddenBet) {
         return {
           valid: false,
           reason: 'FORBIDDEN_BET',
@@ -93,22 +93,7 @@ export class BetValidator {
     playerIndex: number,
     dealerIndex: number,
   ): number | null {
-    if (playerIndex !== dealerIndex) {
-      return null;
-    }
-
-    const sumBets = currentBets
-      .filter((bet): bet is number => bet !== null)
-      .reduce((sum, bet) => sum + bet, 0);
-
-    const forbiddenBet = roundLength - sumBets;
-
-    // Only forbidden if it's a valid bet range
-    if (forbiddenBet >= 0 && forbiddenBet <= roundLength) {
-      return forbiddenBet;
-    }
-
-    return null;
+    return calculateForbiddenBet(currentBets, roundLength, playerIndex, dealerIndex);
   }
 
   /**
