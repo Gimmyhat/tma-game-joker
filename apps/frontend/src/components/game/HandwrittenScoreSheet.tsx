@@ -4,10 +4,18 @@ import { useGameStore } from '../../store/gameStore';
 import { GAME_CONSTANTS, ScoreSheetRoundEntry, PulkaSummary } from '@joker/shared';
 
 interface HandwrittenScoreSheetProps {
-  onClose: () => void;
+  onClose?: () => void;
+  isOpen?: boolean; // Added for compatibility with ScoreSheetModal interface
+  isPulkaResult?: boolean; // Ignored, but kept for interface compatibility
+  title?: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ onClose }) => {
+export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
+  onClose,
+  title,
+  footer,
+}) => {
   const { t } = useTranslation();
   const { gameState, finalResults } = useGameStore();
 
@@ -32,7 +40,6 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
     // Compute mock summaries from current game state for live view
     const players = gameState.players.map((p, index) => {
       // Need to compute per-pulka summaries
-      // This is a simplified frontend calculation
       const pulkaSummaries: PulkaSummary[] = GAME_CONSTANTS.PULKA_STRUCTURE.map((structure) => {
         const rounds: ScoreSheetRoundEntry[] = structure.rounds.map((roundNum, idx) => {
           const history = gameState.history.find((h) => h.round === roundNum);
@@ -69,16 +76,26 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
         const avg =
           completedRounds.length > 0 ? Number((sum / completedRounds.length).toFixed(1)) : 0;
 
-        // Cumulative (approximate from p.pulkaScores if available)
-        // p.pulkaScores[structure.pulka - 1] might exist
-        const cumulativeTotal = p.pulkaScores[structure.pulka - 1] ?? 0;
+        // Cumulative
+        const pulkaIdx = structure.pulka - 1;
+        const currentPulkaTotal = p.pulkaScores[pulkaIdx];
+        const cumulativeTotal = currentPulkaTotal ?? 0;
+
+        // Calculate premium (Frontend Calculation)
+        let premiumScore = 0;
+        if (currentPulkaTotal !== undefined) {
+          const prevPulkaTotal = pulkaIdx > 0 ? (p.pulkaScores[pulkaIdx - 1] ?? 0) : 0;
+          const totalGained = currentPulkaTotal - prevPulkaTotal;
+          const roundScoresSum = rounds.reduce((s, r) => s + r.score, 0);
+          premiumScore = totalGained - roundScoresSum;
+        }
 
         return {
           pulkaNumber: structure.pulka,
           rounds,
           pulkaAverage: avg,
-          cumulativeTotal, // This might be 0 if pulka not finished
-          premiumScore: 0, // Hard to calc on frontend without logic duplication
+          cumulativeTotal: currentPulkaTotal !== undefined ? cumulativeTotal : 0, // Only show if calculated
+          premiumScore,
         };
       });
 
@@ -97,8 +114,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
 
   if (!displayData) return null;
 
-  // Sort players by seat index for the table columns (as per requirement "sorted by original seat position")
-  // Actually, usually table columns are fixed by seat order.
+  // Sort players by seat index for the table columns
   const tablePlayers = [...displayData.players].sort((a, b) => a.seatIndex - b.seatIndex);
 
   return (
@@ -120,27 +136,29 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
         {/* Header */}
         <div className="relative z-10 flex items-center justify-between p-4 border-b-2 border-blue-900/30">
           <h2 className="text-3xl font-bold text-blue-800 tracking-wide">
-            {t('game.scoreSheet', 'Лист счета')}
+            {title || t('game.scoreSheet', 'Лист счета')}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Scrollable Table Container */}
@@ -257,6 +275,48 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
                     </tr>,
                   );
 
+                  // Premium Row
+                  // Only show if pulka is finished (has cumulative total)
+                  const isPulkaFinished = tablePlayers.some(
+                    (p) =>
+                      p.pulkaSummaries[pulkaIdx].cumulativeTotal !== 0 ||
+                      p.pulkaSummaries[pulkaIdx].premiumScore !== 0,
+                  );
+
+                  if (isPulkaFinished) {
+                    pulkaRows.push(
+                      <tr
+                        key={`p-${pulka.pulka}-prem`}
+                        className="bg-green-50/50 border-b-2 border-blue-900/50"
+                      >
+                        <td
+                          colSpan={2}
+                          className="border-r-2 border-blue-900/50 p-1 text-center font-bold text-lg text-emerald-700"
+                        >
+                          Prem
+                        </td>
+                        {tablePlayers.map((player) => {
+                          const summary = player.pulkaSummaries[pulkaIdx];
+                          const premium = summary.premiumScore;
+                          const hasPremium = premium !== 0;
+
+                          return (
+                            <td
+                              key={player.id}
+                              className="border-r-2 border-blue-900/50 p-1 text-center text-xl font-bold"
+                            >
+                              {hasPremium && (
+                                <span className={premium > 0 ? 'text-emerald-600' : 'text-red-500'}>
+                                  {premium > 0 ? `+${premium}` : premium}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>,
+                    );
+                  }
+
                   // Cumulative Row
                   pulkaRows.push(
                     <tr key={`p-${pulka.pulka}-cum`} className="border-b-4 border-blue-900/80">
@@ -264,12 +324,15 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
                       {tablePlayers.map((player) => {
                         const summary = player.pulkaSummaries[pulkaIdx];
                         const hasPlayed = summary.rounds.some((r) => r.bid !== null);
+                        // Also show if we have a cumulative total (e.g. from premiums)
+                        const showTotal = hasPlayed || summary.cumulativeTotal !== 0;
+
                         return (
                           <td
                             key={player.id}
                             className="border-r-2 border-blue-900/50 p-2 text-center text-2xl font-black text-blue-900"
                           >
-                            {hasPlayed ? summary.cumulativeTotal : ''}
+                            {showTotal ? summary.cumulativeTotal : ''}
                           </td>
                         );
                       })}
@@ -315,6 +378,13 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({ on
             </table>
           </div>
         </div>
+
+        {/* Footer (Timer etc) */}
+        {footer && (
+          <div className="relative z-10 bg-[#fdfbf7] p-4 border-t-2 border-blue-900/30 flex justify-center">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { ScoreSheetModal } from './ScoreSheetModal';
+import { HandwrittenScoreSheet } from './HandwrittenScoreSheet';
 
 export const PulkaResultsModal: React.FC = () => {
   const { gameState, pulkaRecapExpiresAt } = useGameStore();
@@ -28,23 +28,19 @@ export const PulkaResultsModal: React.FC = () => {
   const { pulka } = gameState.lastPulkaResults;
 
   return (
-    <ScoreSheetModal
+    <HandwrittenScoreSheet
       isOpen={true}
       isPulkaResult={true}
       title={
         <div className="flex items-center gap-3">
           <span className="text-2xl">🏆</span>
-          <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400">
-            Pulka {pulka} Complete
-          </span>
+          <span className="text-xl font-bold text-blue-900">Pulka {pulka} Complete</span>
         </div>
       }
       footer={
-        <div className="flex flex-col items-center justify-center gap-2">
-          <p className="text-gray-400 text-xs uppercase tracking-wider">Starting Next Round in</p>
-          <div className="text-3xl font-mono font-bold text-yellow-400 tabular-nums">
-            {timeLeft}
-          </div>
+        <div className="flex flex-col items-center justify-center gap-2 text-blue-900">
+          <p className="text-xs uppercase tracking-wider opacity-70">Starting Next Round in</p>
+          <div className="text-3xl font-mono font-bold tabular-nums">{timeLeft}</div>
         </div>
       }
     />

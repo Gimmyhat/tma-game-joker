@@ -22,7 +22,7 @@ import {
   PulkaResultsModal,
   TrumpSelectionModal,
   VictoryScreen,
-  ScoreSheetModal,
+  HandwrittenScoreSheet,
 } from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
@@ -450,7 +450,7 @@ export const GameScreen: React.FC = () => {
       <PulkaResultsModal />
 
       {/* Score Sheet Modal */}
-      <ScoreSheetModal isOpen={showScoreSheet} onClose={() => setShowScoreSheet(false)} />
+      {showScoreSheet && <HandwrittenScoreSheet onClose={() => setShowScoreSheet(false)} />}
 
       {/* Game Over / Victory Screen */}
       <VictoryScreen />
