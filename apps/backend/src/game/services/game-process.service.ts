@@ -289,7 +289,7 @@ export class GameProcessService {
       `Tuzovanie started in room ${room.id}. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
     );
 
-    // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
+    // Calculate delay: total cards dealt * TUZOVANIE_CARD_DELAY_MS + buffer
     const totalCards = tuzovanieSequence.length;
     const delayMs =
       totalCards * GAME_CONSTANTS.TUZOVANIE_CARD_DELAY_MS + GAME_CONSTANTS.TUZOVANIE_BUFFER_MS;
@@ -349,7 +349,7 @@ export class GameProcessService {
       `Tuzovanie started in room ${room.id} with bots. Dealer: ${room.gameState.dealerIndex}, Cards: ${JSON.stringify(tuzovanieCards)}`,
     );
 
-    // Calculate delay: count total cards dealt * 600ms (frontend anim) + 4000ms buffer
+    // Calculate delay: total cards dealt * TUZOVANIE_CARD_DELAY_MS + buffer
     const totalCards = tuzovanieSequence.length;
     const delayMs =
       totalCards * GAME_CONSTANTS.TUZOVANIE_CARD_DELAY_MS + GAME_CONSTANTS.TUZOVANIE_BUFFER_MS;

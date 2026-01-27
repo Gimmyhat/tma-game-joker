@@ -437,7 +437,7 @@ export class GameEngineService {
    */
   makeBet(state: GameState, playerId: string, amount: number): GameState {
     if (state.phase !== GamePhase.Betting) {
-      throw new Error('Not in betting phase');
+      throw new Error(`Not in betting phase (current: ${state.phase})`);
     }
 
     const playerIndex = state.players.findIndex((p) => p.id === playerId);

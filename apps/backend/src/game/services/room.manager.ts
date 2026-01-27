@@ -346,10 +346,13 @@ export class RoomManager {
     if (room) {
       room.gameState = gameState;
 
-      // Persist to Redis (async, don't await to avoid blocking)
-      this.redisService.setGameState(roomId, gameState).catch((err) => {
-        this.logger.error(`Failed to persist game state: ${err.message}`);
-      });
+      // Persist to Redis
+      // We await this to ensure consistency across restarts/instances
+      try {
+        await this.redisService.setGameState(roomId, gameState);
+      } catch (err) {
+        this.logger.error(`Failed to persist game state: ${(err as Error).message}`);
+      }
     }
   }
 

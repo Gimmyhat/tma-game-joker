@@ -391,8 +391,8 @@ export const Table: React.FC<TableProps> = ({
             rotate: t.rotate + randomAngle, // Messy alignment
           }}
           transition={{
-            delay: dealIndex * 0.6,
-            duration: 0.8,
+            delay: dealIndex * 0.42,
+            duration: 0.56,
             type: 'spring',
             stiffness: 100,
             damping: 15,
@@ -411,7 +411,7 @@ export const Table: React.FC<TableProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 0, scale: 0 }}
                 animate={{ opacity: 1, y: 45, scale: 1 }}
-                transition={{ delay: dealIndex * 0.6 + 0.5, type: 'spring' }}
+                transition={{ delay: dealIndex * 0.42 + 0.35, type: 'spring' }}
                 className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-50"
               >
                 <div className="bg-gradient-to-r from-yellow-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap border border-yellow-300">
