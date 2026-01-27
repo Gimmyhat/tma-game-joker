@@ -27,6 +27,7 @@
     "waitingFor": "Waiting for",
     "yourTurn": "YOUR TURN",
     "opponent": "OPPONENT",
+    "timerFrozen": "PAUSED",
     "phase": {
       "betting": "Place Your Bet",
       "trump_selection": "Choose Trump",
@@ -76,7 +77,10 @@
       "noTrump": "No Trump",
       "noTrumpJoker": "No Trump (Joker Revealed)",
       "confirm": "Confirm",
-      "label": "Trump"
+      "label": "Trump",
+      "redeal": "Redeal",
+      "waitingFor": "{{name}} is choosing",
+      "waitingDescription": "Waiting for trump selection..."
     },
     "joker": {
       "ability": "Joker Ability",

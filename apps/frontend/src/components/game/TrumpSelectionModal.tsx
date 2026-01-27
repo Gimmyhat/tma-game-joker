@@ -50,10 +50,13 @@ export const TrumpSelectionModal: React.FC = () => {
     { type: Suit.Spades, color: 'text-slate-200', label: t('game.trump.spades') },
   ];
 
+  // Disable all actions when timer expires (prevents race condition with backend timeout)
+  const isTimedOut = timeLeft <= 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0" />
 
       {/* Modal Content */}
       <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -84,11 +87,11 @@ export const TrumpSelectionModal: React.FC = () => {
                   <button
                     key={suit.type}
                     onClick={() => selectTrumpSuit(suit.type)}
-                    disabled={!trumpSelection.allowed.suits.includes(suit.type)}
+                    disabled={isTimedOut || !trumpSelection.allowed.suits.includes(suit.type)}
                     className={`
                       flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
                       ${
-                        !trumpSelection.allowed.suits.includes(suit.type)
+                        isTimedOut || !trumpSelection.allowed.suits.includes(suit.type)
                           ? 'opacity-50 cursor-not-allowed border-slate-800 bg-slate-900'
                           : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-amber-500/50 hover:shadow-[0_0_10px_rgba(245,158,11,0.1)] active:scale-95'
                       }
@@ -105,11 +108,11 @@ export const TrumpSelectionModal: React.FC = () => {
               {/* No Trump Option */}
               <button
                 onClick={() => selectNoTrump()}
-                disabled={!trumpSelection.allowed.noTrump}
+                disabled={isTimedOut || !trumpSelection.allowed.noTrump}
                 className={`
                   w-full p-3 rounded-xl border font-bold text-sm transition-all duration-200 flex items-center justify-center
                   ${
-                    !trumpSelection.allowed.noTrump
+                    isTimedOut || !trumpSelection.allowed.noTrump
                       ? 'opacity-50 cursor-not-allowed border-slate-800 bg-slate-900 text-slate-600'
                       : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600 active:scale-[0.98]'
                   }
@@ -122,11 +125,11 @@ export const TrumpSelectionModal: React.FC = () => {
               {/* Redeal Option */}
               <button
                 onClick={() => requestRedeal()}
-                disabled={!trumpSelection.allowed.redeal}
+                disabled={isTimedOut || !trumpSelection.allowed.redeal}
                 className={`
                   w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2
                   ${
-                    !trumpSelection.allowed.redeal
+                    isTimedOut || !trumpSelection.allowed.redeal
                       ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-800'
                       : 'bg-slate-800 text-amber-500 border border-amber-900/30 hover:bg-amber-900/10 hover:border-amber-500/50 active:scale-[0.98]'
                   }

@@ -50,6 +50,14 @@ export const GameScreen: React.FC = () => {
   const canMakeBet = useGameStore(selectCanMakeBet);
   const canThrowCard = useGameStore(selectCanThrowCard);
 
+  // Derived State
+  const humanPlayerCount = useMemo(() => {
+    if (!gameState) return 0;
+    return gameState.players.filter((p) => !p.isBot).length;
+  }, [gameState]);
+
+  const isTimerFrozen = humanPlayerCount <= 1;
+
   // Local State
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
@@ -77,7 +85,7 @@ export const GameScreen: React.FC = () => {
 
   // Timer Logic
   useEffect(() => {
-    if (!turnExpiresAt) {
+    if (!turnExpiresAt || isTimerFrozen) {
       setTimeLeft(0);
       return;
     }
@@ -97,7 +105,7 @@ export const GameScreen: React.FC = () => {
     setTimeLeft(Math.max(0, Math.ceil((turnExpiresAt - now) / 1000)));
 
     return () => clearInterval(interval);
-  }, [turnExpiresAt]);
+  }, [turnExpiresAt, isTimerFrozen]);
 
   // Loading State
   if (!gameState || !myPlayerId) {
@@ -336,9 +344,11 @@ export const GameScreen: React.FC = () => {
             </div>
             <div className="flex flex-col items-center">
               <span className="font-mono text-2xl font-bold leading-none">
-                {timeLeft.toString().padStart(2, '0')}
+                {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
               </span>
-              <span className="text-[8px] uppercase tracking-wider opacity-60">SEC</span>
+              <span className="text-[8px] uppercase tracking-wider opacity-60">
+                {isTimerFrozen ? t('game.timerFrozen') : 'SEC'}
+              </span>
             </div>
           </div>
 

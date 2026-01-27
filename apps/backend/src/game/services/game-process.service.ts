@@ -20,6 +20,7 @@ export class GameProcessService {
   private server!: Server;
   private reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private botFillTimer: NodeJS.Timeout | null = null;
+  private readonly frozenRooms: Set<string> = new Set();
 
   constructor(
     private gameEngine: GameEngineService,
@@ -31,6 +32,47 @@ export class GameProcessService {
 
   setServer(server: Server) {
     this.server = server;
+  }
+
+  private countHumanPlayers(state: GameState): number {
+    return state.players.filter((player) => !player.isBot).length;
+  }
+
+  private shouldFreezeTimers(state: GameState): boolean {
+    return this.countHumanPlayers(state) <= 1;
+  }
+
+  private clearReconnectTimeouts(state: GameState): void {
+    for (const player of state.players) {
+      if (!player.isBot) {
+        this.clearReconnectTimeout(player.id);
+      }
+    }
+  }
+
+  private setRoomFrozen(roomId: string, frozen: boolean): void {
+    if (frozen) {
+      if (!this.frozenRooms.has(roomId)) {
+        this.frozenRooms.add(roomId);
+        this.logger.log(`Timers frozen in room ${roomId} (single human remaining)`);
+      }
+      return;
+    }
+
+    if (this.frozenRooms.delete(roomId)) {
+      this.logger.log(`Timers resumed in room ${roomId}`);
+    }
+  }
+
+  private clearFrozenRoom(roomId: string): void {
+    this.frozenRooms.delete(roomId);
+  }
+
+  private freezeTimersIfSingleHuman(roomId: string, state: GameState): void {
+    if (!this.shouldFreezeTimers(state)) return;
+    this.setRoomFrozen(roomId, true);
+    this.roomManager.clearTurnTimeout(roomId);
+    this.clearReconnectTimeouts(state);
   }
 
   /**
@@ -115,7 +157,18 @@ export class GameProcessService {
       return { roomId: null };
     }
 
+    const leavingPlayer = room.gameState.players.find((p) => p.id === playerId);
+    const isLeavingHuman = leavingPlayer ? !leavingPlayer.isBot : false;
+    if (isLeavingHuman && this.countHumanPlayers(room.gameState) <= 1) {
+      this.clearReconnectTimeouts(room.gameState);
+      this.clearFrozenRoom(room.id);
+      this.logger.log(`Room ${room.id} closed (last human left)`);
+      await this.roomManager.cleanupRoom(room.id);
+      return { roomId: room.id, playersCount: 0 };
+    }
+
     await this.roomManager.replaceWithBot(room.id, playerId);
+    this.freezeTimersIfSingleHuman(room.id, room.gameState);
 
     this.server.to(room.id).emit('player_left', {
       playerId,
@@ -135,6 +188,11 @@ export class GameProcessService {
    */
   async handleDisconnect(playerId: string): Promise<void> {
     await this.roomManager.handleDisconnect(playerId);
+    const room = this.roomManager.getRoomByPlayerIdSync(playerId);
+    if (room && this.shouldFreezeTimers(room.gameState)) {
+      this.freezeTimersIfSingleHuman(room.id, room.gameState);
+      return;
+    }
     this.startReconnectTimeout(playerId);
   }
 
@@ -594,6 +652,7 @@ export class GameProcessService {
     // Cleanup after delay
     setTimeout(async () => {
       await this.roomManager.cleanupRoom(roomId);
+      this.clearFrozenRoom(roomId);
     }, GAME_CONSTANTS.GAME_CLEANUP_DELAY_MS);
   }
 
@@ -605,6 +664,13 @@ export class GameProcessService {
 
     const room = this.roomManager.getRoomSync(roomId);
     if (!room) return;
+
+    if (this.shouldFreezeTimers(room.gameState)) {
+      this.freezeTimersIfSingleHuman(room.id, room.gameState);
+      return;
+    }
+
+    this.setRoomFrozen(room.id, false);
 
     const currentPlayerId = room.gameState.players[room.gameState.currentPlayerIndex]?.id;
     if (!currentPlayerId || this.roomManager.isBot(currentPlayerId)) return;
@@ -637,12 +703,18 @@ export class GameProcessService {
     const room = this.roomManager.getRoomSync(roomId);
     if (!room) return;
 
+    if (this.shouldFreezeTimers(room.gameState)) {
+      this.freezeTimersIfSingleHuman(roomId, room.gameState);
+      return;
+    }
+
     const playerName = room.gameState.players.find((p) => p.id === playerId)?.name;
 
     // Replace with bot
     const newState = await this.roomManager.replaceWithBot(roomId, playerId);
     if (newState) {
       room.gameState = newState;
+      this.freezeTimersIfSingleHuman(roomId, room.gameState);
 
       this.server.to(roomId).emit('player_replaced', {
         playerId,
@@ -704,6 +776,13 @@ export class GameProcessService {
     const room = this.roomManager.getRoomByPlayerIdSync(playerId);
     if (!room) return;
 
+    if (this.shouldFreezeTimers(room.gameState)) {
+      this.freezeTimersIfSingleHuman(room.id, room.gameState);
+      return;
+    }
+
+    this.setRoomFrozen(room.id, false);
+
     this.clearReconnectTimeout(playerId);
 
     const timeoutMs =
@@ -718,10 +797,16 @@ export class GameProcessService {
       const player = currentRoom.gameState.players.find((p) => p.id === playerId);
       if (!player || player.connected) return;
 
+      if (this.shouldFreezeTimers(currentRoom.gameState)) {
+        this.freezeTimersIfSingleHuman(currentRoom.id, currentRoom.gameState);
+        return;
+      }
+
       const newState = await this.roomManager.replaceWithBot(currentRoom.id, playerId);
       if (!newState) return;
 
       currentRoom.gameState = newState;
+      this.freezeTimersIfSingleHuman(currentRoom.id, currentRoom.gameState);
 
       this.server.to(currentRoom.id).emit('player_replaced', {
         playerId,

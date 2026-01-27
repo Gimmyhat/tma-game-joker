@@ -36,6 +36,7 @@
     "waitingFor": "Ожидание",
     "yourTurn": "ВАШ ХОД",
     "opponent": "ОППОНЕНТ",
+    "timerFrozen": "ПАУЗА",
     "phase": {
       "betting": "Сделайте ставку",
       "trump_selection": "Выберите козырь",
@@ -85,7 +86,10 @@
       "noTrump": "Без козыря",
       "noTrumpJoker": "Без козыря (Джокер)",
       "confirm": "Подтвердить",
-      "label": "Козырь"
+      "label": "Козырь",
+      "redeal": "Пересдача",
+      "waitingFor": "Выбирает {{name}}",
+      "waitingDescription": "Ожидание выбора козыря..."
     },
     "joker": {
       "ability": "Свойство Джокера",
