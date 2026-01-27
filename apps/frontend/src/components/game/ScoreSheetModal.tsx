@@ -200,8 +200,19 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({
                   })}
 
                   {/* Premium Row (if this pulka is finished) */}
-                  {gameState.lastPulkaResults &&
-                    gameState.lastPulkaResults.pulka === pulka.pulka && (
+                  {(() => {
+                    // Check if we have data for this pulka (it is finished for at least one player or globally)
+                    // We check if players have a score recorded in pulkaScores for this pulka index
+                    const pulkaIdx = GAME_CONSTANTS.PULKA_STRUCTURE.findIndex(
+                      (p) => p.pulka === pulka.pulka,
+                    );
+                    const isPulkaFinished = gameState.players.some(
+                      (p) => p.pulkaScores[pulkaIdx] !== undefined,
+                    );
+
+                    if (!isPulkaFinished) return null;
+
+                    return (
                       <tr className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-t-2 border-indigo-500/30">
                         <td
                           colSpan={2}
@@ -210,9 +221,27 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({
                           Premiums
                         </td>
                         {gameState.players.map((player) => {
-                          const premiumScore =
-                            gameState.lastPulkaResults?.playerScores[player.id] || 0;
-                          const hasPremium = premiumScore !== 0;
+                          const currentPulkaTotal = player.pulkaScores[pulkaIdx];
+
+                          // Calculate premium only if we have the pulka score
+                          let premiumScore = 0;
+                          let hasPremium = false;
+
+                          if (currentPulkaTotal !== undefined) {
+                            const prevPulkaTotal =
+                              pulkaIdx > 0 ? (player.pulkaScores[pulkaIdx - 1] ?? 0) : 0;
+                            const totalGained = currentPulkaTotal - prevPulkaTotal;
+
+                            const roundScoresSum = pulka.rounds.reduce((sum, roundNum) => {
+                              // roundNum is 1-based, roundScores is 0-based
+                              const score = player.roundScores[roundNum - 1] ?? 0;
+                              return sum + score;
+                            }, 0);
+
+                            premiumScore = totalGained - roundScoresSum;
+                            hasPremium = premiumScore !== 0;
+                          }
+
                           return (
                             <td key={player.id} className="p-3 border-r border-[#2c3e50]">
                               {hasPremium && (
@@ -226,7 +255,8 @@ export const ScoreSheetModal: React.FC<ScoreSheetModalProps> = ({
                           );
                         })}
                       </tr>
-                    )}
+                    );
+                  })()}
                 </React.Fragment>
               ))}
             </tbody>
