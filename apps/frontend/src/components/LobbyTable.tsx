@@ -27,6 +27,7 @@ export const LobbyTable: React.FC = () => {
       totalScore: 0,
       spoiled: false,
       hadJokerInRounds: [],
+      jokerCountPerRound: [],
     });
 
     // 2. Add other connected players (placeholders)
@@ -48,6 +49,7 @@ export const LobbyTable: React.FC = () => {
         totalScore: 0,
         spoiled: false,
         hadJokerInRounds: [],
+        jokerCountPerRound: [],
       });
     }
 
@@ -70,6 +72,7 @@ export const LobbyTable: React.FC = () => {
         totalScore: 0,
         spoiled: false,
         hadJokerInRounds: [],
+        jokerCountPerRound: [],
       });
     }
 

@@ -40,6 +40,7 @@ describe('Badge Logic', () => {
     totalScore: 0,
     spoiled: false,
     hadJokerInRounds: [],
+    jokerCountPerRound: [],
     tookAllInPulka: false,
     perfectPassInPulka: false,
     ...overrides,

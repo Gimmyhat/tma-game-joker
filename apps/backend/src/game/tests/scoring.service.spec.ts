@@ -21,6 +21,7 @@ describe('ScoringService', () => {
     totalScore: 0,
     spoiled: false,
     hadJokerInRounds: [],
+    jokerCountPerRound: [],
     ...overrides,
   });
 
@@ -131,6 +132,7 @@ describe('ScoringService', () => {
       tricks: {},
       scores,
       tableHistory: [],
+      jokerCounts: {},
     });
 
     it('should give premium to clean player using their OWN max score', () => {
