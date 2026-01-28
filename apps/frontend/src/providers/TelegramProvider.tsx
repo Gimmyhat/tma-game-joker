@@ -1,5 +1,5 @@
 /**
- * Telegram SDK Provider component
+ * Telegram SDK Provider component (SDK v3.x)
  * Initializes Telegram WebApp SDK and provides context
  */
 
@@ -13,13 +13,14 @@ import {
   useRef,
 } from 'react';
 import {
-  SDKProvider,
-  useInitData,
-  useInitDataRaw,
-  useMiniApp,
-  useViewport,
-  useSwipeBehavior,
-} from '@telegram-apps/sdk-react';
+  init,
+  miniApp,
+  viewport,
+  swipeBehavior,
+  retrieveRawInitData,
+  retrieveLaunchParams,
+  type User,
+} from '@telegram-apps/sdk';
 import { setInitData, setUserInfo } from '../lib/socket';
 import { getMockUser, getMockInitData, isInTelegram, type TelegramUser } from '../lib/telegram';
 
@@ -28,6 +29,7 @@ interface TelegramContextType {
   initDataRaw: string;
   isReady: boolean;
   isTelegram: boolean;
+  isFullscreen: boolean;
   requestFullscreenMode: () => Promise<void>;
 }
 
@@ -36,6 +38,7 @@ const TelegramContext = createContext<TelegramContextType>({
   initDataRaw: '',
   isReady: false,
   isTelegram: false,
+  isFullscreen: false,
   requestFullscreenMode: async () => {},
 });
 
@@ -44,7 +47,7 @@ export function useTelegram() {
 }
 
 /**
- * Prevent accidental app closure via gestures - AGGRESSIVE version
+ * Prevent accidental app closure via gestures
  */
 function usePreventAccidentalClose() {
   const touchStartY = useRef(0);
@@ -73,7 +76,6 @@ function usePreventAccidentalClose() {
       if (e.touches.length === 1) {
         touchStartY.current = e.touches[0].clientY;
       }
-      // Prevent multi-touch
       if (e.touches.length > 1) {
         e.preventDefault();
       }
@@ -86,33 +88,40 @@ function usePreventAccidentalClose() {
         return;
       }
 
+      const target = e.target as HTMLElement;
+
+      // NEVER block interactive elements
+      const isInteractive = target.closest(
+        'button, a, input, select, textarea, [role="button"], [data-interactive]',
+      );
+      if (isInteractive) return;
+
+      // NEVER block elements inside modals
+      const isInModal = target.closest('[class*="z-50"], [class*="z-["]');
+      if (isInModal) return;
+
       const touch = e.touches[0];
       const deltaY = touch.clientY - touchStartY.current;
 
-      // If swiping down from top area - BLOCK (this closes TMA)
-      if (touchStartY.current < 100 && deltaY > 10) {
+      // Block swipe down from top area
+      if (touchStartY.current < 50 && deltaY > 20) {
         e.preventDefault();
         e.stopPropagation();
         return;
       }
 
-      // If swiping up from bottom - BLOCK (this can also trigger gestures)
+      // Block swipe up from bottom area
       const screenHeight = window.innerHeight;
-      if (touchStartY.current > screenHeight - 100 && deltaY < -10) {
+      if (touchStartY.current > screenHeight - 50 && deltaY < -20) {
         e.preventDefault();
         e.stopPropagation();
         return;
       }
 
-      // Check if we're in a scrollable container
-      const target = e.target as HTMLElement;
+      // Block significant vertical drags outside scrollable areas
       const scrollable = target.closest('[data-scrollable]');
-
-      if (!scrollable) {
-        // Not in scrollable - prevent all vertical movement
-        if (Math.abs(deltaY) > 5) {
-          e.preventDefault();
-        }
+      if (!scrollable && Math.abs(deltaY) > 30) {
+        e.preventDefault();
       }
     };
 
@@ -129,7 +138,6 @@ function usePreventAccidentalClose() {
       }
     };
 
-    // Add listeners with passive: false for preventDefault to work
     document.addEventListener('touchstart', onTouchStart, { passive: false });
     document.addEventListener('touchstart', preventZoom, { passive: false });
     document.addEventListener('touchend', preventDoubleTapZoom, { passive: false });
@@ -137,7 +145,6 @@ function usePreventAccidentalClose() {
     document.addEventListener('contextmenu', preventContextMenu);
     document.addEventListener('wheel', preventWheelZoom, { passive: false });
 
-    // Also prevent on body and html
     document.body.style.overscrollBehavior = 'none';
     document.documentElement.style.overscrollBehavior = 'none';
 
@@ -153,11 +160,10 @@ function usePreventAccidentalClose() {
 }
 
 /**
- * Request fullscreen via browser API (for RotateDeviceOverlay)
+ * Request fullscreen via browser API (fallback)
  */
 async function requestBrowserFullscreen(): Promise<boolean> {
   const elem = document.documentElement;
-
   try {
     if (elem.requestFullscreen) {
       await elem.requestFullscreen();
@@ -172,128 +178,160 @@ async function requestBrowserFullscreen(): Promise<boolean> {
   } catch (e) {
     console.warn('[Fullscreen] Browser request failed:', e);
   }
-
   return false;
 }
 
 /**
- * Inner component that uses SDK hooks (inside SDKProvider)
+ * Convert SDK User to TelegramUser
+ */
+function sdkUserToTelegramUser(sdkUser: User): TelegramUser {
+  return {
+    id: sdkUser.id,
+    firstName: sdkUser.first_name,
+    lastName: sdkUser.last_name,
+    username: sdkUser.username,
+    languageCode: sdkUser.language_code,
+    photoUrl: sdkUser.photo_url,
+  };
+}
+
+/**
+ * Inner component that uses SDK v3.x
  */
 function TelegramInner({ children }: { children: ReactNode }) {
-  const initDataRawItem = useInitDataRaw();
-  const initData = useInitData();
-  const miniApp = useMiniApp();
-  const viewport = useViewport();
-  const swipeBehavior = useSwipeBehavior();
   const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useState<TelegramUser | null>(null);
+  const [rawInitData, setRawInitDataState] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const initRef = useRef(false);
 
   // Apply gesture protection
   usePreventAccidentalClose();
 
-  // Initialize Telegram SDK - run ONCE
+  // Initialize SDK components - run ONCE
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
 
-    // IMMEDIATELY disable vertical swipes - this is critical
-    const sb = swipeBehavior;
-    if (sb) {
+    const initializeSDK = async () => {
       try {
-        if (typeof sb.disableVerticalSwipe === 'function') {
-          sb.disableVerticalSwipe();
-          console.log('[Telegram] Vertical swipe disabled via disableVerticalSwipe()');
-        }
-      } catch (e) {
-        console.warn('[Telegram] Failed to disable vertical swipe:', e);
-      }
-    }
-
-    // Set initData for socket authentication
-    const rawData = initDataRawItem?.result;
-    if (typeof rawData === 'string') {
-      setInitData(rawData);
-    }
-
-    // Expand viewport to fullscreen
-    const vp = viewport;
-    if (vp) {
-      if (!vp.isExpanded && typeof vp.expand === 'function') {
+        // Get raw init data first
         try {
-          vp.expand();
+          const rawData = retrieveRawInitData();
+          if (rawData) {
+            setRawInitDataState(rawData);
+            setInitData(rawData);
+          }
+        } catch (e) {
+          console.warn('[Telegram] Failed to retrieve raw init data:', e);
+        }
+
+        // Get user from launch params
+        try {
+          const launchParams = retrieveLaunchParams();
+          if (launchParams.tgWebAppData?.user) {
+            const userData = sdkUserToTelegramUser(launchParams.tgWebAppData.user);
+            setUser(userData);
+            setUserInfo(userData);
+          }
+        } catch (e) {
+          console.warn('[Telegram] Failed to retrieve launch params:', e);
+        }
+
+        // Mount swipe behavior
+        if (swipeBehavior.mount.isAvailable()) {
+          swipeBehavior.mount();
+          console.log('[Telegram] SwipeBehavior mounted');
+        }
+
+        // Disable vertical swipes immediately
+        if (swipeBehavior.disableVertical.isAvailable()) {
+          swipeBehavior.disableVertical();
+          console.log('[Telegram] Vertical swipes disabled');
+        }
+
+        // Mount viewport
+        if (viewport.mount.isAvailable()) {
+          await viewport.mount();
+          console.log('[Telegram] Viewport mounted');
+
+          // Bind CSS variables for safe area insets
+          if (viewport.bindCssVars.isAvailable()) {
+            viewport.bindCssVars();
+            console.log('[Telegram] Viewport CSS vars bound');
+          }
+        }
+
+        // Expand viewport
+        if (viewport.expand.isAvailable()) {
+          viewport.expand();
           console.log('[Telegram] Viewport expanded');
-        } catch (e) {
-          console.warn('[Telegram] Failed to expand viewport:', e);
         }
-      }
 
-      // Try to request fullscreen if available
-      // @ts-expect-error - requestFullscreen may exist in newer SDK versions
-      if (typeof vp.requestFullscreen === 'function') {
-        try {
-          // @ts-expect-error
-          vp.requestFullscreen();
-          console.log('[Telegram] Fullscreen requested via SDK');
-        } catch (e) {
-          console.warn('[Telegram] Failed to request fullscreen via SDK:', e);
+        // Request fullscreen mode (removes Telegram header)
+        if (viewport.requestFullscreen.isAvailable()) {
+          try {
+            await viewport.requestFullscreen();
+            setIsFullscreen(true);
+            console.log('[Telegram] Fullscreen requested');
+          } catch (e) {
+            console.warn('[Telegram] Fullscreen request failed:', e);
+          }
         }
+
+        // Subscribe to fullscreen changes
+        if (viewport.isMounted()) {
+          viewport.isFullscreen.sub((value) => {
+            setIsFullscreen(value);
+          });
+        }
+
+        // Mount mini app
+        if (miniApp.mount.isAvailable()) {
+          miniApp.mount();
+          console.log('[Telegram] MiniApp mounted');
+        }
+
+        // Signal app is ready
+        if (miniApp.ready.isAvailable()) {
+          miniApp.ready();
+          console.log('[Telegram] MiniApp ready');
+        }
+
+        setIsReady(true);
+      } catch (e) {
+        console.error('[Telegram] SDK initialization failed:', e);
+        setIsReady(true); // Still mark as ready to show UI
       }
-    }
+    };
 
-    // Signal ready
-    const ma = miniApp;
-    if (ma && typeof ma.ready === 'function') {
-      ma.ready();
-      setIsReady(true);
-      console.log('[Telegram] MiniApp ready');
-    }
-  }, [initDataRawItem, viewport, miniApp, swipeBehavior]);
+    initializeSDK();
+  }, []);
 
-  // Request fullscreen mode (can be called later, e.g., on user interaction)
+  // Request fullscreen mode (can be called on user interaction)
   const requestFullscreenMode = useCallback(async () => {
     // Try SDK method first
-    const vp = viewport;
-    // @ts-expect-error - requestFullscreen may exist in newer SDK versions
-    if (vp && typeof vp.requestFullscreen === 'function') {
+    if (viewport.requestFullscreen.isAvailable()) {
       try {
-        // @ts-expect-error
-        await vp.requestFullscreen();
+        await viewport.requestFullscreen();
         console.log('[Telegram] Fullscreen via SDK');
         return;
       } catch (e) {
         console.warn('[Telegram] SDK fullscreen failed:', e);
       }
     }
-
     // Fallback to browser API
     await requestBrowserFullscreen();
-  }, [viewport]);
-
-  // Build user from initData
-  const user: TelegramUser | null = initData?.user
-    ? {
-        id: initData.user.id,
-        firstName: initData.user.firstName,
-        lastName: initData.user.lastName,
-        username: initData.user.username,
-        languageCode: initData.user.languageCode,
-        photoUrl: initData.user.photoUrl,
-      }
-    : null;
-
-  useEffect(() => {
-    if (user) {
-      setUserInfo(user);
-    }
-  }, [user]);
+  }, []);
 
   return (
     <TelegramContext.Provider
       value={{
         user,
-        initDataRaw: typeof initDataRawItem?.result === 'string' ? initDataRawItem.result : '',
+        initDataRaw: rawInitData,
         isReady,
         isTelegram: true,
+        isFullscreen,
         requestFullscreenMode,
       }}
     >
@@ -308,11 +346,9 @@ function TelegramInner({ children }: { children: ReactNode }) {
 function DevFallback({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
-  // Apply gesture protection even in dev mode
   usePreventAccidentalClose();
 
   useEffect(() => {
-    // Set mock initData for development
     setInitData(getMockInitData());
     setUserInfo(getMockUser());
     setIsReady(true);
@@ -330,6 +366,7 @@ function DevFallback({ children }: { children: ReactNode }) {
         initDataRaw: getMockInitData(),
         isReady,
         isTelegram: false,
+        isFullscreen: false,
         requestFullscreenMode,
       }}
     >
@@ -338,22 +375,36 @@ function DevFallback({ children }: { children: ReactNode }) {
   );
 }
 
+// Initialize SDK globally (before any React rendering)
+let sdkInitialized = false;
+
+function initSDK() {
+  if (sdkInitialized) return;
+  sdkInitialized = true;
+
+  if (isInTelegram()) {
+    try {
+      init();
+      console.log('[Telegram] SDK initialized');
+    } catch (e) {
+      console.warn('[Telegram] SDK init failed:', e);
+    }
+  }
+}
+
 /**
  * Main Telegram Provider
  * Wraps app with SDK or provides mock data in development
  */
 export function TelegramProvider({ children }: { children: ReactNode }) {
+  // Initialize SDK on first render
+  initSDK();
+
   const isTelegram = isInTelegram();
 
   if (!isTelegram) {
-    // Development mode - no Telegram SDK
     return <DevFallback>{children}</DevFallback>;
   }
 
-  // Production mode - use SDK
-  return (
-    <SDKProvider acceptCustomStyles debug={import.meta.env.DEV}>
-      <TelegramInner>{children}</TelegramInner>
-    </SDKProvider>
-  );
+  return <TelegramInner>{children}</TelegramInner>;
 }

@@ -94,6 +94,27 @@ body,
   }
 }
 
+/* Telegram Mini App safe area insets (set by SDK) */
+#root {
+  /* Use TMA safe area insets if available, fall back to env() */
+  padding-top: var(
+    --tg-viewport-safe-area-inset-top,
+    var(--tg-viewport-content-safe-area-inset-top, env(safe-area-inset-top, 0))
+  );
+  padding-right: var(
+    --tg-viewport-safe-area-inset-right,
+    var(--tg-viewport-content-safe-area-inset-right, env(safe-area-inset-right, 0))
+  );
+  padding-bottom: var(
+    --tg-viewport-safe-area-inset-bottom,
+    var(--tg-viewport-content-safe-area-inset-bottom, env(safe-area-inset-bottom, 0))
+  );
+  padding-left: var(
+    --tg-viewport-safe-area-inset-left,
+    var(--tg-viewport-content-safe-area-inset-left, env(safe-area-inset-left, 0))
+  );
+}
+
 /* Landscape-specific styles for mobile */
 @media screen and (orientation: landscape) and (max-height: 500px) {
   html,
