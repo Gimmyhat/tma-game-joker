@@ -1,12 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Roboto:wght@400;500;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Casino Design System Variables */
+:root {
+  /* Felt Colors */
+  --color-felt: #1a5c32;
+  --color-felt-light: #238c4a;
+  --color-felt-dark: #0f3d23;
+  --color-felt-darker: #0a2918;
+
+  /* Wood/Table Edge */
+  --color-wood: #3d2211;
+  --color-wood-light: #5a3518;
+  --color-wood-dark: #2a1608;
+
+  /* Gold Accents */
+  --color-gold: #c9a227;
+  --color-gold-light: #e6c34a;
+  --color-gold-dark: #a68418;
+
+  /* Card Colors */
+  --color-card-red: #dc143c;
+  --color-card-black: #1a1a1a;
+  --color-card-back: #8b0000;
+
+  /* Shadows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glow-gold: 0 0 20px rgba(201, 162, 39, 0.5);
+  --shadow-glow-active: 0 0 30px rgba(250, 204, 21, 0.6);
+}
+
 @layer utilities {
   .font-handwritten {
     font-family: 'Caveat', cursive;
+  }
+
+  /* Casino-specific utilities */
+  .bg-felt-texture {
+    background:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='felt'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23felt)' opacity='0.05'/%3E%3C/svg%3E"),
+      radial-gradient(
+        ellipse at center,
+        var(--color-felt) 0%,
+        var(--color-felt-dark) 70%,
+        var(--color-felt-darker) 100%
+      );
+  }
+
+  .glow-gold {
+    box-shadow: var(--shadow-glow-gold);
+  }
+
+  .glow-active {
+    box-shadow: var(--shadow-glow-active);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-shadow-md {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 }
 

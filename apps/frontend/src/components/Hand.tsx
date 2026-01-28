@@ -31,13 +31,12 @@ export const Hand: React.FC<HandProps> = ({
   const totalCards = cards.length;
   const centerIndex = (totalCards - 1) / 2;
 
-  // Tighter overlap for more cards, even tighter on mobile
-  const baseOverlap = isMobileLandscape ? -35 : -40;
-  const overlap =
-    totalCards > 8 ? baseOverlap - 15 : totalCards > 5 ? baseOverlap - 5 : baseOverlap;
+  // Optimized overlap for new card width
+  const baseOverlap = isMobileLandscape ? -40 : -60;
+  const overlap = totalCards > 8 ? baseOverlap - 10 : baseOverlap;
 
   // Height based on card size
-  const heightClass = isMobileLandscape ? 'h-24' : 'h-48';
+  const heightClass = isMobileLandscape ? 'h-28' : 'h-52';
 
   return (
     <div
@@ -49,11 +48,10 @@ export const Hand: React.FC<HandProps> = ({
       {cards.map((card, index) => {
         const offsetFromCenter = index - centerIndex;
 
-        // More dramatic fan on desktop, subtle on mobile
-        const rotateScale = isMobileLandscape ? 2 : 4;
-        const rotateDeg = offsetFromCenter * rotateScale;
-        const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 4 : 8);
-        const translateX = offsetFromCenter * (isMobileLandscape ? 1 : 2);
+        // Fan calculations
+        const rotateDeg = offsetFromCenter * 3; // 3 degree spread per card
+        const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 2 : 5); // Gentle arc
+        const translateX = offsetFromCenter * 2; // Slight spacing adjustment
 
         const canPlay = isPlayable(card);
         const isInteractable = !disabled && canPlay;
@@ -63,7 +61,13 @@ export const Hand: React.FC<HandProps> = ({
         return (
           <div
             key={card.id}
-            className={`transition-all duration-300 ease-out origin-bottom hover:z-50 ${isMobileLandscape ? 'hover:scale-105' : 'hover:scale-110'} group/card relative`}
+            className={`
+              transition-all duration-300 ease-out origin-bottom 
+              ${isInteractable ? 'hover:z-50 hover:scale-110 cursor-pointer' : 'cursor-default opacity-70 grayscale-[0.4]'}
+              ${isInteractable && isMobileLandscape ? 'hover:-translate-y-4' : ''}
+              ${isInteractable && !isMobileLandscape ? 'hover:-translate-y-10' : ''}
+              group/card relative
+            `}
             style={{
               marginLeft: index === 0 ? 0 : `${overlap}px`,
               transform: `translateX(${translateX}px) rotate(${rotateDeg}deg) translateY(${translateY}px)`,
@@ -71,9 +75,9 @@ export const Hand: React.FC<HandProps> = ({
             }}
           >
             {validationMessage && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-32 bg-slate-900/95 backdrop-blur text-white text-[10px] text-center p-2 rounded-lg border border-red-500/30 shadow-xl opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none z-[100]">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 w-40 bg-slate-900/95 backdrop-blur text-white text-[10px] text-center p-2 rounded-lg border border-red-500/50 shadow-xl opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none z-[100]">
                 {validationMessage}
-                <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900/95 rotate-45 border-r border-b border-red-500/30" />
+                <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900/95 rotate-45 border-r border-b border-red-500/50" />
               </div>
             )}
 
@@ -85,12 +89,9 @@ export const Hand: React.FC<HandProps> = ({
               selected={false}
               onClick={() => isInteractable && onCardClick?.(card)}
               className={`
-                shadow-xl 
-                ${isInteractable ? `${isMobileLandscape ? 'hover:-translate-y-6' : 'hover:-translate-y-12'} cursor-pointer` : 'cursor-default opacity-60 saturate-50'}
+                shadow-[-5px_5px_15px_rgba(0,0,0,0.3)]
+                ${isInteractable ? 'hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]' : ''}
               `}
-              style={{
-                boxShadow: '0 10px 20px rgba(0,0,0,0.5)',
-              }}
             />
           </div>
         );

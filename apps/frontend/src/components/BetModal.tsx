@@ -17,20 +17,17 @@ export const BetModal: React.FC<BetModalProps> = ({
   maxBet,
   forbiddenBet,
   roundNumber,
-  cardsInHand,
 }) => {
   const { t } = useTranslation();
   const [selectedBet, setSelectedBet] = useState<number | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedBet(null);
-      setIsClosing(false);
     }
   }, [isOpen]);
 
-  if (!isOpen && !isClosing) return null;
+  if (!isOpen) return null;
 
   const handleConfirm = () => {
     if (selectedBet !== null) {
@@ -41,64 +38,28 @@ export const BetModal: React.FC<BetModalProps> = ({
   const bets = Array.from({ length: maxBet + 1 }, (_, i) => i);
 
   return (
-    <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
-        isOpen ? 'opacity-100' : 'opacity-0'
-      }`}
-    >
-      {/* 
-         Removed the full-screen backdrop div entirely.
-         The container is pointer-events-none so clicks pass through to the table.
-      */}
-
-      {/* Modal Content - Floating Panel Style, optimized for mobile landscape */}
-      <div
-        className={`
-          pointer-events-auto
-          relative w-[85%] max-w-[280px] md:max-w-[320px] mx-auto 
-          bg-slate-900/95 backdrop-blur-sm 
-          border border-white/10 
-          rounded-xl md:rounded-2xl shadow-2xl 
-          overflow-hidden 
-          max-h-[calc(var(--tg-viewport-height,100dvh)-var(--tg-viewport-safe-area-inset-top,0px)-var(--tg-viewport-safe-area-inset-bottom,0px))] overflow-y-auto
-          transform transition-all duration-300 ease-out 
-          ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95'}
-        `}
-      >
-        {/* Compact Header */}
-        <div className="bg-white/5 py-2 md:py-3 px-3 md:px-4 text-center border-b border-white/5">
-          <h2 className="text-base md:text-lg font-bold text-white leading-none mb-0.5 md:mb-1">
-            {t('game.makeBet')}
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="relative w-[90%] max-w-[340px] bg-white text-slate-900 rounded-[2rem] shadow-2xl overflow-hidden transform scale-100 animate-in zoom-in-95 duration-300">
+        {/* Header */}
+        <div className="pt-8 px-6 pb-2 text-center">
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">
+            {t('game.makeBet', 'Place Your Bet')}
           </h2>
-          <div className="flex justify-center space-x-3 text-[10px] md:text-xs text-slate-400 font-medium">
+          <div className="text-sm text-slate-500 font-medium flex items-center justify-center gap-2">
             <span>
-              {t('game.round')} {roundNumber}
+              {t('game.round', 'Round')} {roundNumber}
             </span>
-            {cardsInHand !== undefined && (
-              <>
-                <span className="text-slate-600">•</span>
-                <span>
-                  {cardsInHand} {t('game.cards')}
-                </span>
-              </>
+            {forbiddenBet !== undefined && (
+              <span className="text-red-500 font-bold text-xs bg-red-50 border border-red-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                🚫 {forbiddenBet}
+              </span>
             )}
           </div>
         </div>
 
-        {/* Body */}
-        <div className="p-2.5 md:p-4">
-          {/* Dealer Restriction Info - Ultra Compact */}
-          {forbiddenBet !== undefined && (
-            <div className="mb-2 md:mb-4 flex items-center justify-center gap-2 text-[10px] md:text-xs bg-red-500/10 border border-red-500/20 rounded-lg py-1 md:py-1.5 px-2 md:px-3 text-red-300">
-              <span className="font-bold text-red-400 uppercase tracking-wider text-[9px] md:text-[10px]">
-                {t('game.dealerRestriction')}:
-              </span>
-              <span>{forbiddenBet}</span>
-            </div>
-          )}
-
-          {/* Bet Grid - smaller on mobile */}
-          <div className="grid grid-cols-4 gap-1.5 md:gap-2 mb-2.5 md:mb-4">
+        {/* Numpad Grid */}
+        <div className="p-6">
+          <div className="grid grid-cols-4 gap-3">
             {bets.map((bet) => {
               const isForbidden = bet === forbiddenBet;
               const isSelected = selectedBet === bet;
@@ -109,43 +70,44 @@ export const BetModal: React.FC<BetModalProps> = ({
                   disabled={isForbidden}
                   onClick={() => setSelectedBet(bet)}
                   className={`
-                    relative h-8 md:h-10 w-full rounded-lg text-sm md:text-base font-bold transition-all duration-200
-                    flex items-center justify-center
-                    ${
-                      isForbidden
-                        ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed'
-                        : isSelected
-                          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 scale-105'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }
-                  `}
+                      aspect-square rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-200
+                      ${
+                        isForbidden
+                          ? 'text-slate-300 bg-slate-50 cursor-not-allowed'
+                          : isSelected
+                            ? 'bg-slate-900 text-white shadow-xl scale-110 z-10'
+                            : 'bg-slate-100 text-slate-900 hover:bg-slate-200 active:scale-95'
+                      }
+                   `}
                 >
                   {bet}
-                  {isForbidden && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-50">
-                      <div className="w-1/2 h-0.5 bg-red-500 rotate-45 absolute rounded-full" />
-                      <div className="w-1/2 h-0.5 bg-red-500 -rotate-45 absolute rounded-full" />
-                    </div>
-                  )}
                 </button>
               );
             })}
           </div>
+        </div>
 
+        {/* Footer Actions */}
+        <div className="p-6 pt-0">
           <button
             onClick={handleConfirm}
             disabled={selectedBet === null}
             className={`
-              w-full py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-sm md:text-base tracking-wide transition-all duration-200
-              shadow-lg
+              w-full py-4 rounded-2xl font-bold text-lg tracking-wide transition-all duration-300
+              flex items-center justify-center gap-2
               ${
                 selectedBet !== null
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.98]'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                  ? 'bg-[#1a5c32] text-white shadow-lg shadow-green-900/20 hover:bg-[#144a28] active:scale-[0.98]'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }
             `}
           >
-            {t('game.confirmBet')}
+            {t('game.confirm', 'CONFIRM')}
+            {selectedBet !== null && (
+              <span className="bg-white/20 px-2.5 py-0.5 rounded-lg text-sm font-mono backdrop-blur-sm">
+                {selectedBet}
+              </span>
+            )}
           </button>
         </div>
       </div>

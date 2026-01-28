@@ -480,36 +480,43 @@ export const Table: React.FC<TableProps> = ({
       <div className={`relative flex items-center justify-center w-full h-full`}>
         <div className={`relative ${tableSurfaceSize}`}>
           {/* The Oval Table Surface */}
-          <div
-            className="relative w-full h-full rounded-[50%] bg-[#0f3d23] shadow-[0_20px_60px_rgba(0,0,0,0.5),_inset_0_0_80px_rgba(0,0,0,0.5)]"
-            style={{
-              border: '12px solid #3d2211', // Wood border
-              boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 0 100px #051c0e',
-            }}
-          >
-            {/* Felt Texture */}
-            <div className="absolute inset-0 rounded-[50%] opacity-100 bg-[radial-gradient(ellipse_at_center,_#1a5c32_0%,_#0f3d23_100%)]">
-              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
+          <div className="relative w-full h-full rounded-[50%] shadow-[0_30px_60px_rgba(0,0,0,0.6)] border-[12px] md:border-[20px] border-[#3d2211] z-10">
+            {/* Bezel Highlight (Inner Rim) */}
+            <div className="absolute inset-0 rounded-[50%] border-2 border-[#5a3518]/40 pointer-events-none z-20" />
+
+            {/* Felt Texture & Gradient */}
+            <div className="absolute inset-0 rounded-[50%] bg-felt-gradient overflow-hidden">
+              {/* Texture Pattern */}
+              <div
+                className="absolute inset-0 opacity-40 mix-blend-overlay"
+                style={{
+                  backgroundImage: `url('https://www.transparenttextures.com/patterns/felt.png')`,
+                  backgroundRepeat: 'repeat',
+                }}
+              />
+
+              {/* Vignette / Inner Shadow */}
+              <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)]" />
             </div>
 
             {/* Center Decoration / HUD */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Center Ring - subtle felt line */}
-              <div className="w-[40%] h-[40%] rounded-full border-2 border-green-800/30 flex items-center justify-center">
-                <div className="w-[80%] h-[80%] rounded-full border border-green-800/20" />
+              {/* Center Ring - Gold/Wood inlay */}
+              <div className="w-[45%] h-[45%] rounded-full border border-gold/10 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.2)]">
+                <div className="w-[95%] h-[95%] rounded-full border border-black/20" />
               </div>
 
               {/* Active Status Text Overlay */}
               {currentPlayerId && (
-                <div className="absolute z-10 text-center">
-                  <div className="text-[10px] text-yellow-500 uppercase tracking-[0.2em] mb-1 font-bold opacity-80">
+                <div className="absolute z-10 text-center transform transition-all duration-300">
+                  <div className="text-[10px] text-gold uppercase tracking-[0.3em] mb-2 font-bold opacity-80 drop-shadow-md">
                     {t('game.table.currentTurn')}
                   </div>
-                  <div className="text-2xl font-bold text-white tracking-widest drop-shadow-md">
+                  <div className="text-3xl font-display font-black text-white tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                     {players.find((p) => p.id === currentPlayerId)?.name ===
                     players.find((p) => p.id === myPlayerId)?.name
                       ? t('game.yourTurn')
-                      : t('game.waitingFor').toUpperCase() + '...'}
+                      : players.find((p) => p.id === currentPlayerId)?.name?.toUpperCase()}
                   </div>
                 </div>
               )}

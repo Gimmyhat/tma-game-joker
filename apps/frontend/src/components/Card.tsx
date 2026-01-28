@@ -15,10 +15,10 @@ interface CardProps {
 }
 
 const suitColors = {
-  [Suit.Hearts]: 'text-red-600',
-  [Suit.Diamonds]: 'text-red-600',
-  [Suit.Clubs]: 'text-gray-900',
-  [Suit.Spades]: 'text-gray-900',
+  [Suit.Hearts]: 'text-[#dc143c]', // Crimson Red
+  [Suit.Diamonds]: 'text-[#dc143c]',
+  [Suit.Clubs]: 'text-[#1a1a1a]', // Deep Black
+  [Suit.Spades]: 'text-[#1a1a1a]',
 };
 
 const JokerIcon = ({ className }: { className?: string }) => (
@@ -28,18 +28,21 @@ const JokerIcon = ({ className }: { className?: string }) => (
 );
 
 const CardBack = () => (
-  <div className="w-full h-full rounded-lg bg-red-900 overflow-hidden relative border border-white/20 shadow-inner">
-    {/* Classic Pattern */}
+  <div className="w-full h-full rounded-lg bg-[#8b0000] overflow-hidden relative border-2 border-[#c9a227] shadow-inner">
+    {/* Intricate Pattern */}
     <div
-      className="absolute inset-0 opacity-20"
+      className="absolute inset-0 opacity-30"
       style={{
-        backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
-        backgroundSize: '8px 8px',
+        backgroundImage: `
+          repeating-linear-gradient(45deg, #a52a2a 0, #a52a2a 1px, transparent 0, transparent 50%),
+          repeating-linear-gradient(-45deg, #a52a2a 0, #a52a2a 1px, transparent 0, transparent 50%)
+        `,
+        backgroundSize: '10px 10px',
       }}
     />
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="w-12 h-12 rounded-full border-2 border-yellow-500/50 flex items-center justify-center bg-red-950/40">
-        <span className="text-yellow-500 font-serif font-bold text-xl">J</span>
+      <div className="w-16 h-16 rounded-full border-4 border-[#c9a227]/40 flex items-center justify-center bg-[#8b0000]/80 backdrop-blur-sm shadow-xl">
+        <span className="text-[#c9a227] font-serif font-bold text-2xl drop-shadow-md">J</span>
       </div>
     </div>
   </div>
@@ -72,81 +75,86 @@ export const Card: React.FC<CardProps> = ({
   style = {},
 }) => {
   const sizeClasses = {
-    xs: 'w-10 h-14 text-[8px]',
-    sm: 'w-16 h-24 text-xs',
-    md: 'w-24 h-36 text-base',
-    lg: 'w-32 h-48 text-xl',
+    xs: 'w-10 h-14 text-[8px] rounded-md',
+    sm: 'w-16 h-24 text-xs rounded-lg',
+    md: 'w-24 h-36 text-base rounded-xl',
+    lg: 'w-32 h-48 text-xl rounded-2xl',
   };
 
   const baseClasses = `
     relative transition-all duration-300 ease-out transform
-    rounded-xl cursor-pointer select-none font-serif
+    cursor-pointer select-none font-serif
     ${sizeClasses[size]}
     ${
       selected
-        ? '-translate-y-6 shadow-xl ring-2 ring-yellow-400 z-50'
-        : 'hover:-translate-y-2 hover:shadow-lg'
+        ? '-translate-y-6 shadow-2xl ring-2 ring-[#c9a227] z-50 brightness-110'
+        : 'hover:-translate-y-2 hover:shadow-xl'
     }
-    ${disabled ? 'opacity-60 cursor-not-allowed grayscale' : ''}
-    ${playable && !selected ? 'ring-1 ring-yellow-400/50' : ''}
+    ${disabled ? 'opacity-60 cursor-not-allowed grayscale-[0.5]' : ''}
+    ${playable && !selected ? 'ring-1 ring-[#c9a227]/50 shadow-[0_0_15px_rgba(201,162,39,0.2)]' : ''}
     ${className}
   `;
 
   if (faceDown || !card) {
     return (
-      <div className={`${baseClasses} bg-white`} onClick={onClick} style={style}>
+      <div className={`${baseClasses} shadow-card`} onClick={onClick} style={style}>
         <CardBack />
       </div>
     );
   }
 
   const isJoker = card.type === 'joker';
-  const colorClass = isJoker ? 'text-purple-600' : suitColors[card.suit];
+  const colorClass = isJoker ? 'text-purple-700' : suitColors[card.suit];
 
   return (
     <div
-      className={`${baseClasses} bg-white overflow-hidden border border-gray-300 shadow-sm`}
+      className={`${baseClasses} bg-white overflow-hidden border border-gray-200 shadow-card`}
       onClick={!disabled ? onClick : undefined}
       style={style}
     >
-      {/* Texture Overlay */}
-      <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/paper.png')] pointer-events-none z-10" />
+      {/* Paper Texture Overlay */}
+      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/paper.png')] pointer-events-none z-10 mix-blend-multiply" />
 
       {isJoker ? (
         <div
           className={`relative w-full h-full flex flex-col items-center justify-center ${colorClass}`}
         >
-          <div className="absolute top-1 left-1 flex flex-col items-center">
-            <span className="font-bold text-xs">JOKER</span>
+          <div className="absolute top-1.5 left-1.5 flex flex-col items-center">
+            <span className="font-bold text-[10px] tracking-tighter">JOKER</span>
             <JokerIcon className="w-3 h-3" />
           </div>
-          <JokerIcon className="w-2/3 h-2/3 opacity-90" />
-          <div className="absolute bottom-1 right-1 flex flex-col items-center rotate-180">
-            <span className="font-bold text-xs">JOKER</span>
+          <JokerIcon className="w-2/3 h-2/3 opacity-90 drop-shadow-sm" />
+          <div className="absolute bottom-1.5 right-1.5 flex flex-col items-center rotate-180">
+            <span className="font-bold text-[10px] tracking-tighter">JOKER</span>
             <JokerIcon className="w-3 h-3" />
           </div>
         </div>
       ) : (
-        <div className={`relative w-full h-full flex flex-col justify-between p-2 ${colorClass}`}>
+        <div className={`relative w-full h-full flex flex-col justify-between p-2.5 ${colorClass}`}>
           {/* Top Left */}
           <div className="flex flex-col items-center self-start">
-            <span className="font-bold leading-none text-2xl">{getRankDisplay(card.rank)}</span>
-            <SuitIcon suit={card.suit} className="w-4 h-4 mt-0.5" />
+            <span className="font-bold leading-none text-2xl tracking-tight">
+              {getRankDisplay(card.rank)}
+            </span>
+            <SuitIcon suit={card.suit} className="w-5 h-5 mt-0.5 drop-shadow-sm" />
           </div>
 
-          {/* Center */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-            <SuitIcon suit={card.suit} className="w-full h-full scale-125" />
+          {/* Center Watermark */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none">
+            <SuitIcon suit={card.suit} className="w-[80%] h-[80%]" />
           </div>
 
-          <div className="self-center z-0">
-            <SuitIcon suit={card.suit} className="w-10 h-10 opacity-100" />
+          {/* Center Suit */}
+          <div className="self-center z-0 transform scale-110">
+            <SuitIcon suit={card.suit} className="w-12 h-12 drop-shadow-md" />
           </div>
 
           {/* Bottom Right */}
           <div className="flex flex-col items-center self-end rotate-180">
-            <span className="font-bold leading-none text-2xl">{getRankDisplay(card.rank)}</span>
-            <SuitIcon suit={card.suit} className="w-4 h-4 mt-0.5" />
+            <span className="font-bold leading-none text-2xl tracking-tight">
+              {getRankDisplay(card.rank)}
+            </span>
+            <SuitIcon suit={card.suit} className="w-5 h-5 mt-0.5 drop-shadow-sm" />
           </div>
         </div>
       )}

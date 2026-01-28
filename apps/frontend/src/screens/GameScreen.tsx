@@ -13,7 +13,6 @@ import {
 import Table from '../components/Table';
 import Hand from '../components/Hand';
 import { BetModal } from '../components/BetModal';
-import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
@@ -26,6 +25,82 @@ import {
 } from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
 import { DevLogPanel } from '../components/DevLogPanel';
+
+// Info Drawer Component - Compact game info panel
+const InfoDrawer: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  round: number;
+  cardsPerPlayer: number;
+}> = ({ isOpen, onClose, round, cardsPerPlayer }) => {
+  const { t } = useTranslation();
+
+  // Determine pulka from round
+  const getPulkaInfo = (r: number) => {
+    if (r <= 8) return { pulka: 1, pattern: '1 → 8', type: t('game.pulka.ascending', 'Ascending') };
+    if (r <= 12) return { pulka: 2, pattern: '9', type: t('game.pulka.maximum', 'Maximum') };
+    if (r <= 20)
+      return { pulka: 3, pattern: '8 → 1', type: t('game.pulka.descending', 'Descending') };
+    return { pulka: 4, pattern: '9', type: t('game.pulka.final', 'Final') };
+  };
+
+  const pulkaInfo = getPulkaInfo(round);
+
+  return (
+    <div
+      className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      {/* Drawer */}
+      <div
+        className={`absolute top-0 left-0 h-full w-72 bg-gradient-to-b from-slate-900 to-slate-950 border-r border-gold/30 shadow-2xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-white">{t('game.gameInfo', 'Game Info')}</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Round Info */}
+          <div className="bg-black/30 rounded-xl p-4 border border-white/10 mb-4">
+            <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">
+              {t('game.round', 'Round')}
+            </div>
+            <div className="text-3xl font-bold text-gold">
+              {round}
+              <span className="text-lg text-slate-500">/24</span>
+            </div>
+          </div>
+
+          {/* Pulka Info */}
+          <div className="bg-black/30 rounded-xl p-4 border border-white/10 mb-4">
+            <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">
+              {t('game.pulka.title', { id: pulkaInfo.pulka })}
+            </div>
+            <div className="text-lg font-bold text-white mb-1">{pulkaInfo.type}</div>
+            <div className="text-sm text-slate-400">
+              {t('game.cards', 'Cards')}: {pulkaInfo.pattern}
+            </div>
+          </div>
+
+          {/* Cards in Hand */}
+          <div className="bg-black/30 rounded-xl p-4 border border-white/10">
+            <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">
+              {t('game.cardsInHand', 'Cards in Hand')}
+            </div>
+            <div className="text-2xl font-bold text-white">{cardsPerPlayer}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const GameScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -69,6 +144,7 @@ export const GameScreen: React.FC = () => {
   const [activeJokerCard, setActiveJokerCard] = useState<CardType | null>(null);
   const [isJokerModalOpen, setIsJokerModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
   // isScoreSheetOpen replaced by global state
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -297,136 +373,90 @@ export const GameScreen: React.FC = () => {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
 
       {/* Top Bar / HUD */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex flex-col md:flex-row items-start md:items-start justify-between p-2 md:p-4 gap-2 pointer-events-none">
-        {/* Game Info - Compact on mobile */}
-        <div className="hidden md:block">
-          <GameProgressPanel currentRound={gameState.round} />
-        </div>
-
-        {/* Mobile: Compact top bar */}
-        <div className="flex md:hidden w-full items-center justify-between pointer-events-auto">
-          {/* Round indicator */}
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
-            <span className="text-[10px] text-slate-400 uppercase">{t('game.round')}</span>
-            <span className="text-sm font-bold text-amber-400">{gameState.round}/24</span>
+      <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-2 md:p-4 pointer-events-none">
+        {/* Left: Info Menu Button */}
+        <button
+          onClick={() => setIsInfoDrawerOpen(true)}
+          className="pointer-events-auto flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-gold"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+              {t('game.round')}
+            </span>
+            <span className="text-sm font-bold text-gold leading-none">{gameState.round}/24</span>
           </div>
+        </button>
 
-          {/* Timer */}
+        {/* Right: Action Buttons & Timer */}
+        <div className="pointer-events-auto flex items-center gap-2">
+          {/* Timer - Compact */}
           <div
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-sm
-            ${isMyTurn ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/40 border-white/10'}`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border backdrop-blur-sm transition-all duration-300
+            ${isMyTurn ? 'bg-gold/20 border-gold/50 animate-pulse-glow' : 'bg-black/60 border-white/10'}`}
           >
             <span
-              className={`font-mono text-lg font-bold ${isMyTurn ? 'text-yellow-300' : 'text-slate-300'}`}
+              className={`font-mono text-xl font-bold leading-none ${isMyTurn ? 'text-gold' : 'text-slate-300'}`}
             >
               {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
             </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowScoreSheet(true)}
-              className="p-2 rounded-lg bg-black/40 border border-white/10 text-amber-400"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path
-                  fillRule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setIsLeaveModalOpen(true)}
-              className="p-2 rounded-lg bg-red-900/80 border border-red-700 text-red-100"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4.414l-4.293 4.293a1 1 0 01-1.414 0L4 7.414 5.414 6l3.293 3.293L13 5l1 2.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Desktop: Timer & Phase */}
-        <div className="hidden md:flex flex-col items-end gap-3 pointer-events-auto">
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher className="scale-75 origin-right" />
-            <button
-              onClick={() => setShowScoreSheet(true)}
-              className="p-2 rounded-lg bg-black/40 hover:bg-black/60 border border-white/10 text-amber-400 transition-colors backdrop-blur-sm"
-              title={t('game.scoreSheet', 'Score Sheet')}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path
-                  fillRule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setIsLeaveModalOpen(true)}
-              className="px-4 py-1.5 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700 text-red-100 text-[10px] font-bold uppercase tracking-widest transition-all shadow-md backdrop-blur-sm"
-            >
-              {t('lobby.leaveGame')}
-            </button>
-          </div>
-
-          {/* Turn Indicator */}
-          <div
-            className={`
-             flex items-center gap-4 px-6 py-2 rounded-full border backdrop-blur-md transition-all duration-300 shadow-lg
-             ${
-               isMyTurn
-                 ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-200'
-                 : 'bg-black/40 border-white/10 text-slate-400'
-             }
-           `}
+          {/* Score Sheet */}
+          <button
+            onClick={() => setShowScoreSheet(true)}
+            className="p-2.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm"
+            title={t('game.scoreSheet', 'Score Sheet')}
           >
-            <div className="flex flex-col items-end leading-none">
-              <span className="text-[9px] uppercase tracking-[0.2em] mb-1 opacity-80">
-                {isMyTurn ? t('game.yourAction') : t('game.waitingFor')}
-              </span>
-              <span className="font-bold text-lg">
-                {isMyTurn ? t('game.yourTurn') : currentTurnPlayer?.name || t('game.opponent')}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="font-mono text-2xl font-bold leading-none">
-                {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
-              </span>
-              <span className="text-[8px] uppercase tracking-wider opacity-60">
-                {isTimerFrozen ? t('game.timerFrozen') : 'SEC'}
-              </span>
-            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+              <path
+                fillRule="evenodd"
+                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+
+          {/* Language Switcher - Desktop only */}
+          <div className="hidden md:block">
+            <LanguageSwitcher className="scale-75 origin-right" />
           </div>
 
-          {/* Phase Badge */}
-          <div className="px-3 py-1 rounded bg-black/40 border border-white/10 text-[10px] text-slate-300 uppercase tracking-[0.2em] backdrop-blur-sm shadow-sm">
-            {t(`game.phase.${gameState.phase}`, gameState.phase)}
-          </div>
+          {/* Leave/Menu Button */}
+          <button
+            onClick={() => setIsLeaveModalOpen(true)}
+            className="p-2.5 rounded-xl bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -461,18 +491,17 @@ export const GameScreen: React.FC = () => {
             className={!canThrowCard ? 'opacity-80 saturate-50 scale-95' : ''}
           />
         </div>
-
-        {/* Helper Hint - Positioned above hand, responsive */}
-        {isMyTurn && (
-          <div className="absolute bottom-20 md:bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
-            <span className="bg-yellow-500/90 text-black px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold border-2 border-yellow-300 shadow-lg tracking-wide uppercase">
-              {t(`game.phase.${gameState.phase}`, gameState.phase)}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Modals */}
+
+      {/* Info Drawer */}
+      <InfoDrawer
+        isOpen={isInfoDrawerOpen}
+        onClose={() => setIsInfoDrawerOpen(false)}
+        round={gameState.round}
+        cardsPerPlayer={gameState.cardsPerPlayer}
+      />
 
       {/* Scoring Info Modal */}
       <ScoringInfoModal isOpen={isScoringModalOpen} onClose={() => setIsScoringModalOpen(false)} />
