@@ -15,6 +15,7 @@ import { determineTrickWinner } from '../utils/gameLogic';
 import Card from './Card';
 import PlayerInfo from './PlayerInfo';
 import { SuitIcon } from './SuitIcon';
+import { useResponsiveCards } from '../hooks';
 
 interface TableProps {
   players: Player[];
@@ -54,6 +55,7 @@ export const Table: React.FC<TableProps> = ({
   tuzovanieDealerIndex = null,
 }) => {
   const { t } = useTranslation();
+  const { tableCardSize, trumpCardSize, isMobileLandscape } = useResponsiveCards();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
 
@@ -139,17 +141,30 @@ export const Table: React.FC<TableProps> = ({
     const isDealer = dealerIndex !== undefined && originalPlayerIndex === dealerIndex;
 
     // Absolute positioning styles around the oval
-    // We push them outward from the table edge
-    const posStyles: Record<Position, string> = {
-      'bottom-center': '-bottom-12 left-1/2 -translate-x-1/2 translate-y-0',
-      'bottom-left': '-bottom-8 left-[20%] translate-y-full',
-      'bottom-right': '-bottom-8 right-[20%] translate-y-full',
-      'top-left': 'top-[15%] -left-12 -translate-x-full',
-      'top-center': '-top-16 left-1/2 -translate-x-1/2 translate-y-0',
-      'top-right': 'top-[15%] -right-12 translate-x-full',
-      'left-center': 'top-1/2 -left-16 -translate-x-full -translate-y-1/2',
-      'right-center': 'top-1/2 -right-16 translate-x-full -translate-y-1/2',
-    };
+    // Compact positions for mobile landscape, more spacious for desktop
+    const posStyles: Record<Position, string> = isMobileLandscape
+      ? {
+          // Mobile landscape: tighter positioning
+          'bottom-center': '-bottom-6 left-1/2 -translate-x-1/2 translate-y-0',
+          'bottom-left': '-bottom-4 left-[20%] translate-y-full',
+          'bottom-right': '-bottom-4 right-[20%] translate-y-full',
+          'top-left': 'top-[15%] -left-4 -translate-x-full',
+          'top-center': '-top-8 left-1/2 -translate-x-1/2 translate-y-0',
+          'top-right': 'top-[15%] -right-4 translate-x-full',
+          'left-center': 'top-1/2 -left-6 -translate-x-full -translate-y-1/2',
+          'right-center': 'top-1/2 -right-6 translate-x-full -translate-y-1/2',
+        }
+      : {
+          // Desktop: more spacious
+          'bottom-center': '-bottom-12 left-1/2 -translate-x-1/2 translate-y-0',
+          'bottom-left': '-bottom-8 left-[20%] translate-y-full',
+          'bottom-right': '-bottom-8 right-[20%] translate-y-full',
+          'top-left': 'top-[15%] -left-12 -translate-x-full',
+          'top-center': '-top-16 left-1/2 -translate-x-1/2 translate-y-0',
+          'top-right': 'top-[15%] -right-12 translate-x-full',
+          'left-center': 'top-1/2 -left-16 -translate-x-full -translate-y-1/2',
+          'right-center': 'top-1/2 -right-16 translate-x-full -translate-y-1/2',
+        };
 
     return (
       <div
@@ -271,7 +286,7 @@ export const Table: React.FC<TableProps> = ({
           className="absolute z-20" // Removed fixed offset classes
           style={{ zIndex: 20 + i }}
         >
-          <Card card={tc.card} size="md" className="shadow-2xl border-none" />
+          <Card card={tc.card} size={tableCardSize} className="shadow-2xl border-none" />
           {/* Joker Action / Request Badge */}
           {tc.jokerOption ? (
             <div
@@ -402,7 +417,7 @@ export const Table: React.FC<TableProps> = ({
           <div className="relative">
             <Card
               card={card}
-              size="md"
+              size={tableCardSize}
               className={`shadow-2xl ${isAce ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-black/50' : 'border-none'}`}
             />
 
@@ -535,14 +550,20 @@ export const Table: React.FC<TableProps> = ({
 
       {/* Current Trump Indicator - Floating near table edge top-right - Hide in Tuzovanie */}
       {gamePhase !== GamePhase.Tuzovanie && (trump || trumpCard || isJokerTrump) && (
-        <div className="absolute -top-2 -right-2 z-40 flex flex-col items-center">
+        <div
+          className={`absolute ${isMobileLandscape ? '-top-1 -right-1' : '-top-2 -right-2'} z-40 flex flex-col items-center`}
+        >
           <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
             {t('game.trump.label')}
           </span>
           {trumpCard ? (
             // Show actual trump card when available (non-9-card rounds)
             <div className="transform rotate-6 shadow-[0_4px_20px_rgba(234,179,8,0.4)] rounded-lg">
-              <Card card={trumpCard} size="sm" className="border-2 border-yellow-500/50" />
+              <Card
+                card={trumpCard}
+                size={trumpCardSize}
+                className="border-2 border-yellow-500/50"
+              />
             </div>
           ) : trump ? (
             // Fallback to suit symbol (9-card rounds where player selected trump)

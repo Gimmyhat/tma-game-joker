@@ -118,8 +118,8 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
   const tablePlayers = [...displayData.players].sort((a, b) => a.seatIndex - b.seatIndex);
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-300">
-      <div className="w-full max-w-5xl h-[90vh] bg-[#fdfbf7] text-blue-900 rounded-lg shadow-2xl overflow-hidden flex flex-col relative font-handwritten">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-1 sm:p-2 md:p-4 animate-in fade-in duration-300">
+      <div className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-[#fdfbf7] text-blue-900 rounded-lg shadow-2xl overflow-hidden flex flex-col relative font-handwritten">
         {/* Paper Texture Overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-50 z-0 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]" />
 
@@ -133,19 +133,19 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
           }}
         />
 
-        {/* Header */}
-        <div className="relative z-10 flex items-center justify-between p-4 border-b-2 border-blue-900/30">
-          <h2 className="text-3xl font-bold text-blue-800 tracking-wide">
+        {/* Header - Compact on mobile */}
+        <div className="relative z-10 flex items-center justify-between p-2 md:p-4 border-b-2 border-blue-900/30">
+          <h2 className="text-xl md:text-3xl font-bold text-blue-800 tracking-wide">
             {title || t('game.scoreSheet', 'Лист счета')}
           </h2>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
+              className="p-1.5 md:p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8"
+                className="h-6 w-6 md:h-8 md:w-8"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -162,21 +162,21 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
         </div>
 
         {/* Scrollable Table Container */}
-        <div className="flex-1 overflow-auto relative z-10 p-2 sm:p-4 custom-scrollbar">
-          <div className="min-w-[600px] mx-auto bg-white/50 shadow-sm border-2 border-blue-900/50">
-            <table className="w-full border-collapse text-center">
+        <div className="flex-1 overflow-auto relative z-10 p-1 sm:p-2 md:p-4 custom-scrollbar">
+          <div className="min-w-[500px] md:min-w-[600px] mx-auto bg-white/50 shadow-sm border-2 border-blue-900/50">
+            <table className="w-full border-collapse text-center text-xs md:text-base">
               <thead>
                 <tr>
-                  <th className="w-12 border-r-2 border-b-2 border-blue-900/50 p-2 bg-blue-50/50"></th>
-                  <th className="w-8 border-r-2 border-b-2 border-blue-900/50 p-2 bg-blue-50/50 text-xs">
+                  <th className="w-8 md:w-12 border-r-2 border-b-2 border-blue-900/50 p-1 md:p-2 bg-blue-50/50"></th>
+                  <th className="w-6 md:w-8 border-r-2 border-b-2 border-blue-900/50 p-1 md:p-2 bg-blue-50/50 text-[10px] md:text-xs">
                     N
                   </th>
                   {tablePlayers.map((player) => (
                     <th
                       key={player.id}
-                      className="border-r-2 border-b-2 border-blue-900/50 p-2 min-w-[100px]"
+                      className="border-r-2 border-b-2 border-blue-900/50 p-1 md:p-2 min-w-[70px] md:min-w-[100px]"
                     >
-                      <div className="text-xl font-bold">{player.name}</div>
+                      <div className="text-sm md:text-xl font-bold truncate">{player.name}</div>
                     </th>
                   ))}
                 </tr>
@@ -189,10 +189,10 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                   pulka.rounds.forEach((roundNum, roundIdx) => {
                     pulkaRows.push(
                       <tr key={`r-${roundNum}`} className="hover:bg-blue-50/30">
-                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-1 text-lg font-bold text-blue-800/70">
+                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 md:p-1 text-sm md:text-lg font-bold text-blue-800/70">
                           {roundNum}
                         </td>
-                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-1 text-sm text-gray-500">
+                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 md:p-1 text-[10px] md:text-sm text-gray-500">
                           {pulka.cardsPerRound[roundIdx]}
                         </td>
                         {tablePlayers.map((player) => {
@@ -201,9 +201,9 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                             return (
                               <td
                                 key={player.id}
-                                className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-1"
+                                className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 md:p-1"
                               >
-                                <div className="h-8"></div>
+                                <div className="h-5 md:h-8"></div>
                               </td>
                             );
                           }
@@ -216,9 +216,9 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                               key={player.id}
                               className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0 relative"
                             >
-                              <div className="flex h-full min-h-[32px] items-center">
+                              <div className="flex h-full min-h-[20px] md:min-h-[32px] items-center">
                                 {/* Bid Column */}
-                                <div className="flex-1 text-right pr-2 text-lg font-medium border-r border-blue-900/30 h-full flex items-center justify-end">
+                                <div className="flex-1 text-right pr-1 md:pr-2 text-sm md:text-lg font-medium border-r border-blue-900/30 h-full flex items-center justify-end">
                                   {bidText}
                                   {roundData.bidMade && roundData.bid !== 0 && (
                                     <span className="ml-0.5 text-blue-900">•</span>
@@ -231,14 +231,14 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                                     {Array.from({ length: roundData.jokerCount }).map((_, i) => (
                                       <div
                                         key={i}
-                                        className="w-1.5 h-1.5 rounded-full bg-blue-900"
+                                        className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-blue-900"
                                       ></div>
                                     ))}
                                   </div>
                                 )}
 
                                 {/* Score Column */}
-                                <div className="flex-1 text-left pl-2 text-xl font-bold">
+                                <div className="flex-1 text-left pl-1 md:pl-2 text-base md:text-xl font-bold">
                                   {scoreText}
                                 </div>
                               </div>
@@ -257,7 +257,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                     >
                       <td
                         colSpan={2}
-                        className="border-r-2 border-blue-900/50 p-1 text-center font-bold text-2xl"
+                        className="border-r-2 border-blue-900/50 p-0.5 md:p-1 text-center font-bold text-lg md:text-2xl"
                       >
                         X
                       </td>
@@ -266,7 +266,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                         return (
                           <td
                             key={player.id}
-                            className="border-r-2 border-blue-900/50 p-1 text-center text-xl font-bold"
+                            className="border-r-2 border-blue-900/50 p-0.5 md:p-1 text-center text-base md:text-xl font-bold"
                           >
                             {summary.rounds.some((r) => r.bid !== null) ? summary.pulkaAverage : ''}
                           </td>
@@ -291,7 +291,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                       >
                         <td
                           colSpan={2}
-                          className="border-r-2 border-blue-900/50 p-1 text-center font-bold text-lg text-emerald-700"
+                          className="border-r-2 border-blue-900/50 p-0.5 md:p-1 text-center font-bold text-sm md:text-lg text-emerald-700"
                         >
                           Prem
                         </td>
@@ -303,7 +303,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                           return (
                             <td
                               key={player.id}
-                              className="border-r-2 border-blue-900/50 p-1 text-center text-xl font-bold"
+                              className="border-r-2 border-blue-900/50 p-0.5 md:p-1 text-center text-base md:text-xl font-bold"
                             >
                               {hasPremium && (
                                 <span className={premium > 0 ? 'text-emerald-600' : 'text-red-500'}>
@@ -330,7 +330,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                         return (
                           <td
                             key={player.id}
-                            className="border-r-2 border-blue-900/50 p-2 text-center text-2xl font-black text-blue-900"
+                            className="border-r-2 border-blue-900/50 p-1 md:p-2 text-center text-lg md:text-2xl font-black text-blue-900"
                           >
                             {showTotal ? summary.cumulativeTotal : ''}
                           </td>
@@ -347,7 +347,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                   <tr className="bg-amber-50/50">
                     <td
                       colSpan={2}
-                      className="border-r-2 border-blue-900/50 p-4 font-bold text-lg text-right"
+                      className="border-r-2 border-blue-900/50 p-2 md:p-4 font-bold text-sm md:text-lg text-right"
                     >
                       {t('game.matchResults', 'Итог')}
                     </td>
@@ -358,14 +358,16 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                       return (
                         <td
                           key={player.id}
-                          className="border-r-2 border-blue-900/50 p-4 text-center"
+                          className="border-r-2 border-blue-900/50 p-2 md:p-4 text-center"
                         >
-                          <div className="flex flex-col items-center gap-1">
-                            {isWinner && <div className="text-3xl mb-1">👑</div>}
-                            <div className="text-4xl font-black font-serif text-blue-900">
+                          <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                            {isWinner && (
+                              <div className="text-xl md:text-3xl mb-0.5 md:mb-1">👑</div>
+                            )}
+                            <div className="text-2xl md:text-4xl font-black font-serif text-blue-900">
                               {placeRoman}
                             </div>
-                            <div className="text-sm font-bold uppercase tracking-wider opacity-60">
+                            <div className="text-[10px] md:text-sm font-bold uppercase tracking-wider opacity-60 truncate max-w-[60px] md:max-w-none">
                               {player.name}
                             </div>
                           </div>
@@ -381,7 +383,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
 
         {/* Footer (Timer etc) */}
         {footer && (
-          <div className="relative z-10 bg-[#fdfbf7] p-4 border-t-2 border-blue-900/30 flex justify-center">
+          <div className="relative z-10 bg-[#fdfbf7] p-2 md:p-4 border-t-2 border-blue-900/30 flex justify-center">
             {footer}
           </div>
         )}

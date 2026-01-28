@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card as CardType } from '@joker/shared';
 import Card from './Card';
+import { useResponsiveCards } from '../hooks';
 
 interface HandProps {
   cards: CardType[];
@@ -19,6 +20,8 @@ export const Hand: React.FC<HandProps> = ({
   disabled = false,
   getValidationMessage,
 }) => {
+  const { handCardSize, isMobileLandscape } = useResponsiveCards();
+
   const isPlayable = (card: CardType) => {
     if (!playableCards) return true;
     return playableCards.some((c) => c.id === card.id);
@@ -28,26 +31,29 @@ export const Hand: React.FC<HandProps> = ({
   const totalCards = cards.length;
   const centerIndex = (totalCards - 1) / 2;
 
-  // Tighter overlap for more cards
-  const overlap = totalCards > 8 ? -50 : totalCards > 5 ? -40 : -30;
+  // Tighter overlap for more cards, even tighter on mobile
+  const baseOverlap = isMobileLandscape ? -35 : -40;
+  const overlap =
+    totalCards > 8 ? baseOverlap - 15 : totalCards > 5 ? baseOverlap - 5 : baseOverlap;
+
+  // Height based on card size
+  const heightClass = isMobileLandscape ? 'h-24' : 'h-48';
 
   return (
     <div
       className={`
-        relative flex justify-center items-end h-48 w-full perspective-[1000px]
+        relative flex justify-center items-end ${heightClass} w-full perspective-[1000px]
         ${className}
       `}
     >
-      {/* Hand Base Glow - Removed for classic look */}
-      {/* <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-cyan-900/20 blur-3xl pointer-events-none" /> */}
-
       {cards.map((card, index) => {
         const offsetFromCenter = index - centerIndex;
 
-        // More dramatic fan
-        const rotateDeg = offsetFromCenter * 4;
-        const translateY = Math.abs(offsetFromCenter) * 8; // Deeper arc
-        const translateX = offsetFromCenter * 2; // Slight spread compensation
+        // More dramatic fan on desktop, subtle on mobile
+        const rotateScale = isMobileLandscape ? 2 : 4;
+        const rotateDeg = offsetFromCenter * rotateScale;
+        const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 4 : 8);
+        const translateX = offsetFromCenter * (isMobileLandscape ? 1 : 2);
 
         const canPlay = isPlayable(card);
         const isInteractable = !disabled && canPlay;
@@ -57,7 +63,7 @@ export const Hand: React.FC<HandProps> = ({
         return (
           <div
             key={card.id}
-            className="transition-all duration-300 ease-out origin-bottom hover:z-50 hover:scale-110 group/card relative"
+            className={`transition-all duration-300 ease-out origin-bottom hover:z-50 ${isMobileLandscape ? 'hover:scale-105' : 'hover:scale-110'} group/card relative`}
             style={{
               marginLeft: index === 0 ? 0 : `${overlap}px`,
               transform: `translateX(${translateX}px) rotate(${rotateDeg}deg) translateY(${translateY}px)`,
@@ -73,17 +79,16 @@ export const Hand: React.FC<HandProps> = ({
 
             <Card
               card={card}
-              size="lg" // Larger cards as requested
+              size={handCardSize}
               playable={canPlay}
               disabled={!isInteractable}
               selected={false}
               onClick={() => isInteractable && onCardClick?.(card)}
               className={`
                 shadow-xl 
-                ${isInteractable ? 'hover:-translate-y-12 cursor-pointer' : 'cursor-default opacity-60 saturate-50'}
+                ${isInteractable ? `${isMobileLandscape ? 'hover:-translate-y-6' : 'hover:-translate-y-12'} cursor-pointer` : 'cursor-default opacity-60 saturate-50'}
               `}
               style={{
-                // Subtle shadow instead of gradient mask
                 boxShadow: '0 10px 20px rgba(0,0,0,0.5)',
               }}
             />

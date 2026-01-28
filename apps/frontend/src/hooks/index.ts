@@ -1,0 +1,1 @@
+export { useResponsiveCards } from './useResponsiveCards';

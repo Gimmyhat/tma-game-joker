@@ -51,23 +51,25 @@ export const BetModal: React.FC<BetModalProps> = ({
          The container is pointer-events-none so clicks pass through to the table.
       */}
 
-      {/* Modal Content - Floating Panel Style */}
+      {/* Modal Content - Floating Panel Style, optimized for mobile landscape */}
       <div
         className={`
           pointer-events-auto
-          relative w-[90%] max-w-[320px] mx-auto 
+          relative w-[85%] max-w-[280px] md:max-w-[320px] mx-auto 
           bg-slate-900/95 backdrop-blur-sm 
           border border-white/10 
-          rounded-2xl shadow-2xl 
+          rounded-xl md:rounded-2xl shadow-2xl 
           overflow-hidden 
           transform transition-all duration-300 ease-out 
           ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95'}
         `}
       >
         {/* Compact Header */}
-        <div className="bg-white/5 py-3 px-4 text-center border-b border-white/5">
-          <h2 className="text-lg font-bold text-white leading-none mb-1">{t('game.makeBet')}</h2>
-          <div className="flex justify-center space-x-3 text-xs text-slate-400 font-medium">
+        <div className="bg-white/5 py-2 md:py-3 px-3 md:px-4 text-center border-b border-white/5">
+          <h2 className="text-base md:text-lg font-bold text-white leading-none mb-0.5 md:mb-1">
+            {t('game.makeBet')}
+          </h2>
+          <div className="flex justify-center space-x-3 text-[10px] md:text-xs text-slate-400 font-medium">
             <span>
               {t('game.round')} {roundNumber}
             </span>
@@ -83,19 +85,19 @@ export const BetModal: React.FC<BetModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-4">
+        <div className="p-2.5 md:p-4">
           {/* Dealer Restriction Info - Ultra Compact */}
           {forbiddenBet !== undefined && (
-            <div className="mb-4 flex items-center justify-center gap-2 text-xs bg-red-500/10 border border-red-500/20 rounded-lg py-1.5 px-3 text-red-300">
-              <span className="font-bold text-red-400 uppercase tracking-wider text-[10px]">
+            <div className="mb-2 md:mb-4 flex items-center justify-center gap-2 text-[10px] md:text-xs bg-red-500/10 border border-red-500/20 rounded-lg py-1 md:py-1.5 px-2 md:px-3 text-red-300">
+              <span className="font-bold text-red-400 uppercase tracking-wider text-[9px] md:text-[10px]">
                 {t('game.dealerRestriction')}:
               </span>
               <span>{forbiddenBet}</span>
             </div>
           )}
 
-          {/* Bet Grid */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          {/* Bet Grid - smaller on mobile */}
+          <div className="grid grid-cols-4 gap-1.5 md:gap-2 mb-2.5 md:mb-4">
             {bets.map((bet) => {
               const isForbidden = bet === forbiddenBet;
               const isSelected = selectedBet === bet;
@@ -106,7 +108,7 @@ export const BetModal: React.FC<BetModalProps> = ({
                   disabled={isForbidden}
                   onClick={() => setSelectedBet(bet)}
                   className={`
-                    relative h-10 w-full rounded-lg text-base font-bold transition-all duration-200
+                    relative h-8 md:h-10 w-full rounded-lg text-sm md:text-base font-bold transition-all duration-200
                     flex items-center justify-center
                     ${
                       isForbidden
@@ -133,7 +135,7 @@ export const BetModal: React.FC<BetModalProps> = ({
             onClick={handleConfirm}
             disabled={selectedBet === null}
             className={`
-              w-full py-3 rounded-xl font-bold text-base tracking-wide transition-all duration-200
+              w-full py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-sm md:text-base tracking-wide transition-all duration-200
               shadow-lg
               ${
                 selectedBet !== null

@@ -54,23 +54,23 @@ export const TrumpSelectionModal: React.FC = () => {
   const isTimedOut = timeLeft <= 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0" />
 
-      {/* Modal Content */}
-      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      {/* Modal Content - Compact for mobile landscape */}
+      <div className="relative w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-4 text-center border-b border-slate-800 bg-slate-900/50">
-          <h2 className="text-xl font-bold text-white">
+        <div className="p-2 md:p-4 text-center border-b border-slate-800 bg-slate-900/50">
+          <h2 className="text-base md:text-xl font-bold text-white">
             {isChooser ? t('game.trump.choose') : t('game.trump.waitingFor', { name: chooserName })}
           </h2>
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <div className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">
+          <div className="mt-1 md:mt-2 flex items-center justify-center gap-2">
+            <div className="text-[10px] md:text-xs font-mono text-slate-400 bg-slate-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded">
               {timeLeft}s
             </div>
             {isChooser && (
-              <div className="text-xs text-slate-400">
+              <div className="text-[10px] md:text-xs text-slate-400">
                 Redeals: {trumpSelection.redealCount}/{trumpSelection.maxRedeals}
               </div>
             )}
@@ -78,18 +78,18 @@ export const TrumpSelectionModal: React.FC = () => {
         </div>
 
         {/* Body */}
-        <div className="p-4">
+        <div className="p-2 md:p-4">
           {isChooser ? (
-            <div className="space-y-3">
-              {/* Suit Selection */}
-              <div className="grid grid-cols-4 gap-2">
+            <div className="space-y-2 md:space-y-3">
+              {/* Suit Selection - Compact grid */}
+              <div className="grid grid-cols-4 gap-1.5 md:gap-2">
                 {suits.map((suit) => (
                   <button
                     key={suit.type}
                     onClick={() => selectTrumpSuit(suit.type)}
                     disabled={isTimedOut || !trumpSelection.allowed.suits.includes(suit.type)}
                     className={`
-                      flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
+                      flex flex-col items-center justify-center p-2 md:p-3 rounded-lg md:rounded-xl border transition-all duration-200
                       ${
                         isTimedOut || !trumpSelection.allowed.suits.includes(suit.type)
                           ? 'opacity-50 cursor-not-allowed border-slate-800 bg-slate-900'
@@ -97,8 +97,11 @@ export const TrumpSelectionModal: React.FC = () => {
                       }
                     `}
                   >
-                    <SuitIcon suit={suit.type} className={`w-8 h-8 mb-1 ${suit.color}`} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <SuitIcon
+                      suit={suit.type}
+                      className={`w-6 h-6 md:w-8 md:h-8 mb-0.5 md:mb-1 ${suit.color}`}
+                    />
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       {suit.label}
                     </span>
                   </button>
@@ -110,7 +113,7 @@ export const TrumpSelectionModal: React.FC = () => {
                 onClick={() => selectNoTrump()}
                 disabled={isTimedOut || !trumpSelection.allowed.noTrump}
                 className={`
-                  w-full p-3 rounded-xl border font-bold text-sm transition-all duration-200 flex items-center justify-center
+                  w-full p-2 md:p-3 rounded-lg md:rounded-xl border font-bold text-xs md:text-sm transition-all duration-200 flex items-center justify-center
                   ${
                     isTimedOut || !trumpSelection.allowed.noTrump
                       ? 'opacity-50 cursor-not-allowed border-slate-800 bg-slate-900 text-slate-600'
@@ -118,7 +121,7 @@ export const TrumpSelectionModal: React.FC = () => {
                   }
                 `}
               >
-                <span className="mr-2 text-lg">Ø</span>
+                <span className="mr-1.5 md:mr-2 text-base md:text-lg">Ø</span>
                 {t('game.trump.noTrump')}
               </button>
 
@@ -127,7 +130,7 @@ export const TrumpSelectionModal: React.FC = () => {
                 onClick={() => requestRedeal()}
                 disabled={isTimedOut || !trumpSelection.allowed.redeal}
                 className={`
-                  w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2
+                  w-full py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 md:gap-2
                   ${
                     isTimedOut || !trumpSelection.allowed.redeal
                       ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-800'
@@ -137,7 +140,7 @@ export const TrumpSelectionModal: React.FC = () => {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3 w-3 md:h-4 md:w-4"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -148,18 +151,18 @@ export const TrumpSelectionModal: React.FC = () => {
                   />
                 </svg>
                 {t('game.trump.redeal')}
-                <span className="text-xs font-normal opacity-70 ml-1">
+                <span className="text-[10px] md:text-xs font-normal opacity-70 ml-0.5 md:ml-1">
                   ({trumpSelection.maxRedeals - trumpSelection.redealCount} left)
                 </span>
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="relative w-16 h-16">
+            <div className="flex flex-col items-center justify-center py-4 md:py-8 space-y-2 md:space-y-4">
+              <div className="relative w-10 h-10 md:w-16 md:h-16">
                 <div className="absolute inset-0 rounded-full border-4 border-slate-700"></div>
                 <div className="absolute inset-0 rounded-full border-4 border-amber-500 border-t-transparent animate-spin"></div>
               </div>
-              <p className="text-slate-400 text-sm text-center max-w-[200px]">
+              <p className="text-slate-400 text-xs md:text-sm text-center max-w-[200px]">
                 {t('game.trump.waitingDescription')}
               </p>
             </div>

@@ -95,28 +95,28 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   const leadSuitInfo = leadSuit ? suits.find((s) => s.type === leadSuit) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 pointer-events-none">
       {/* 
          Removed the full-screen backdrop div.
          The container is pointer-events-none so clicks pass through to the table.
       */}
 
-      <div className="relative pointer-events-auto w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="p-6 text-center border-b border-slate-800 relative">
+      <div className="relative pointer-events-auto w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        {/* Header - Compact on mobile */}
+        <div className="p-3 md:p-6 text-center border-b border-slate-800 relative">
           {step === 'suit' && (
             <button
               onClick={() => setStep('option')}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs md:text-base"
             >
               ← {t('game.joker.back')}
             </button>
           )}
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-lg md:text-2xl font-bold text-white">
             {step === 'option' ? t('game.joker.ability') : t('game.joker.selectSuit')}
           </h2>
-          <div className="flex flex-col items-center mt-1">
-            <span className="text-slate-400 text-sm">
+          <div className="flex flex-col items-center mt-0.5 md:mt-1">
+            <span className="text-slate-400 text-xs md:text-sm">
               {step === 'option'
                 ? t('game.joker.chooseHow')
                 : t('game.joker.forRequest', {
@@ -127,7 +127,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
                   })}
             </span>
             {leadSuitInfo && step === 'option' && (
-              <span className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+              <span className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1 flex items-center gap-1">
                 {t('game.joker.lead')}:{' '}
                 <span className={leadSuitInfo.color}>{leadSuitInfo.symbol}</span>
               </span>
@@ -135,10 +135,10 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - Compact layout for mobile landscape */}
+        <div className="p-2 md:p-6">
           {step === 'option' ? (
-            <div className="grid gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-1.5 md:gap-3">
               {options.map((opt) => {
                 const isDisabled = opt.leadingOnly !== isLeading;
 
@@ -148,7 +148,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
                     onClick={() => !isDisabled && handleOptionSelect(opt.id)}
                     disabled={isDisabled}
                     className={`
-                      flex items-center p-4 rounded-xl border transition-all duration-200 text-left group
+                      flex items-center p-2 md:p-4 rounded-lg md:rounded-xl border transition-all duration-200 text-left group
                       ${
                         isDisabled
                           ? 'opacity-30 bg-slate-900 border-slate-800 cursor-not-allowed saturate-0'
@@ -156,17 +156,19 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
                       }
                     `}
                   >
-                    <span className="text-3xl mr-4 group-hover:scale-110 transition-transform">
+                    <span className="text-xl md:text-3xl mr-2 md:mr-4 group-hover:scale-110 transition-transform">
                       {opt.icon}
                     </span>
-                    <div>
-                      <div className="font-bold text-lg text-white">{opt.label}</div>
-                      <div className="text-xs opacity-70 uppercase tracking-wider">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-xs md:text-lg text-white truncate">
+                        {opt.label}
+                      </div>
+                      <div className="text-[9px] md:text-xs opacity-70 uppercase tracking-wider truncate">
                         {opt.subLabel}
                       </div>
                     </div>
                     {!isDisabled && (
-                      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+                      <div className="ml-1 md:ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hidden md:block">
                         →
                       </div>
                     )}
@@ -175,15 +177,17 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
               })}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-4 md:grid-cols-2 gap-2 md:gap-4">
               {suits.map((suit) => (
                 <button
                   key={suit.type}
                   onClick={() => handleSuitSelect(suit.type)}
-                  className="flex flex-col items-center justify-center p-6 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200"
+                  className="flex flex-col items-center justify-center p-3 md:p-6 rounded-lg md:rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200"
                 >
-                  <span className={`text-5xl mb-2 ${suit.color}`}>{suit.symbol}</span>
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  <span className={`text-3xl md:text-5xl mb-1 md:mb-2 ${suit.color}`}>
+                    {suit.symbol}
+                  </span>
+                  <span className="text-[9px] md:text-xs font-medium text-slate-400 uppercase tracking-wider">
                     {suit.label}
                   </span>
                 </button>

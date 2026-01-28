@@ -118,9 +118,11 @@ export const GameScreen: React.FC = () => {
   if (!gameState || !myPlayerId) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#1a472a] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-amber-500" />
-          <p className="animate-pulse text-lg font-medium tracking-wide">{t('game.loading')}</p>
+        <div className="flex flex-col items-center gap-2 md:gap-4">
+          <div className="h-8 w-8 md:h-12 md:w-12 animate-spin rounded-full border-4 border-white/20 border-t-amber-500" />
+          <p className="animate-pulse text-sm md:text-lg font-medium tracking-wide">
+            {t('game.loading')}
+          </p>
         </div>
       </div>
     );
@@ -232,7 +234,7 @@ export const GameScreen: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
       {/* Error Banner */}
       {lastError && (
         <div className="absolute top-24 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
@@ -295,12 +297,74 @@ export const GameScreen: React.FC = () => {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
 
       {/* Top Bar / HUD */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-4 pointer-events-none">
-        {/* Game Info - REPLACED with GameProgressPanel */}
-        <GameProgressPanel currentRound={gameState.round} />
+      <div className="absolute top-0 left-0 right-0 z-40 flex flex-col md:flex-row items-start md:items-start justify-between p-2 md:p-4 gap-2 pointer-events-none">
+        {/* Game Info - Compact on mobile */}
+        <div className="hidden md:block">
+          <GameProgressPanel currentRound={gameState.round} />
+        </div>
 
-        {/* Timer & Phase */}
-        <div className="flex flex-col items-end gap-3 pointer-events-auto">
+        {/* Mobile: Compact top bar */}
+        <div className="flex md:hidden w-full items-center justify-between pointer-events-auto">
+          {/* Round indicator */}
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
+            <span className="text-[10px] text-slate-400 uppercase">{t('game.round')}</span>
+            <span className="text-sm font-bold text-amber-400">{gameState.round}/24</span>
+          </div>
+
+          {/* Timer */}
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-sm
+            ${isMyTurn ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/40 border-white/10'}`}
+          >
+            <span
+              className={`font-mono text-lg font-bold ${isMyTurn ? 'text-yellow-300' : 'text-slate-300'}`}
+            >
+              {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowScoreSheet(true)}
+              className="p-2 rounded-lg bg-black/40 border border-white/10 text-amber-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path
+                  fillRule="evenodd"
+                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={() => setIsLeaveModalOpen(true)}
+              className="p-2 rounded-lg bg-red-900/80 border border-red-700 text-red-100"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4.414l-4.293 4.293a1 1 0 01-1.414 0L4 7.414 5.414 6l3.293 3.293L13 5l1 2.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop: Timer & Phase */}
+        <div className="hidden md:flex flex-col items-end gap-3 pointer-events-auto">
           <div className="flex items-center gap-2">
             <LanguageSwitcher className="scale-75 origin-right" />
             <button
@@ -367,9 +431,9 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Main Table Area */}
-      <div className="flex-1 relative z-0 flex items-center justify-center py-10">
-        {/* We use perspective to give a slight 3D feel if we want, or just flat for now */}
-        <div className="w-full max-w-7xl aspect-[16/9] relative flex items-center justify-center">
+      <div className="flex-1 relative z-0 flex items-center justify-center py-2 md:py-10">
+        {/* Responsive aspect ratio: wider on mobile landscape */}
+        <div className="w-full max-w-7xl aspect-[16/10] md:aspect-[16/9] relative flex items-center justify-center px-2 md:px-0">
           <Table
             players={gameState.players}
             tableCards={gameState.table}
@@ -378,7 +442,7 @@ export const GameScreen: React.FC = () => {
             currentPlayerId={currentTurnPlayer?.id}
             myPlayerId={myPlayerId}
             dealerIndex={gameState.dealerIndex}
-            className="w-[85%] h-[65%] z-10" // Sizing relative to container
+            className="w-[98%] md:w-[85%] h-[55%] md:h-[65%] z-10"
             isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
             tuzovanieCards={tuzovanieCards}
             tuzovanieDealerIndex={tuzovanieDealerIndex}
@@ -387,7 +451,7 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Player Hand */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-2 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-1 md:pb-2 pointer-events-none">
         <div className="w-full max-w-5xl pointer-events-auto">
           <Hand
             cards={sortedHand}
@@ -399,10 +463,10 @@ export const GameScreen: React.FC = () => {
           />
         </div>
 
-        {/* Helper Hint */}
+        {/* Helper Hint - Positioned above hand, responsive */}
         {isMyTurn && (
-          <div className="absolute bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
-            <span className="bg-yellow-500/90 text-black px-6 py-2 rounded-full text-sm font-bold border-2 border-yellow-300 shadow-lg tracking-wide uppercase">
+          <div className="absolute bottom-28 md:bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
+            <span className="bg-yellow-500/90 text-black px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold border-2 border-yellow-300 shadow-lg tracking-wide uppercase">
               {t(`game.phase.${gameState.phase}`, gameState.phase)}
             </span>
           </div>

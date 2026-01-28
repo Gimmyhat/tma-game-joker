@@ -6,7 +6,7 @@ interface CardProps {
   card?: CardType;
   faceDown?: boolean;
   onClick?: () => void;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   selected?: boolean;
   disabled?: boolean;
   className?: string;
@@ -72,6 +72,7 @@ export const Card: React.FC<CardProps> = ({
   style = {},
 }) => {
   const sizeClasses = {
+    xs: 'w-10 h-14 text-[8px]',
     sm: 'w-16 h-24 text-xs',
     md: 'w-24 h-36 text-base',
     lg: 'w-32 h-48 text-xl',

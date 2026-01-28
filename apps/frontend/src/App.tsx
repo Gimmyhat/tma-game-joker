@@ -5,6 +5,7 @@ import { useGameStore } from './store';
 import { GameScreen } from './screens';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
+import { RotateDeviceOverlay } from './components/RotateDeviceOverlay';
 
 /**
  * Lobby screen - shown before game starts
@@ -156,6 +157,7 @@ function GameContent() {
 function App() {
   return (
     <TelegramProvider>
+      <RotateDeviceOverlay />
       <GameContent />
     </TelegramProvider>
   );
