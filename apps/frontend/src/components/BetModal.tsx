@@ -29,10 +29,12 @@ export const BetModal: React.FC<BetModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleConfirm = () => {
-    if (selectedBet !== null) {
-      onBet(selectedBet);
-    }
+  const handleBetClick = (bet: number) => {
+    setSelectedBet(bet);
+    // Instant feedback then submit
+    setTimeout(() => {
+      onBet(bet);
+    }, 300); // 300ms delay to see the active state
   };
 
   const bets = Array.from({ length: maxBet + 1 }, (_, i) => i);
@@ -59,7 +61,7 @@ export const BetModal: React.FC<BetModalProps> = ({
         </div>
 
         {/* Numpad Grid */}
-        <div className="p-3">
+        <div className="p-3 pb-4">
           <div className="grid grid-cols-4 gap-1.5">
             {bets.map((bet) => {
               const isForbidden = bet === forbiddenBet;
@@ -69,7 +71,7 @@ export const BetModal: React.FC<BetModalProps> = ({
                 <button
                   key={bet}
                   disabled={isForbidden}
-                  onClick={() => setSelectedBet(bet)}
+                  onClick={() => handleBetClick(bet)}
                   className={`
                       aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-200
                       ${
@@ -86,30 +88,6 @@ export const BetModal: React.FC<BetModalProps> = ({
               );
             })}
           </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-3 pt-0">
-          <button
-            onClick={handleConfirm}
-            disabled={selectedBet === null}
-            className={`
-              w-full py-2.5 rounded-lg font-bold text-sm tracking-wide transition-all duration-300
-              flex items-center justify-center gap-2
-              ${
-                selectedBet !== null
-                  ? 'bg-[#1a5c32] text-white shadow-md shadow-green-900/20 hover:bg-[#144a28] active:scale-[0.98]'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              }
-            `}
-          >
-            {t('game.confirm', 'CONFIRM')}
-            {selectedBet !== null && (
-              <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-mono backdrop-blur-sm">
-                {selectedBet}
-              </span>
-            )}
-          </button>
         </div>
       </div>
     </div>
