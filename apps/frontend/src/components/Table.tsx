@@ -98,24 +98,24 @@ export const Table: React.FC<TableProps> = ({
 
   // Map relative index (0=Me) to physical table slots based on player count
   const getPosition = (index: number, total: number): Position => {
-    if (index === 0) return 'bottom-center'; // Me
+    if (index === 0) return 'bottom-left'; // Hero strictly Bottom-Left
 
     if (total === 2) {
-      return 'top-center'; // Head to head
+      return 'top-right'; // Head to head (diagonal)
     }
     if (total === 3) {
       if (index === 1) return 'top-left';
       return 'top-right';
     }
     if (total === 4) {
-      // 4 Players: Me (bottom), Left, Top, Right
-      if (index === 1) return 'left-center';
-      if (index === 2) return 'top-center';
-      return 'right-center';
+      // 4 Players: Me (BL), Clockwise -> TL, TR, BR
+      if (index === 1) return 'top-left';
+      if (index === 2) return 'top-right';
+      return 'bottom-right';
     }
-    // 5+ players (fallback to original circular spread or adjust)
+    // 5+ players (fallback)
     const positions: Position[] = [
-      'bottom-center',
+      'bottom-left',
       'left-center',
       'top-left',
       'top-right',
@@ -127,8 +127,76 @@ export const Table: React.FC<TableProps> = ({
   // Helper to find visual position of a specific playerId
   const getPlayerPosition = (pid: string): Position => {
     const index = orderedPlayers.findIndex((p) => p.id === pid);
-    if (index === -1) return 'bottom-center';
+    if (index === -1) return 'bottom-left';
     return getPosition(index, orderedPlayers.length);
+  };
+
+  const cardsPerPlayer = useGameStore((state) => state.gameState?.cardsPerPlayer) || 0;
+
+  // Render Opponent Cards (Backs) - Partially off-screen
+  const renderOpponentHand = (position: Position, player: Player) => {
+    if (position === 'bottom-left' || position === 'bottom-center') return null; // Hero handled separately
+
+    // Calculate position for cards relative to viewport edge
+    // "Visible part max 60%" -> shift them off-screen
+    let containerClass = '';
+    let cardRotation = 0;
+
+    switch (position) {
+      case 'top-left':
+        containerClass = '-top-16 left-20 rotate-180'; // Stick out from top
+        cardRotation = 180;
+        break;
+      case 'top-right':
+        containerClass = '-top-16 right-20 rotate-180';
+        cardRotation = 180;
+        break;
+      case 'top-center':
+        containerClass = '-top-16 left-1/2 -translate-x-1/2 rotate-180';
+        cardRotation = 180;
+        break;
+      case 'bottom-right':
+        containerClass = 'bottom-32 -right-16 -rotate-90'; // Stick out from right
+        cardRotation = -90;
+        break;
+      case 'left-center':
+        containerClass = 'top-1/2 -left-16 -translate-y-1/2 rotate-90';
+        cardRotation = 90;
+        break;
+      case 'right-center':
+        containerClass = 'top-1/2 -right-16 -translate-y-1/2 -rotate-90';
+        cardRotation = -90;
+        break;
+      default:
+        return null;
+    }
+
+    // Just show a stack representation (3 cards fanned slightly)
+    const cardCount = Math.min(cardsPerPlayer, 5); // Cap visual at 5
+    if (cardCount <= 0) return null;
+
+    return (
+      <div className={`absolute ${containerClass} z-20 pointer-events-none`}>
+        {Array.from({ length: Math.min(3, cardCount) }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute shadow-2xl"
+            style={{
+              left: i * 4, // Tight stack
+              top: i * 0,
+              transform: `rotate(${cardRotation + i * 2}deg)`,
+              zIndex: i,
+            }}
+          >
+            <Card card={undefined} faceDown size="xs" className="border-2 border-white/10" />
+          </div>
+        ))}
+        {/* Count Badge */}
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
+          {cardsPerPlayer} cards
+        </div>
+      </div>
+    );
   };
 
   // 2. Render Players
@@ -146,46 +214,49 @@ export const Table: React.FC<TableProps> = ({
       ? {
           // Mobile landscape: keep all players inside stage
           'bottom-center': 'bottom-12 left-1/2 -translate-x-1/2',
-          'bottom-left': 'bottom-10 left-[8%]',
-          'bottom-right': 'bottom-10 right-[8%]',
-          'top-left': 'top-[6%] left-[10%]',
+          'bottom-left': 'bottom-4 left-4', // Hero
+          'bottom-right': 'bottom-20 right-4',
+          'top-left': 'top-4 left-4',
           'top-center': 'top-4 left-1/2 -translate-x-1/2',
-          'top-right': 'top-[6%] right-[10%]',
+          'top-right': 'top-4 right-4',
           'left-center': 'top-1/2 left-3 -translate-y-1/2',
           'right-center': 'top-1/2 right-3 -translate-y-1/2',
         }
       : {
           // Desktop: more spacious
           'bottom-center': '-bottom-12 left-1/2 -translate-x-1/2 translate-y-0',
-          'bottom-left': '-bottom-8 left-[20%] translate-y-full',
-          'bottom-right': '-bottom-8 right-[20%] translate-y-full',
-          'top-left': 'top-[15%] -left-12 -translate-x-full',
+          'bottom-left': 'bottom-8 left-8 z-50', // Hero strict BL
+          'bottom-right': 'bottom-32 right-8',
+          'top-left': 'top-8 left-8',
           'top-center': '-top-16 left-1/2 -translate-x-1/2 translate-y-0',
-          'top-right': 'top-[15%] -right-12 translate-x-full',
+          'top-right': 'top-8 right-8',
           'left-center': 'top-1/2 -left-16 -translate-x-full -translate-y-1/2',
           'right-center': 'top-1/2 -right-16 translate-x-full -translate-y-1/2',
         };
 
     return (
-      <div
-        key={player.id}
-        className={`absolute ${posStyles[position]} z-30 transition-all duration-500`}
-      >
-        <PlayerInfo
-          player={player}
-          position={position}
-          isCurrentTurn={isTurn}
-          isDealer={isDealer}
-          onScoreClick={
-            player.id === myPlayerId
-              ? () => {
-                  const event = new CustomEvent('openScoringModal');
-                  window.dispatchEvent(event);
-                }
-              : undefined
-          }
-        />
-      </div>
+      <React.Fragment key={player.id}>
+        {/* Player Avatar & Info */}
+        <div className={`absolute ${posStyles[position]} z-30 transition-all duration-500`}>
+          <PlayerInfo
+            player={player}
+            position={position}
+            isCurrentTurn={isTurn}
+            isDealer={isDealer}
+            onScoreClick={
+              player.id === myPlayerId
+                ? () => {
+                    const event = new CustomEvent('openScoringModal');
+                    window.dispatchEvent(event);
+                  }
+                : undefined
+            }
+          />
+        </div>
+
+        {/* Opponent Hand (Card Backs) */}
+        {renderOpponentHand(position, player)}
+      </React.Fragment>
     );
   };
 
@@ -198,14 +269,15 @@ export const Table: React.FC<TableProps> = ({
       // Generate stable random values based on card ID to avoid jitter on re-renders
       // Simple hash function for pseudo-randomness
       const hash = tc.card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const randomAngle = (hash % 20) - 10; // -10 to +10 degrees variation
+      const randomAngle = (hash % 10) - 5; // -5 to +5 degrees variation (REFINED)
       const randomX = (hash % 16) - 8; // -8 to +8px variation (~10% card overlap max)
       const randomY = ((hash * 13) % 16) - 8; // Different seed for Y
 
       // Initial positions (off-screen / player hand area)
       const startPos: Record<Position, { x: number; y: number; rotate: number }> = {
         'bottom-center': { x: 0, y: 400, rotate: 0 },
-        'bottom-left': { x: -300, y: 400, rotate: 15 },
+        // Hero (Bottom-Left) starts from Bottom-Center (Hand position)
+        'bottom-left': { x: 0, y: 500, rotate: 0 },
         'bottom-right': { x: 300, y: 400, rotate: -15 },
         'top-left': { x: -300, y: -400, rotate: 165 },
         'top-center': { x: 0, y: -400, rotate: 180 },
@@ -218,7 +290,7 @@ export const Table: React.FC<TableProps> = ({
       // Players throw cards "facing" the center
       const baseRotation: Record<Position, number> = {
         'bottom-center': 0,
-        'bottom-left': 30, // Angled inward
+        'bottom-left': 5, // Slightly angled from left
         'bottom-right': -30,
         'top-left': 150,
         'top-center': 180, // Facing me upside down
@@ -231,7 +303,7 @@ export const Table: React.FC<TableProps> = ({
       // We use small offsets so they form a loose cluster/pile
       const targetPos: Record<Position, { x: number; y: number }> = {
         'bottom-center': { x: 0, y: 30 },
-        'bottom-left': { x: -20, y: 20 },
+        'bottom-left': { x: -20, y: 30 }, // Near bottom center
         'bottom-right': { x: 20, y: 20 },
         'top-left': { x: -20, y: -20 },
         'top-center': { x: 0, y: -30 },

@@ -38,8 +38,8 @@ export const BetModal: React.FC<BetModalProps> = ({
   const bets = Array.from({ length: maxBet + 1 }, (_, i) => i);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="relative w-[90%] max-w-[340px] bg-white text-slate-900 rounded-[2rem] shadow-2xl overflow-hidden transform scale-100 animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-transparent pointer-events-none">
+      <div className="relative w-[90%] max-w-[340px] bg-white text-slate-900 rounded-[2rem] shadow-2xl overflow-hidden transform scale-100 animate-in zoom-in-95 duration-300 pointer-events-auto border border-white/20">
         {/* Header */}
         <div className="pt-8 px-6 pb-2 text-center">
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
