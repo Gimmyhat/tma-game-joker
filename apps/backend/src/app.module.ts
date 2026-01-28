@@ -8,6 +8,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { BotModule } from './bot/bot.module';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
+import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -26,6 +27,7 @@ import { HealthController } from './health/health.controller';
     GatewayModule,
     BotModule,
     AuthModule,
+    TelegramBotModule,
   ],
   controllers: [HealthController],
   providers: [],
