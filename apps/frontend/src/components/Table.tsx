@@ -134,7 +134,7 @@ export const Table: React.FC<TableProps> = ({
   const cardsPerPlayer = useGameStore((state) => state.gameState?.cardsPerPlayer) || 0;
 
   // Render Opponent Cards (Backs) - Partially off-screen
-  const renderOpponentHand = (position: Position, player: Player) => {
+  const renderOpponentHand = (position: Position, _player: Player) => {
     if (position === 'bottom-left' || position === 'bottom-center') return null; // Hero handled separately
 
     // Calculate position for cards relative to viewport edge
