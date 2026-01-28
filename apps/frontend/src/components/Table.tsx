@@ -55,7 +55,7 @@ export const Table: React.FC<TableProps> = ({
   tuzovanieDealerIndex = null,
 }) => {
   const { t } = useTranslation();
-  const { tableCardSize, trumpCardSize, isMobileLandscape } = useResponsiveCards();
+  const { tableCardSize } = useResponsiveCards();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
 
@@ -235,14 +235,6 @@ export const Table: React.FC<TableProps> = ({
             position={position}
             isCurrentTurn={isTurn}
             isDealer={isDealer}
-            onScoreClick={
-              player.id === myPlayerId
-                ? () => {
-                    const event = new CustomEvent('openScoringModal');
-                    window.dispatchEvent(event);
-                  }
-                : undefined
-            }
           />
         </div>
 
@@ -549,7 +541,7 @@ export const Table: React.FC<TableProps> = ({
     );
   };
 
-  const tableSurfaceSize = isMobileLandscape ? 'w-[88%] h-[72%]' : 'w-full h-full';
+  // const tableSurfaceSize = isMobileLandscape ? 'w-[88%] h-[72%]' : 'w-full h-full'; // Unused
 
   return (
     <div className={`relative flex items-center justify-center w-full h-full ${className}`}>

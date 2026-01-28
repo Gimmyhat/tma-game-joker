@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Player } from '@joker/shared';
-import { PlayerBadges } from './PlayerBadges';
+// import { PlayerBadges } from './PlayerBadges'; // Unused
 
 interface PlayerInfoProps {
   player: Player;
@@ -26,9 +25,9 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   isCurrentTurn = false,
   isDealer = false,
   className = '',
-  onScoreClick,
+  // onScoreClick, // Unused
 }) => {
-  const { t } = useTranslation();
+  // const { t } = useTranslation(); // Unused
   const isRight = position.includes('right');
   const isTop = position.includes('top');
   const isBottom = position.includes('bottom');
