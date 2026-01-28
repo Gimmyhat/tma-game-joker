@@ -216,14 +216,14 @@ export const Table: React.FC<TableProps> = ({
       'bottom-left': 'bottom-6 left-6 z-40', // Explicit Hero Position
       'bottom-right': 'bottom-6 right-6 z-40',
 
-      // Top Opponents
-      'top-center': 'top-2 left-1/2 -translate-x-1/2',
-      'top-left': 'top-2 left-2',
-      'top-right': 'top-2 right-2',
+      // Top Opponents - Added safe area padding
+      'top-center': 'top-4 left-1/2 -translate-x-1/2',
+      'top-left': 'top-4 left-4',
+      'top-right': 'top-4 right-4',
 
       // Side Opponents (Vertical Centered or Top 40% as requested)
-      'left-center': 'top-[40%] left-2 -translate-y-1/2',
-      'right-center': 'top-[40%] right-2 -translate-y-1/2',
+      'left-center': 'top-[40%] left-4 -translate-y-1/2', // Increased safe padding
+      'right-center': 'top-[40%] right-4 -translate-y-1/2', // Increased safe padding
     };
 
     return (
@@ -501,19 +501,19 @@ export const Table: React.FC<TableProps> = ({
     if (!trump && !trumpCard && !isJokerTrump) return null;
 
     return (
-      <div className="absolute top-[20%] right-[15%] z-20 flex flex-col items-center pointer-events-none transform rotate-[-5deg]">
+      <div className="absolute top-[15%] right-[10%] z-20 flex flex-col items-center pointer-events-none transform rotate-[-5deg]">
         <div className="relative">
           {/* Deck Representation (Underneath) */}
           <div className="absolute -top-1 -left-1 w-full h-full bg-[#8b0000] rounded-lg border border-[#5a0000] shadow-sm transform -rotate-2" />
           <div className="absolute -top-0.5 -left-0.5 w-full h-full bg-[#8b0000] rounded-lg border border-[#5a0000] shadow-sm transform -rotate-1" />
 
-          {/* The Trump Card (Rotated 90deg under the deck typically, but here we just show it clearly) */}
+          {/* The Trump Card - Matches Table Card Style exactly */}
           {trumpCard ? (
             <div className="relative transform rotate-90 origin-center shadow-xl">
               <Card
                 card={trumpCard}
-                size="xs" // Smaller size for UI
-                className="border-2 border-yellow-500/50 shadow-lg w-10 md:w-14" // Explicit width constraint
+                size={tableCardSize} // Match table card size exactly
+                className="border-none shadow-2xl" // Remove extra borders to match table cards
               />
             </div>
           ) : trump ? (
