@@ -211,12 +211,12 @@ export const Table: React.FC<TableProps> = ({
 
     // Absolute positioning styles around the SCREEN (Full Immersion)
     const posStyles: Record<Position, string> = {
-      // Hero (Bottom Left) - Adjusted for safe padding and visibility
-      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40', // Fallback
-      'bottom-left': 'bottom-20 left-6 z-40', // Explicit Hero Position (Higher up)
+      // Hero (Bottom Left) - Shifted right (left-12 / 12%) to match reference
+      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40',
+      'bottom-left': 'bottom-20 left-[12%] z-40', // Moved inward from left-6
       'bottom-right': 'bottom-20 right-6 z-40',
 
-      // Top Opponents - Adjusted closer to center/safe area
+      // Top Opponents
       'top-center': 'top-6 left-1/2 -translate-x-1/2',
       'top-left': 'top-6 left-6',
       'top-right': 'top-6 right-6',

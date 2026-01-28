@@ -32,11 +32,11 @@ export const Hand: React.FC<HandProps> = ({
   const centerIndex = (totalCards - 1) / 2;
 
   // Optimized overlap for new card width
-  const baseOverlap = isMobileLandscape ? -40 : -50; // Increased spacing slightly
-  const overlap = totalCards > 8 ? baseOverlap - 10 : baseOverlap;
+  const baseOverlap = isMobileLandscape ? -45 : -55; // Slightly tighter overlap for visual stack
+  const overlap = totalCards > 8 ? baseOverlap - 15 : baseOverlap;
 
   // Height based on card size
-  const heightClass = isMobileLandscape ? 'h-32' : 'h-64'; // Taller container to show more card
+  const heightClass = isMobileLandscape ? 'h-32' : 'h-64';
 
   return (
     <div
@@ -50,9 +50,9 @@ export const Hand: React.FC<HandProps> = ({
 
         // Fan calculations
         const rotateDeg = offsetFromCenter * 3; // 3 degree spread per card
-        // Gentle arc, but not dropping too low. Max drop is limited to 15px for outer cards
+        // Gentle arc
         const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 2 : 3);
-        const translateX = offsetFromCenter * 2; // Slight spacing adjustment
+        const translateX = offsetFromCenter * 2;
 
         const canPlay = isPlayable(card);
         const isInteractable = !disabled && canPlay;
@@ -64,7 +64,8 @@ export const Hand: React.FC<HandProps> = ({
             key={card.id}
             className={`
               transition-all duration-300 ease-out origin-bottom 
-              ${isInteractable ? 'hover:z-50 hover:scale-110 cursor-pointer' : 'cursor-default opacity-70 grayscale-[0.4]'}
+              ${isInteractable ? 'hover:z-50 hover:scale-110 cursor-pointer' : 'cursor-default opacity-100 grayscale-0'} 
+              ${!canPlay && !disabled ? 'brightness-75' : ''} 
               ${isInteractable && isMobileLandscape ? 'hover:-translate-y-4' : ''}
               ${isInteractable && !isMobileLandscape ? 'hover:-translate-y-10' : ''}
               group/card relative

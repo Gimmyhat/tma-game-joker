@@ -437,7 +437,7 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Right Floating Action Group */}
-      <div className="absolute bottom-4 right-4 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)] pr-[env(safe-area-inset-right,0px)]">
+      <div className="absolute bottom-20 right-4 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)] pr-[env(safe-area-inset-right,0px)]">
         {/* Score Sheet */}
         <button
           onClick={() => setShowScoreSheet(true)}
