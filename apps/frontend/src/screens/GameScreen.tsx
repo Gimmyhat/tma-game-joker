@@ -134,6 +134,19 @@ export const GameScreen: React.FC = () => {
 
   const isTimerFrozen = humanPlayerCount <= 1;
 
+  // Custom Hook for Telegram Viewport Height
+  useEffect(() => {
+    const setViewportHeight = () => {
+      // Use window.innerHeight directly to avoid Telegram chrome issues
+      const vh = window.innerHeight;
+      document.documentElement.style.setProperty('--tg-viewport-height', `${vh}px`);
+    };
+
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    return () => window.removeEventListener('resize', setViewportHeight);
+  }, []);
+
   // Memoized sorted hand to ensure correct order
   const sortedHand = useMemo(() => {
     if (!gameState) return [];
@@ -310,7 +323,10 @@ export const GameScreen: React.FC = () => {
   };
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
+    <div
+      className="relative flex w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100"
+      style={{ height: 'var(--tg-viewport-height, 100vh)' }}
+    >
       {/* Error Banner */}
       {lastError && (
         <div className="absolute top-24 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
@@ -461,8 +477,8 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Main Table Area */}
-      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center pt-6 pb-20 md:py-10">
-        <div className="h-full w-full max-w-7xl relative flex items-center justify-center px-2 md:px-0">
+      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center">
+        <div className="h-full w-full relative">
           <Table
             players={gameState.players}
             tableCards={gameState.table}

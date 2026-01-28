@@ -98,24 +98,25 @@ export const Table: React.FC<TableProps> = ({
 
   // Map relative index (0=Me) to physical table slots based on player count
   const getPosition = (index: number, total: number): Position => {
-    if (index === 0) return 'bottom-left'; // Hero strictly Bottom-Left
+    if (index === 0) return 'bottom-center'; // Hero strictly Bottom-Center
 
     if (total === 2) {
-      return 'top-right'; // Head to head (diagonal)
+      return 'top-center'; // Head to head
     }
     if (total === 3) {
       if (index === 1) return 'top-left';
       return 'top-right';
     }
     if (total === 4) {
-      // 4 Players: Me (BL), Clockwise -> TL, TR, BR
-      if (index === 1) return 'top-left';
-      if (index === 2) return 'top-right';
-      return 'bottom-right';
+      // 4 Players: Me (BC), Clockwise -> Left, Top, Right
+      // Note: index 1 is Left, index 2 is Top, index 3 is Right
+      if (index === 1) return 'left-center'; // Or specific 'top-left' as per prompt? Prompt says Left: top 40%
+      if (index === 2) return 'top-center';
+      return 'right-center';
     }
     // 5+ players (fallback)
     const positions: Position[] = [
-      'bottom-left',
+      'bottom-center',
       'left-center',
       'top-left',
       'top-right',
@@ -127,7 +128,7 @@ export const Table: React.FC<TableProps> = ({
   // Helper to find visual position of a specific playerId
   const getPlayerPosition = (pid: string): Position => {
     const index = orderedPlayers.findIndex((p) => p.id === pid);
-    if (index === -1) return 'bottom-left';
+    if (index === -1) return 'bottom-center';
     return getPosition(index, orderedPlayers.length);
   };
 
@@ -144,27 +145,27 @@ export const Table: React.FC<TableProps> = ({
 
     switch (position) {
       case 'top-left':
-        containerClass = '-top-16 left-20 rotate-180'; // Stick out from top
+        containerClass = '-top-12 left-20 rotate-180'; // Stick out from top
         cardRotation = 180;
         break;
       case 'top-right':
-        containerClass = '-top-16 right-20 rotate-180';
+        containerClass = '-top-12 right-20 rotate-180';
         cardRotation = 180;
         break;
       case 'top-center':
-        containerClass = '-top-16 left-1/2 -translate-x-1/2 rotate-180';
+        containerClass = '-top-12 left-1/2 -translate-x-1/2 rotate-180';
         cardRotation = 180;
         break;
       case 'bottom-right':
-        containerClass = 'bottom-32 -right-16 -rotate-90'; // Stick out from right
+        containerClass = 'bottom-32 -right-12 -rotate-90'; // Stick out from right
         cardRotation = -90;
         break;
       case 'left-center':
-        containerClass = 'top-1/2 -left-16 -translate-y-1/2 rotate-90';
+        containerClass = 'top-[40%] -left-12 rotate-90'; // Left Opponent (top 40%)
         cardRotation = 90;
         break;
       case 'right-center':
-        containerClass = 'top-1/2 -right-16 -translate-y-1/2 -rotate-90';
+        containerClass = 'top-[40%] -right-12 -rotate-90'; // Right Opponent (top 40%)
         cardRotation = -90;
         break;
       default:
@@ -193,7 +194,7 @@ export const Table: React.FC<TableProps> = ({
         ))}
         {/* Count Badge */}
         <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
-          {cardsPerPlayer} cards
+          {cardsPerPlayer}
         </div>
       </div>
     );
@@ -208,31 +209,22 @@ export const Table: React.FC<TableProps> = ({
     const originalPlayerIndex = players.findIndex((p) => p.id === player.id);
     const isDealer = dealerIndex !== undefined && originalPlayerIndex === dealerIndex;
 
-    // Absolute positioning styles around the oval
-    // Compact positions for mobile landscape, more spacious for desktop
-    const posStyles: Record<Position, string> = isMobileLandscape
-      ? {
-          // Mobile landscape: keep all players inside stage
-          'bottom-center': 'bottom-12 left-1/2 -translate-x-1/2',
-          'bottom-left': 'bottom-4 left-4', // Hero
-          'bottom-right': 'bottom-20 right-4',
-          'top-left': 'top-4 left-4',
-          'top-center': 'top-4 left-1/2 -translate-x-1/2',
-          'top-right': 'top-4 right-4',
-          'left-center': 'top-1/2 left-3 -translate-y-1/2',
-          'right-center': 'top-1/2 right-3 -translate-y-1/2',
-        }
-      : {
-          // Desktop: more spacious
-          'bottom-center': '-bottom-12 left-1/2 -translate-x-1/2 translate-y-0',
-          'bottom-left': 'bottom-8 left-8 z-50', // Hero strict BL
-          'bottom-right': 'bottom-32 right-8',
-          'top-left': 'top-8 left-8',
-          'top-center': '-top-16 left-1/2 -translate-x-1/2 translate-y-0',
-          'top-right': 'top-8 right-8',
-          'left-center': 'top-1/2 -left-16 -translate-x-full -translate-y-1/2',
-          'right-center': 'top-1/2 -right-16 translate-x-full -translate-y-1/2',
-        };
+    // Absolute positioning styles around the SCREEN (Full Immersion)
+    const posStyles: Record<Position, string> = {
+      // Hero (Bottom Center)
+      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40', // Slightly above bottom edge
+      'bottom-left': 'bottom-6 left-6 z-40',
+      'bottom-right': 'bottom-6 right-6 z-40',
+
+      // Top Opponents
+      'top-center': 'top-2 left-1/2 -translate-x-1/2',
+      'top-left': 'top-2 left-2',
+      'top-right': 'top-2 right-2',
+
+      // Side Opponents (Vertical Centered or Top 40% as requested)
+      'left-center': 'top-[40%] left-2 -translate-y-1/2',
+      'right-center': 'top-[40%] right-2 -translate-y-1/2',
+    };
 
     return (
       <React.Fragment key={player.id}>
@@ -355,8 +347,8 @@ export const Table: React.FC<TableProps> = ({
           key={`${tc.playerId}-${tc.card.id}`}
           initial={initialProps}
           animate={animateProps}
-          className="absolute z-20" // Removed fixed offset classes
-          style={{ zIndex: 20 + i }}
+          className="absolute z-10" // Layer 1: Played Cards (Below Trump/Avatars)
+          style={{ zIndex: 10 + i }} // Base z-index 10
         >
           <Card card={tc.card} size={tableCardSize} className="shadow-2xl border-none" />
           {/* Joker Action / Request Badge */}
@@ -513,162 +505,126 @@ export const Table: React.FC<TableProps> = ({
   };
 
   const TrumpIndicator = () => {
-    if (trump) {
-      return (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
-          <div
-            className={`
-            text-9xl font-black
-            ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-900' : 'text-slate-900'}
-          `}
-          >
-            {trump === Suit.Hearts && '♥'}
-            {trump === Suit.Diamonds && '♦'}
-            {trump === Suit.Clubs && '♣'}
-            {trump === Suit.Spades && '♠'}
-          </div>
-        </div>
-      );
-    }
+    // Only render if there's a trump or joker-as-trump
+    if (!trump && !trumpCard && !isJokerTrump) return null;
 
-    if (isJokerTrump) {
-      return (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-10 pointer-events-none z-0">
-          <div className="text-8xl font-black text-slate-900 flex flex-col items-center">
-            <span>JOKER</span>
-            <span className="text-4xl mt-2">{t('game.trump.noTrump')}</span>
-          </div>
-        </div>
-      );
-    }
+    return (
+      <div className="absolute top-[20%] right-[15%] z-20 flex flex-col items-center pointer-events-none transform rotate-[-5deg]">
+        <div className="relative">
+          {/* Deck Representation (Underneath) */}
+          <div className="absolute -top-1 -left-1 w-full h-full bg-[#8b0000] rounded-lg border border-[#5a0000] shadow-sm transform -rotate-2" />
+          <div className="absolute -top-0.5 -left-0.5 w-full h-full bg-[#8b0000] rounded-lg border border-[#5a0000] shadow-sm transform -rotate-1" />
 
-    return null;
+          {/* The Trump Card (Rotated 90deg under the deck typically, but here we just show it clearly) */}
+          {trumpCard ? (
+            <div className="relative transform rotate-90 origin-center shadow-xl">
+              <Card
+                card={trumpCard}
+                size="sm" // Smaller size for UI
+                className="border-2 border-yellow-500/50 shadow-lg"
+              />
+            </div>
+          ) : trump ? (
+            /* Fallback Suit Icon if card not visible (9-card round) */
+            <div className="w-16 h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-yellow-500/50 flex flex-col items-center justify-center shadow-xl">
+              <SuitIcon
+                suit={trump}
+                className={`w-10 h-10 ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-white'}`}
+              />
+              <span className="text-[10px] text-yellow-500 font-bold uppercase mt-1 tracking-wider">
+                Trump
+              </span>
+            </div>
+          ) : (
+            /* No Trump (Joker) */
+            <div className="w-16 h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-purple-500/50 flex flex-col items-center justify-center shadow-xl">
+              <span className="text-2xl">🃏</span>
+              <span className="text-[10px] text-purple-300 font-bold uppercase mt-1 tracking-wider">
+                No Trump
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const tableSurfaceSize = isMobileLandscape ? 'w-[88%] h-[72%]' : 'w-full h-full';
 
   return (
     <div className={`relative flex items-center justify-center w-full h-full ${className}`}>
-      <div className={`relative flex items-center justify-center w-full h-full`}>
-        <div className={`relative ${tableSurfaceSize}`}>
-          {/* The Oval Table Surface */}
-          <div className="relative w-full h-full rounded-[50%] shadow-[0_30px_60px_rgba(0,0,0,0.6)] border-[12px] md:border-[20px] border-[#3d2211] z-10">
-            {/* Bezel Highlight (Inner Rim) */}
-            <div className="absolute inset-0 rounded-[50%] border-2 border-[#5a3518]/40 pointer-events-none z-20" />
+      {/* FULL SCREEN TABLE CONTAINER - No Oval, Just Texture */}
+      <div className="absolute inset-0 z-0 bg-felt-gradient">
+        {/* Texture Pattern */}
+        <div
+          className="absolute inset-0 opacity-40 mix-blend-overlay"
+          style={{
+            backgroundImage: `url('https://www.transparenttextures.com/patterns/felt.png')`,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+        {/* Vignette / Rail Effect - Updated to user spec */}
+        <div className="absolute inset-0 shadow-[inset_0_0_80px_20px_rgba(0,0,0,0.8)] pointer-events-none" />
 
-            {/* Felt Texture & Gradient */}
-            <div className="absolute inset-0 rounded-[50%] bg-felt-gradient overflow-hidden">
-              {/* Texture Pattern */}
-              <div
-                className="absolute inset-0 opacity-40 mix-blend-overlay"
-                style={{
-                  backgroundImage: `url('https://www.transparenttextures.com/patterns/felt.png')`,
-                  backgroundRepeat: 'repeat',
-                }}
-              />
+        {/* Center Decoration (Subtle Logo) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
+          <div className="w-64 h-64 rounded-full border-4 border-black/20 flex items-center justify-center">
+            <span className="text-6xl font-serif font-black text-black/40 tracking-widest">
+              JOKER
+            </span>
+          </div>
+        </div>
+      </div>
 
-              {/* Vignette / Inner Shadow */}
-              <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)]" />
+      <div className={`relative w-full h-full z-10`}>
+        {/* Center Active Turn Text */}
+        {currentPlayerId && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[140%] z-0 text-center pointer-events-none transition-opacity duration-300">
+            <div className="text-[10px] text-gold/60 uppercase tracking-[0.2em] font-bold">
+              {t('game.table.currentTurn')}
             </div>
-
-            {/* Center Decoration / HUD */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Center Ring - Gold/Wood inlay */}
-              <div className="w-[45%] h-[45%] rounded-full border border-gold/10 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.2)]">
-                <div className="w-[95%] h-[95%] rounded-full border border-black/20" />
-              </div>
-
-              {/* Active Status Text Overlay */}
-              {currentPlayerId && (
-                <div className="absolute z-10 text-center transform transition-all duration-300">
-                  <div className="text-[10px] text-gold uppercase tracking-[0.3em] mb-2 font-bold opacity-80 drop-shadow-md">
-                    {t('game.table.currentTurn')}
-                  </div>
-                  <div className="text-3xl font-display font-black text-white tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                    {players.find((p) => p.id === currentPlayerId)?.name ===
-                    players.find((p) => p.id === myPlayerId)?.name
-                      ? t('game.yourTurn')
-                      : players.find((p) => p.id === currentPlayerId)?.name?.toUpperCase()}
-                  </div>
-                </div>
-              )}
+            <div className="text-xl font-bold text-white/80 tracking-widest drop-shadow-md">
+              {players.find((p) => p.id === currentPlayerId)?.name ===
+              players.find((p) => p.id === myPlayerId)?.name
+                ? t('game.yourTurn')
+                : players.find((p) => p.id === currentPlayerId)?.name?.toUpperCase()}
             </div>
+          </div>
+        )}
 
-            {/* Trump Big Watermark - Hide during Tuzovanie */}
-            {gamePhase !== GamePhase.Tuzovanie && <TrumpIndicator />}
+        {/* Trump Area (Dedicated) */}
+        {gamePhase !== GamePhase.Tuzovanie && <TrumpIndicator />}
 
-            {/* Table Cards Area */}
-            <div className="absolute inset-0 z-20 overflow-visible">
-              {/* Center point anchor */}
-              <div className="absolute top-1/2 left-1/2 w-0 h-0">
-                {gamePhase === GamePhase.Tuzovanie ? renderTuzovanie() : renderTableCards()}
-              </div>
-            </div>
-
-            {/* Trick Winner Notification */}
-            <AnimatePresence>
-              {gamePhase === GamePhase.TrickComplete && winnerId && showWinningAnimation && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
-                  animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-                  exit={{ opacity: 0, scale: 1.1, x: '-50%', y: '-50%' }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                  className="absolute top-1/2 left-1/2 z-50 pointer-events-none whitespace-nowrap"
-                >
-                  <div className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] border-4 border-amber-300 flex items-center gap-3 transform -rotate-2">
-                    <span className="text-3xl font-black uppercase tracking-wider drop-shadow-sm">
-                      {t('game.trickWon', {
-                        player: players.find((p) => p.id === winnerId)?.name,
-                      })}
-                    </span>
-                    <span className="text-3xl">🏆</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* Table Cards Area */}
+        <div className="absolute inset-0 z-20 overflow-visible pointer-events-none">
+          {/* Center point anchor */}
+          <div className="absolute top-1/2 left-1/2 w-0 h-0">
+            {gamePhase === GamePhase.Tuzovanie ? renderTuzovanie() : renderTableCards()}
           </div>
         </div>
 
-        {/* Players - Positioned absolutely around the table container */}
-        {orderedPlayers.map((p, i) => renderPlayer(p, i))}
-
-        {/* Current Trump Indicator - Floating near table edge top-right - Hide in Tuzovanie */}
-        {gamePhase !== GamePhase.Tuzovanie && (trump || trumpCard || isJokerTrump) && (
-          <div
-            className={`absolute ${isMobileLandscape ? 'top-2 right-2' : '-top-2 -right-2'} z-40 flex flex-col items-center`}
-          >
-            <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
-              {t('game.trump.label')}
-            </span>
-            {trumpCard ? (
-              // Show actual trump card when available (non-9-card rounds)
-              <div className="transform rotate-6 shadow-[0_4px_20px_rgba(234,179,8,0.4)] rounded-lg">
-                <Card
-                  card={trumpCard}
-                  size={trumpCardSize}
-                  className="border-2 border-yellow-500/50"
-                />
-              </div>
-            ) : trump ? (
-              // Fallback to suit symbol (9-card rounds where player selected trump)
-              <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
-                <span
-                  className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
-                >
-                  {trump === Suit.Hearts && '♥'}
-                  {trump === Suit.Diamonds && '♦'}
-                  {trump === Suit.Clubs && '♣'}
-                  {trump === Suit.Spades && '♠'}
+        {/* Trick Winner Notification */}
+        <AnimatePresence>
+          {gamePhase === GamePhase.TrickComplete && winnerId && showWinningAnimation && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+              exit={{ opacity: 0, scale: 1.1, x: '-50%', y: '-50%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className="absolute top-1/2 left-1/2 z-50 pointer-events-none whitespace-nowrap"
+            >
+              <div className="bg-amber-500 text-slate-900 px-6 py-3 rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] border-4 border-amber-300 flex items-center gap-3 transform -rotate-2">
+                <span className="text-2xl font-black uppercase tracking-wider drop-shadow-sm">
+                  {players.find((p) => p.id === winnerId)?.name}
                 </span>
+                <span className="text-2xl">🏆</span>
               </div>
-            ) : (
-              // No trump (joker was trump card)
-              <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
-                <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
-              </div>
-            )}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Players Layer */}
+        {orderedPlayers.map((p, i) => renderPlayer(p, i))}
       </div>
     </div>
   );
