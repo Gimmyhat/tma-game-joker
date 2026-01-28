@@ -62,7 +62,7 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
         if (!visible) continue;
 
         await page.locator('button', { hasText: '0' }).first().click();
-        await page.getByRole('button', { name: /CONFIRM|Подтвердить/i }).click(); // Updated locator to match new button text (caps)
+        // Confirm button removed, now auto-submits
         await expect(modal).toBeHidden({ timeout: 10000 });
         betPlaced.add(i);
       }

@@ -141,7 +141,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 md:p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
+              className="absolute right-2 top-2 p-1.5 md:p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
