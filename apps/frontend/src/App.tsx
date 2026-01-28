@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TelegramProvider, useTelegram } from './providers';
 import { useGameStore } from './store';
@@ -138,11 +138,40 @@ function GameContent() {
     }
   }, [isReady, user, initialize]);
 
-  // Loading state
+  // Loading state with timeout error display
+  const [initError, setInitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If not ready after 5 seconds, show debug info
+    const timer = setTimeout(() => {
+      if (!isReady) {
+        setInitError('Initialization timeout. Check network or SSL.');
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isReady]);
+
   if (!isReady) {
     return (
-      <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
-        <p className="text-white text-sm opacity-60 animate-pulse">{t('lobby.initializing')}</p>
+      <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+          <p className="text-white text-sm opacity-60 animate-pulse">{t('lobby.initializing')}</p>
+        </div>
+
+        {initError && (
+          <div className="mt-8 p-4 bg-black/40 rounded-xl border border-red-500/30 backdrop-blur-sm max-w-xs animate-in fade-in slide-in-from-bottom-4">
+            <p className="text-red-400 text-xs font-mono mb-2">⚠️ Error Report</p>
+            <p className="text-white/80 text-xs mb-4">{initError}</p>
+            <p className="text-white/40 text-[10px] break-all mb-4">UA: {navigator.userAgent}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-white transition-colors"
+            >
+              Reload App
+            </button>
+          </div>
+        )}
       </div>
     );
   }
