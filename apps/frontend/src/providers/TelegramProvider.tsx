@@ -277,7 +277,7 @@ function TelegramInner({ children }: { children: ReactNode }) {
 
         // Subscribe to fullscreen changes
         if (viewport.isMounted()) {
-          viewport.isFullscreen.sub((value) => {
+          viewport.isFullscreen.sub((value: boolean) => {
             setIsFullscreen(value);
           });
         }
@@ -338,6 +338,7 @@ function TelegramInner({ children }: { children: ReactNode }) {
 
 /**
  * Fallback for development outside Telegram
+ * Also handles edge cases where isInTelegram() fails but we're actually in Telegram
  */
 function DevFallback({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -349,6 +350,17 @@ function DevFallback({ children }: { children: ReactNode }) {
     setUserInfo(getMockUser());
     setIsReady(true);
     console.log('[Telegram] Running in development mode with mock user');
+
+    // Safety: Try to signal ready anyway in case we're actually in Telegram
+    // This prevents the native Telegram loader from staying forever
+    try {
+      if (miniApp.ready.isAvailable()) {
+        miniApp.ready();
+        console.log('[Telegram] DevFallback: Called miniApp.ready() as safety');
+      }
+    } catch (e) {
+      // Ignore - we're probably not in Telegram
+    }
   }, []);
 
   const requestFullscreenMode = useCallback(async () => {

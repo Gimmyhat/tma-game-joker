@@ -37,16 +37,21 @@ export const defaultTheme: TelegramTheme = {
 
 /**
  * Check if running inside Telegram WebApp
+ * Uses multiple detection methods for iOS/Android compatibility
  */
 export function isInTelegram(): boolean {
   if (typeof window === 'undefined') return false;
 
-  const telegram = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram;
+  // Method 1: Check for Telegram WebApp object with initData
+  const telegram = (
+    window as Window & { Telegram?: { WebApp?: { initData?: string; platform?: string } } }
+  ).Telegram;
   const webApp = telegram?.WebApp;
   const initData = typeof webApp?.initData === 'string' ? webApp.initData : '';
 
   if (initData.length > 0) return true;
 
+  // Method 2: Check URL parameters (Telegram passes these)
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(
     window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash,
@@ -56,7 +61,21 @@ export function isInTelegram(): boolean {
     (key) => searchParams.has(key) || hashParams.has(key),
   );
 
-  return Boolean(webApp && hasLaunchParams);
+  // If we have launch params, we're in Telegram (even if webApp not ready yet)
+  if (hasLaunchParams) return true;
+
+  // Method 3: Check if WebApp object exists (iOS may have it without initData initially)
+  if (webApp && typeof webApp.platform === 'string') return true;
+
+  // Method 4: Check sessionStorage for Telegram data (SDK may have stored it)
+  try {
+    const storedParams = sessionStorage.getItem('__telegram-mini-apps__');
+    if (storedParams) return true;
+  } catch {
+    // sessionStorage may not be available
+  }
+
+  return false;
 }
 
 /**
