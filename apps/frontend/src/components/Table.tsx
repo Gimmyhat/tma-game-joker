@@ -58,50 +58,6 @@ export const Table: React.FC<TableProps> = ({
   const { tableCardSize, trumpCardSize, isMobileLandscape } = useResponsiveCards();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [fitScale, setFitScale] = React.useState(1);
-
-  const stageBaseWidth = 960;
-  const stageBaseHeight = 600;
-
-  React.useLayoutEffect(() => {
-    if (!isMobileLandscape) {
-      setFitScale(1);
-      return;
-    }
-
-    const updateScale = () => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const availableWidth = container.clientWidth || stageBaseWidth;
-      const availableHeight = container.clientHeight || stageBaseHeight;
-      const nextScale = Math.min(
-        1,
-        availableWidth / stageBaseWidth,
-        availableHeight / stageBaseHeight,
-      );
-
-      setFitScale(Number.isFinite(nextScale) ? nextScale : 1);
-    };
-
-    updateScale();
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
-      resizeObserver = new ResizeObserver(updateScale);
-      resizeObserver.observe(containerRef.current);
-    }
-
-    window.addEventListener('resize', updateScale);
-
-    return () => {
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      window.removeEventListener('resize', updateScale);
-    };
-  }, [isMobileLandscape]);
 
   // Delay winning animation to let the last card land and be seen
   React.useEffect(() => {
@@ -189,14 +145,14 @@ export const Table: React.FC<TableProps> = ({
     const posStyles: Record<Position, string> = isMobileLandscape
       ? {
           // Mobile landscape: keep all players inside stage
-          'bottom-center': 'bottom-2 left-1/2 -translate-x-1/2',
-          'bottom-left': 'bottom-2 left-[10%]',
-          'bottom-right': 'bottom-2 right-[10%]',
+          'bottom-center': 'bottom-12 left-1/2 -translate-x-1/2',
+          'bottom-left': 'bottom-10 left-[8%]',
+          'bottom-right': 'bottom-10 right-[8%]',
           'top-left': 'top-[6%] left-[10%]',
-          'top-center': 'top-2 left-1/2 -translate-x-1/2',
+          'top-center': 'top-4 left-1/2 -translate-x-1/2',
           'top-right': 'top-[6%] right-[10%]',
-          'left-center': 'top-1/2 left-2 -translate-y-1/2',
-          'right-center': 'top-1/2 right-2 -translate-y-1/2',
+          'left-center': 'top-1/2 left-3 -translate-y-1/2',
+          'right-center': 'top-1/2 right-3 -translate-y-1/2',
         }
       : {
           // Desktop: more spacious
@@ -220,7 +176,6 @@ export const Table: React.FC<TableProps> = ({
           position={position}
           isCurrentTurn={isTurn}
           isDealer={isDealer}
-          className={isMobileLandscape ? 'scale-[0.9] origin-center' : ''}
           onScoreClick={
             player.id === myPlayerId
               ? () => {
@@ -518,20 +473,11 @@ export const Table: React.FC<TableProps> = ({
     return null;
   };
 
-  const tableSurfaceSize = isMobileLandscape ? 'w-[70%] h-[70%]' : 'w-full h-full';
-  const stageStyle = isMobileLandscape
-    ? {
-        width: stageBaseWidth,
-        height: stageBaseHeight,
-        transform: `scale(${fitScale})`,
-        transformOrigin: 'center',
-      }
-    : undefined;
-  const stageClassName = `relative ${isMobileLandscape ? '' : 'w-full h-full'}`;
+  const tableSurfaceSize = isMobileLandscape ? 'w-[88%] h-[72%]' : 'w-full h-full';
 
   return (
-    <div ref={containerRef} className={`relative flex items-center justify-center ${className}`}>
-      <div className={stageClassName} style={stageStyle}>
+    <div className={`relative flex items-center justify-center w-full h-full ${className}`}>
+      <div className={`relative flex items-center justify-center w-full h-full`}>
         <div className={`relative ${tableSurfaceSize}`}>
           {/* The Oval Table Surface */}
           <div

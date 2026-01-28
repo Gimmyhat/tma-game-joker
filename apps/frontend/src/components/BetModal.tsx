@@ -60,6 +60,7 @@ export const BetModal: React.FC<BetModalProps> = ({
           border border-white/10 
           rounded-xl md:rounded-2xl shadow-2xl 
           overflow-hidden 
+          max-h-[calc(var(--tg-viewport-height,100dvh)-var(--tg-viewport-safe-area-inset-top,0px)-var(--tg-viewport-safe-area-inset-bottom,0px))] overflow-y-auto
           transform transition-all duration-300 ease-out 
           ${isOpen ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-8 opacity-0 scale-95'}
         `}

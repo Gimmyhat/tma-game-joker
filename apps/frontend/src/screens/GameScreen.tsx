@@ -431,9 +431,8 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Main Table Area */}
-      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center pt-12 pb-28 md:py-10">
-        {/* Responsive aspect ratio: wider on mobile landscape */}
-        <div className="h-full max-h-full w-auto max-w-full md:h-auto md:w-full md:max-w-7xl aspect-[16/10] md:aspect-[16/9] relative flex items-center justify-center px-2 md:px-0">
+      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center pt-6 pb-20 md:py-10">
+        <div className="h-full w-full max-w-7xl relative flex items-center justify-center px-2 md:px-0">
           <Table
             players={gameState.players}
             tableCards={gameState.table}
@@ -465,7 +464,7 @@ export const GameScreen: React.FC = () => {
 
         {/* Helper Hint - Positioned above hand, responsive */}
         {isMyTurn && (
-          <div className="absolute bottom-28 md:bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
+          <div className="absolute bottom-20 md:bottom-48 left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-bounce">
             <span className="bg-yellow-500/90 text-black px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold border-2 border-yellow-300 shadow-lg tracking-wide uppercase">
               {t(`game.phase.${gameState.phase}`, gameState.phase)}
             </span>

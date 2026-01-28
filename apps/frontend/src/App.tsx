@@ -43,7 +43,7 @@ function LobbyScreen() {
         )}
 
         {/* Status Indicator */}
-        <div className="mb-6 flex items-center justify-center gap-2 bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
+        <div className="mb-3 md:mb-6 flex items-center justify-center gap-2 bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
           <div
             className={`w-2 h-2 rounded-full ${
               connectionStatus === 'connected'
@@ -65,13 +65,13 @@ function LobbyScreen() {
             lobbyStatus === 'waiting' ||
             lobbyStatus === 'starting') && (
             <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500 min-h-0">
-              <div className="w-full flex items-center justify-center h-[55vh] max-h-[calc(var(--tg-viewport-height,100dvh)-180px)]">
+              <div className="w-full flex items-center justify-center h-[50vh] max-h-[calc(var(--tg-viewport-height,100dvh)-200px)]">
                 <LobbyTable />
               </div>
 
               <button
                 onClick={leaveQueue}
-                className="mt-4 py-2 px-6 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-sm font-medium transition-all backdrop-blur-sm"
+                className="mt-2 py-1.5 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-xs font-semibold uppercase tracking-wider transition-all backdrop-blur-sm"
               >
                 {t('lobby.leaveQueue')}
               </button>
@@ -101,8 +101,8 @@ function LobbyScreen() {
                 onClick={findGame}
                 className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-b from-amber-400 to-orange-600 p-[1px] shadow-[0_10px_40px_-10px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="relative h-full w-full rounded-2xl bg-gradient-to-b from-amber-500 to-orange-600 px-8 py-6 transition-all group-hover:bg-opacity-90">
-                  <span className="relative text-2xl font-black uppercase tracking-widest text-white drop-shadow-md">
+                <div className="relative h-full w-full rounded-2xl bg-gradient-to-b from-amber-500 to-orange-600 px-6 py-4 md:px-8 md:py-6 transition-all group-hover:bg-opacity-90">
+                  <span className="relative text-lg md:text-2xl font-black uppercase tracking-widest text-white drop-shadow-md">
                     {t('lobby.findGame')}
                   </span>
                 </div>
