@@ -70,7 +70,7 @@ export const VictoryScreen: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-900/40 via-transparent to-transparent" />
 
         {/* Content Container */}
-        <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center h-full max-h-screen py-8">
+        <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center h-full max-h-full py-8">
           {/* Header */}
           <div className="relative w-full text-center mt-8 mb-4 sm:mb-12">
             <motion.button

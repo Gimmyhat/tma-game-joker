@@ -117,7 +117,7 @@ export const GameScreen: React.FC = () => {
   // Loading State
   if (!gameState || !myPlayerId) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#1a472a] text-white">
+      <div className="flex h-full w-full items-center justify-center bg-[#1a472a] text-white">
         <div className="flex flex-col items-center gap-2 md:gap-4">
           <div className="h-8 w-8 md:h-12 md:w-12 animate-spin rounded-full border-4 border-white/20 border-t-amber-500" />
           <p className="animate-pulse text-sm md:text-lg font-medium tracking-wide">
@@ -234,7 +234,7 @@ export const GameScreen: React.FC = () => {
   };
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-gradient-to-b from-[#1a472a] to-[#0d2616] text-slate-100">
       {/* Error Banner */}
       {lastError && (
         <div className="absolute top-24 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
@@ -433,7 +433,7 @@ export const GameScreen: React.FC = () => {
       {/* Main Table Area */}
       <div className="flex-1 relative z-0 flex items-center justify-center py-2 md:py-10">
         {/* Responsive aspect ratio: wider on mobile landscape */}
-        <div className="w-full max-w-7xl aspect-[16/10] md:aspect-[16/9] relative flex items-center justify-center px-2 md:px-0">
+        <div className="h-full max-h-full w-auto max-w-full md:h-auto md:w-full md:max-w-7xl aspect-[16/10] md:aspect-[16/9] relative flex items-center justify-center px-2 md:px-0">
           <Table
             players={gameState.players}
             tableCards={gameState.table}
@@ -451,7 +451,7 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Player Hand */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-1 md:pb-2 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center pb-1 md:pb-2 pointer-events-none">
         <div className="w-full max-w-5xl pointer-events-auto">
           <Hand
             cards={sortedHand}

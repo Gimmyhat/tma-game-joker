@@ -16,7 +16,7 @@ function LobbyScreen() {
   const { connectionStatus, lobbyStatus, findGame, leaveQueue } = useGameStore();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 opacity-10 pointer-events-none"
@@ -135,7 +135,7 @@ function GameContent() {
   // Loading state
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
+      <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
         <p className="text-white text-sm opacity-60 animate-pulse">{t('lobby.initializing')}</p>
       </div>
     );

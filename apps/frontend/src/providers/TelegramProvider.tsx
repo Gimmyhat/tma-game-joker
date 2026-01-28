@@ -81,7 +81,7 @@ function usePreventAccidentalClose() {
       }
     };
 
-    // Prevent vertical swipes that could close TMA
+    // Prevent vertical swipes that could close TMA (allow edge swipes to exit)
     const preventVerticalSwipe = (e: TouchEvent) => {
       if (e.touches.length !== 1) {
         e.preventDefault();
@@ -103,20 +103,11 @@ function usePreventAccidentalClose() {
       const touch = e.touches[0];
       const deltaY = touch.clientY - touchStartY.current;
 
-      // Block swipe down from top area
-      if (touchStartY.current < 50 && deltaY > 20) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // Block swipe up from bottom area
       const screenHeight = window.innerHeight;
-      if (touchStartY.current > screenHeight - 50 && deltaY < -20) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
+      const edgeThreshold = 48;
+      const isEdgeSwipeStart =
+        touchStartY.current < edgeThreshold || touchStartY.current > screenHeight - edgeThreshold;
+      if (isEdgeSwipeStart) return;
 
       // Block significant vertical drags outside scrollable areas
       const scrollable = target.closest('[data-scrollable]');
@@ -245,11 +236,6 @@ function TelegramInner({ children }: { children: ReactNode }) {
         }
 
         // Disable vertical swipes immediately
-        if (swipeBehavior.disableVertical.isAvailable()) {
-          swipeBehavior.disableVertical();
-          console.log('[Telegram] Vertical swipes disabled');
-        }
-
         // Mount viewport
         if (viewport.mount.isAvailable()) {
           await viewport.mount();
