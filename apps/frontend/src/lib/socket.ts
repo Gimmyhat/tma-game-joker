@@ -122,7 +122,7 @@ export function createSocket(): GameSocket {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     timeout: 10000,
-    transports: ['polling', 'websocket'], // Allow polling first for better compatibility
+    transports: ['websocket'], // WebSocket only - game requires low latency
     query: {
       userId: String(user.id),
       userName: `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`,
