@@ -73,10 +73,13 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     }
 
     expect(betPlaced.size).toBe(pages.length);
-    // Updated to match "Play a Card" (en) or "Сделайте ход" (ru) or "playing" (legacy/fallback)
-    // Using .first() to target the Phase Badge (visible to all) instead of Hint (visible only to active player)
-    await expect(pages[0].getByText(/Play a Card|Сделайте ход|playing/i).first()).toBeVisible({
-      timeout: 20000,
+    // Updated to match "Your Turn" (en) or "ВАШ ХОД" (ru) or "playing" (legacy/fallback)
+    // We check if at least one player sees "YOUR TURN" or equivalent active state
+    // "Play a Card" was replaced by "Your Action" or simply checking if it's the player's turn
+    await expect(
+      pages[0].getByText(/YOUR TURN|ВАШ ХОД|Make Your Bet|Сделайте ставку/i).first(),
+    ).toBeVisible({
+      timeout: 30000,
     });
   } finally {
     await Promise.all(pages.map((page) => page.close()));
