@@ -512,26 +512,26 @@ export const Table: React.FC<TableProps> = ({
             <div className="relative transform rotate-90 origin-center shadow-xl">
               <Card
                 card={trumpCard}
-                size="sm" // Smaller size for UI
-                className="border-2 border-yellow-500/50 shadow-lg"
+                size="xs" // Smaller size for UI
+                className="border-2 border-yellow-500/50 shadow-lg w-10 md:w-14" // Explicit width constraint
               />
             </div>
           ) : trump ? (
             /* Fallback Suit Icon if card not visible (9-card round) */
-            <div className="w-16 h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-yellow-500/50 flex flex-col items-center justify-center shadow-xl">
+            <div className="w-12 h-16 md:w-16 md:h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-yellow-500/50 flex flex-col items-center justify-center shadow-xl">
               <SuitIcon
                 suit={trump}
-                className={`w-10 h-10 ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-white'}`}
+                className={`w-8 h-8 md:w-10 md:h-10 ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-white'}`}
               />
-              <span className="text-[10px] text-yellow-500 font-bold uppercase mt-1 tracking-wider">
+              <span className="text-[8px] md:text-[10px] text-yellow-500 font-bold uppercase mt-1 tracking-wider">
                 Trump
               </span>
             </div>
           ) : (
             /* No Trump (Joker) */
-            <div className="w-16 h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-purple-500/50 flex flex-col items-center justify-center shadow-xl">
-              <span className="text-2xl">🃏</span>
-              <span className="text-[10px] text-purple-300 font-bold uppercase mt-1 tracking-wider">
+            <div className="w-12 h-16 md:w-16 md:h-24 bg-slate-900/80 backdrop-blur-sm rounded-lg border-2 border-purple-500/50 flex flex-col items-center justify-center shadow-xl">
+              <span className="text-xl md:text-2xl">🃏</span>
+              <span className="text-[8px] md:text-[10px] text-purple-300 font-bold uppercase mt-1 tracking-wider">
                 No Trump
               </span>
             </div>

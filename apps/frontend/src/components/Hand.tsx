@@ -32,11 +32,11 @@ export const Hand: React.FC<HandProps> = ({
   const centerIndex = (totalCards - 1) / 2;
 
   // Optimized overlap for new card width
-  const baseOverlap = isMobileLandscape ? -40 : -60;
+  const baseOverlap = isMobileLandscape ? -40 : -50; // Increased spacing slightly
   const overlap = totalCards > 8 ? baseOverlap - 10 : baseOverlap;
 
   // Height based on card size
-  const heightClass = isMobileLandscape ? 'h-28' : 'h-52';
+  const heightClass = isMobileLandscape ? 'h-32' : 'h-64'; // Taller container to show more card
 
   return (
     <div

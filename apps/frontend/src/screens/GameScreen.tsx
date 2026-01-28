@@ -496,8 +496,8 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Player Hand */}
-      <div className="absolute bottom-[-10px] md:bottom-[-20px] left-0 right-0 z-50 flex justify-center pointer-events-none">
-        <div className="w-full max-w-5xl pointer-events-auto">
+      <div className="absolute bottom-[2%] md:bottom-[5%] left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <div className="w-full max-w-[90%] md:max-w-5xl pointer-events-auto overflow-visible">
           <Hand
             cards={sortedHand}
             onCardClick={handleCardClick}
