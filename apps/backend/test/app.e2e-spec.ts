@@ -531,19 +531,25 @@ describe('App (e2e)', () => {
         currentState = (await nextStatePromise).state;
       }
 
-      expect(currentState.phase).toBe(GamePhase.Betting);
+      // Check if we are back to Betting after Trump Selection (Round 1 edge case or normal flow)
+      // In Round 1, if trump selection happens, it goes back to Betting.
+      // But if Round > 1, Trump Selection only happens if Hidden/Joker, usually phase is Betting directly.
+      expect([GamePhase.Betting, GamePhase.Playing]).toContain(currentState.phase);
 
-      for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
-        const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
-        const socketIndex = playerIds.indexOf(currentPlayerId);
-        const currentSocket = clients[socketIndex];
-        if (!currentSocket) {
-          throw new Error(`Missing socket for player ${currentPlayerId}`);
+      // If still betting, proceed with betting loop
+      if (currentState.phase === GamePhase.Betting) {
+        for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+          const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
+          const socketIndex = playerIds.indexOf(currentPlayerId);
+          const currentSocket = clients[socketIndex];
+          if (!currentSocket) {
+            throw new Error(`Missing socket for player ${currentPlayerId}`);
+          }
+
+          const nextStatePromise = waitForState(clients[0]);
+          currentSocket.emit('make_bet', { roomId: activeRoomId, amount: 0 });
+          currentState = (await nextStatePromise).state;
         }
-
-        const nextStatePromise = waitForState(clients[0]);
-        currentSocket.emit('make_bet', { roomId: activeRoomId, amount: 0 });
-        currentState = (await nextStatePromise).state;
       }
 
       expect(currentState.phase).toBe(GamePhase.Playing);

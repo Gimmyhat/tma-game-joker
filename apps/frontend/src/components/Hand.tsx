@@ -31,9 +31,12 @@ export const Hand: React.FC<HandProps> = ({
   const totalCards = cards.length;
   const centerIndex = (totalCards - 1) / 2;
 
-  // Optimized overlap for new card width
-  const baseOverlap = isMobileLandscape ? -45 : -55; // Slightly tighter overlap for visual stack
-  const overlap = totalCards > 8 ? baseOverlap - 15 : baseOverlap;
+  // Optimized overlap for new card width (10% overlap roughly)
+  // Cards are roughly 90px wide on mobile. 10% overlap = -9px.
+  // But CSS transform translateX is relative to element width.
+  // We use fixed pixels here. Let's try -10px for tight stack or -15px.
+  const baseOverlap = isMobileLandscape ? -10 : -15;
+  const overlap = totalCards > 8 ? baseOverlap - 5 : baseOverlap;
 
   // Height based on card size
   const heightClass = isMobileLandscape ? 'h-32' : 'h-64';
@@ -64,8 +67,9 @@ export const Hand: React.FC<HandProps> = ({
             key={card.id}
             className={`
               transition-all duration-300 ease-out origin-bottom 
-              ${isInteractable ? 'hover:z-50 hover:scale-110 cursor-pointer' : 'cursor-default opacity-100 grayscale-0'} 
-              ${!canPlay && !disabled ? 'brightness-75' : ''} 
+              ${isInteractable ? 'hover:z-50 hover:scale-110 cursor-pointer' : 'cursor-default'} 
+              opacity-100 grayscale-0
+              ${!canPlay && !disabled ? 'brightness-90' : ''} 
               ${isInteractable && isMobileLandscape ? 'hover:-translate-y-4' : ''}
               ${isInteractable && !isMobileLandscape ? 'hover:-translate-y-10' : ''}
               group/card relative
@@ -91,8 +95,8 @@ export const Hand: React.FC<HandProps> = ({
               selected={false}
               onClick={() => isInteractable && onCardClick?.(card)}
               className={`
-                shadow-[-5px_5px_15px_rgba(0,0,0,0.3)]
-                ${isInteractable ? 'hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]' : ''}
+                shadow-2xl
+                ${isInteractable ? 'hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)]' : ''}
               `}
             />
           </div>
