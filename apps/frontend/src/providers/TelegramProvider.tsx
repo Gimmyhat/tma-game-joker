@@ -49,7 +49,8 @@ export function useTelegram() {
 /**
  * Prevent accidental app closure via gestures
  */
-function usePreventAccidentalClose() {
+function usePreventAccidentalClose(options?: { allowVerticalSwipe?: boolean }) {
+  const allowVerticalSwipe = options?.allowVerticalSwipe ?? false;
   const touchStartY = useRef(0);
 
   useEffect(() => {
@@ -132,7 +133,9 @@ function usePreventAccidentalClose() {
     document.addEventListener('touchstart', onTouchStart, { passive: false });
     document.addEventListener('touchstart', preventZoom, { passive: false });
     document.addEventListener('touchend', preventDoubleTapZoom, { passive: false });
-    document.addEventListener('touchmove', preventVerticalSwipe, { passive: false });
+    if (!allowVerticalSwipe) {
+      document.addEventListener('touchmove', preventVerticalSwipe, { passive: false });
+    }
     document.addEventListener('contextmenu', preventContextMenu);
     document.addEventListener('wheel', preventWheelZoom, { passive: false });
 
@@ -143,11 +146,13 @@ function usePreventAccidentalClose() {
       document.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('touchstart', preventZoom);
       document.removeEventListener('touchend', preventDoubleTapZoom);
-      document.removeEventListener('touchmove', preventVerticalSwipe);
+      if (!allowVerticalSwipe) {
+        document.removeEventListener('touchmove', preventVerticalSwipe);
+      }
       document.removeEventListener('contextmenu', preventContextMenu);
       document.removeEventListener('wheel', preventWheelZoom);
     };
-  }, []);
+  }, [allowVerticalSwipe]);
 }
 
 /**
@@ -197,7 +202,7 @@ function TelegramInner({ children }: { children: ReactNode }) {
   const initRef = useRef(false);
 
   // Apply gesture protection
-  usePreventAccidentalClose();
+  usePreventAccidentalClose({ allowVerticalSwipe: true });
 
   // Initialize SDK components - run ONCE
   useEffect(() => {
@@ -233,6 +238,11 @@ function TelegramInner({ children }: { children: ReactNode }) {
         if (swipeBehavior.mount.isAvailable()) {
           swipeBehavior.mount();
           console.log('[Telegram] SwipeBehavior mounted');
+
+          if (swipeBehavior.enableVertical.isAvailable()) {
+            swipeBehavior.enableVertical();
+            console.log('[Telegram] Vertical swipes enabled');
+          }
         }
 
         // Disable vertical swipes immediately

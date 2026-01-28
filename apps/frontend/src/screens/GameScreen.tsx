@@ -431,7 +431,7 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Main Table Area */}
-      <div className="flex-1 relative z-0 flex items-center justify-center py-2 md:py-10">
+      <div className="flex-1 relative z-0 flex items-center justify-center pt-12 pb-28 md:py-10">
         {/* Responsive aspect ratio: wider on mobile landscape */}
         <div className="h-full max-h-full w-auto max-w-full md:h-auto md:w-full md:max-w-7xl aspect-[16/10] md:aspect-[16/9] relative flex items-center justify-center px-2 md:px-0">
           <Table
