@@ -17,6 +17,7 @@ import { ConnectionRegistryService } from './connection-registry.service';
 
 @Injectable()
 @WebSocketGateway({
+  transports: ['polling', 'websocket'], // Allow polling for reliable fallback
   cors: {
     origin: '*',
     credentials: true,
