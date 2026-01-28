@@ -211,19 +211,19 @@ export const Table: React.FC<TableProps> = ({
 
     // Absolute positioning styles around the SCREEN (Full Immersion)
     const posStyles: Record<Position, string> = {
-      // Hero (Bottom Left)
+      // Hero (Bottom Left) - Adjusted for safe padding and visibility
       'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40', // Fallback
-      'bottom-left': 'bottom-6 left-6 z-40', // Explicit Hero Position
-      'bottom-right': 'bottom-6 right-6 z-40',
+      'bottom-left': 'bottom-20 left-6 z-40', // Explicit Hero Position (Higher up)
+      'bottom-right': 'bottom-20 right-6 z-40',
 
-      // Top Opponents - Added safe area padding
-      'top-center': 'top-4 left-1/2 -translate-x-1/2',
-      'top-left': 'top-4 left-4',
-      'top-right': 'top-4 right-4',
+      // Top Opponents - Adjusted closer to center/safe area
+      'top-center': 'top-6 left-1/2 -translate-x-1/2',
+      'top-left': 'top-6 left-6',
+      'top-right': 'top-6 right-6',
 
       // Side Opponents (Vertical Centered or Top 40% as requested)
-      'left-center': 'top-[40%] left-4 -translate-y-1/2', // Increased safe padding
-      'right-center': 'top-[40%] right-4 -translate-y-1/2', // Increased safe padding
+      'left-center': 'top-[35%] left-6 -translate-y-1/2', // Moved slightly up and inward
+      'right-center': 'top-[35%] right-6 -translate-y-1/2', // Moved slightly up and inward
     };
 
     return (
@@ -286,14 +286,14 @@ export const Table: React.FC<TableProps> = ({
       // Target positions (center of table with slight offset towards player)
       // We use small offsets so they form a loose cluster/pile
       const targetPos: Record<Position, { x: number; y: number }> = {
-        'bottom-center': { x: 0, y: 30 },
-        'bottom-left': { x: -20, y: 30 }, // Near bottom center
-        'bottom-right': { x: 20, y: 20 },
-        'top-left': { x: -20, y: -20 },
-        'top-center': { x: 0, y: -30 },
-        'top-right': { x: 20, y: -20 },
-        'left-center': { x: -40, y: 0 },
-        'right-center': { x: 40, y: 0 },
+        'bottom-center': { x: 0, y: -20 }, // Shifted UP (was 30) to avoid hand overlap
+        'bottom-left': { x: -20, y: -20 }, // Shifted UP (was 30)
+        'bottom-right': { x: 20, y: -20 }, // Shifted UP (was 20)
+        'top-left': { x: -20, y: -40 },
+        'top-center': { x: 0, y: -50 },
+        'top-right': { x: 20, y: -40 },
+        'left-center': { x: -40, y: -20 },
+        'right-center': { x: 40, y: -20 },
       };
 
       const start = startPos[pos];
@@ -433,9 +433,9 @@ export const Table: React.FC<TableProps> = ({
 
       // Positions on the felt closer to players (near the edge)
       const targetPos: Record<Position, { x: number; y: number; rotate: number }> = {
-        'bottom-center': { x: 0, y: 220, rotate: 0 },
-        'bottom-left': { x: -150, y: 160, rotate: 30 },
-        'bottom-right': { x: 150, y: 160, rotate: -30 },
+        'bottom-center': { x: 0, y: 150, rotate: 0 }, // Raised significantly from 220
+        'bottom-left': { x: -100, y: 120, rotate: 20 }, // Moved inward/up from -150/160
+        'bottom-right': { x: 100, y: 120, rotate: -20 }, // Moved inward/up from 150/160
         'top-left': { x: -150, y: -160, rotate: 150 },
         'top-center': { x: 0, y: -220, rotate: 180 },
         'top-right': { x: 150, y: -160, rotate: 210 },

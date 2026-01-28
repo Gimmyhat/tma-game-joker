@@ -59,10 +59,10 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           `}
         />
 
-        {/* Main Avatar Container - Compact 48px (w-12) */}
+        {/* Main Avatar Container - Increased to 56px (w-14) / 64px (w-16) */}
         <div
           className={`
-            relative w-12 h-12 rounded-full overflow-hidden 
+            relative w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden 
             border-[2px] shadow-lg transition-all duration-300 bg-slate-800
             ${
               isCurrentTurn

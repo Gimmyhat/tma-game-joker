@@ -20,13 +20,13 @@ export const LeaveGameModal: React.FC<LeaveGameModalProps> = ({ isOpen, onConfir
         onClick={onClose}
       />
 
-      {/* Modal Content */}
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+      {/* Modal Content - Scaled down */}
+      <div className="relative w-[85%] max-w-[280px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-5 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 text-red-500"
+              className="h-6 w-6 text-red-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -40,20 +40,22 @@ export const LeaveGameModal: React.FC<LeaveGameModalProps> = ({ isOpen, onConfir
             </svg>
           </div>
 
-          <h2 className="text-xl font-bold text-white mb-2">{t('lobby.leaveGame')}</h2>
+          <h2 className="text-lg font-bold text-white mb-2">{t('lobby.leaveGame')}</h2>
 
-          <p className="text-slate-400 mb-8">{t('lobby.leaveGameConfirm')}</p>
+          <p className="text-slate-400 text-xs mb-6 leading-relaxed">
+            {t('lobby.leaveGameConfirm')}
+          </p>
 
-          <div className="flex gap-3 w-full">
+          <div className="flex gap-2 w-full">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition-colors border border-slate-700"
+              className="flex-1 px-3 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors border border-slate-700"
             >
               {t('lobby.leaveGameStay')}
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-colors shadow-lg shadow-red-900/20"
+              className="flex-1 px-3 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-colors shadow-lg shadow-red-900/20"
             >
               {t('lobby.leaveGame')}
             </button>

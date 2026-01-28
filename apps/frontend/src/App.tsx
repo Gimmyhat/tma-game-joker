@@ -16,7 +16,10 @@ function LobbyScreen() {
   const { connectionStatus, lobbyStatus, findGame, leaveQueue } = useGameStore();
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div
+      className="bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden"
+      style={{ height: 'var(--tg-viewport-height, 100vh)' }}
+    >
       {/* Background Pattern */}
       <div
         className="absolute inset-0 z-0 opacity-10 pointer-events-none"
@@ -29,49 +32,49 @@ function LobbyScreen() {
         <LanguageSwitcher />
       </div>
 
-      <div className="relative z-10 w-full flex flex-col items-center">
-        {/* Title Section (only show if not searching/waiting to save space) */}
+      <div className="relative z-10 w-full flex flex-col items-center max-w-sm mx-auto">
+        {/* Title Section */}
         {(lobbyStatus === 'idle' || connectionStatus !== 'connected') && (
-          <div className="text-center text-white max-w-md w-full mb-8">
-            <h1 className="text-5xl font-black mb-2 tracking-tighter text-amber-400 drop-shadow-lg">
+          <div className="text-center text-white w-full mb-6 md:mb-10">
+            <h1 className="text-4xl md:text-5xl font-black mb-1 md:mb-2 tracking-tighter text-amber-400 drop-shadow-lg">
               {t('lobby.title')}
             </h1>
-            <p className="text-lg opacity-80 font-serif italic text-amber-100/60">
+            <p className="text-sm md:text-lg opacity-80 font-serif italic text-amber-100/60">
               {t('lobby.subtitle')}
             </p>
           </div>
         )}
 
         {/* Status Indicator */}
-        <div className="mb-3 md:mb-6 flex items-center justify-center gap-2 bg-black/20 px-4 py-1 rounded-full backdrop-blur-sm">
+        <div className="mb-6 flex items-center justify-center gap-2 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm">
           <div
-            className={`w-2 h-2 rounded-full ${
+            className={`w-1.5 h-1.5 rounded-full ${
               connectionStatus === 'connected'
-                ? 'bg-green-400 shadow-[0_0_10px_#4ade80]'
+                ? 'bg-green-400 shadow-[0_0_8px_#4ade80]'
                 : connectionStatus === 'connecting'
                   ? 'bg-yellow-400 animate-pulse'
                   : 'bg-red-400'
             }`}
           />
-          <span className="text-xs font-medium text-white/60 uppercase tracking-widest">
+          <span className="text-[10px] font-medium text-white/60 uppercase tracking-widest">
             {connectionStatus}
           </span>
         </div>
 
         {/* Main Action Area */}
-        <div className="w-full max-w-4xl flex flex-col items-center">
+        <div className="w-full flex flex-col items-center justify-center">
           {/* Searching/Waiting View: Show Table */}
           {(lobbyStatus === 'searching' ||
             lobbyStatus === 'waiting' ||
             lobbyStatus === 'starting') && (
-            <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500 min-h-0">
-              <div className="w-full flex items-center justify-center h-[50vh] max-h-[calc(var(--tg-viewport-height,100dvh)-200px)]">
+            <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500 flex-1">
+              <div className="w-full aspect-[4/3] md:aspect-video bg-black/10 rounded-2xl overflow-hidden border border-white/5 mb-6 relative">
                 <LobbyTable />
               </div>
 
               <button
                 onClick={leaveQueue}
-                className="mt-2 py-1.5 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-xs font-semibold uppercase tracking-wider transition-all backdrop-blur-sm"
+                className="py-3 px-8 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-red-200 text-sm font-bold uppercase tracking-wider transition-all backdrop-blur-sm shadow-lg shadow-red-900/10"
               >
                 {t('lobby.leaveQueue')}
               </button>
@@ -80,17 +83,17 @@ function LobbyScreen() {
 
           {/* Idle View: Show Start Button */}
           {lobbyStatus === 'idle' && connectionStatus === 'connected' && (
-            <div className="bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-2xl w-full max-w-sm animate-in slide-in-from-bottom-8 duration-700">
+            <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-2xl w-full animate-in slide-in-from-bottom-8 duration-700">
               {user && (
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-white/10">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-lg font-bold text-white shadow-inner">
                     {user.firstName.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xs text-white/40 uppercase tracking-wider">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider">
                       {t('lobby.playingAs')}
                     </p>
-                    <p className="text-lg font-bold text-white leading-none">
+                    <p className="text-base font-bold text-white leading-none">
                       {user.firstName} {user.lastName}
                     </p>
                   </div>
@@ -99,17 +102,18 @@ function LobbyScreen() {
 
               <button
                 onClick={findGame}
-                className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-b from-amber-400 to-orange-600 p-[1px] shadow-[0_10px_40px_-10px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-b from-amber-400 to-orange-600 p-[1px] shadow-[0_8px_30px_-8px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="relative h-full w-full rounded-2xl bg-gradient-to-b from-amber-500 to-orange-600 px-6 py-4 md:px-8 md:py-6 transition-all group-hover:bg-opacity-90">
-                  <span className="relative text-lg md:text-2xl font-black uppercase tracking-widest text-white drop-shadow-md">
+                <div className="relative h-full w-full rounded-xl bg-gradient-to-b from-amber-500 to-orange-600 px-4 py-4 md:py-5 transition-all group-hover:bg-opacity-90 flex items-center justify-center gap-2">
+                  <span className="text-2xl">🃏</span>
+                  <span className="relative text-lg font-black uppercase tracking-widest text-white drop-shadow-md">
                     {t('lobby.findGame')}
                   </span>
                 </div>
               </button>
 
               {!isTelegram && (
-                <p className="text-center text-xs text-white/20 mt-4">{t('lobby.devMode')}</p>
+                <p className="text-center text-[10px] text-white/20 mt-3">{t('lobby.devMode')}</p>
               )}
             </div>
           )}

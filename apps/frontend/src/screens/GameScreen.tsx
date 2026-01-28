@@ -415,7 +415,7 @@ export const GameScreen: React.FC = () => {
           </div>
         </button>
 
-        {/* Right: Action Buttons & Timer */}
+        {/* Right: Timer Only */}
         <div className="pointer-events-auto flex items-center gap-2">
           {/* Timer - Compact */}
           <div
@@ -429,51 +429,54 @@ export const GameScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Score Sheet */}
-          <button
-            onClick={() => setShowScoreSheet(true)}
-            className="p-2.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm"
-            title={t('game.scoreSheet', 'Score Sheet')}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path
-                fillRule="evenodd"
-                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-
           {/* Language Switcher - Desktop only */}
           <div className="hidden md:block">
             <LanguageSwitcher className="scale-75 origin-right" />
           </div>
-
-          {/* Leave/Menu Button */}
-          <button
-            onClick={() => setIsLeaveModalOpen(true)}
-            className="p-2.5 rounded-xl bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
         </div>
+      </div>
+
+      {/* Bottom Right Floating Action Group */}
+      <div className="absolute bottom-4 right-4 z-[90] flex flex-col items-end gap-3 pointer-events-auto">
+        {/* Score Sheet */}
+        <button
+          onClick={() => setShowScoreSheet(true)}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
+          title={t('game.scoreSheet', 'Score Sheet')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+            <path
+              fillRule="evenodd"
+              d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
+        {/* Leave/Menu Button */}
+        <button
+          onClick={() => setIsLeaveModalOpen(true)}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Main Table Area */}
