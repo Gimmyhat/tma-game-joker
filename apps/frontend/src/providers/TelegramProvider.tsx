@@ -210,13 +210,33 @@ function TelegramInner({ children }: { children: ReactNode }) {
     initRef.current = true;
 
     const initializeSDK = async () => {
+      // Helper: wrap async calls with timeout
+      const withTimeout = <T,>(
+        promise: Promise<T>,
+        ms: number,
+        name: string,
+      ): Promise<T | null> => {
+        return Promise.race([
+          promise,
+          new Promise<null>((resolve) => {
+            setTimeout(() => {
+              console.warn(`[Telegram] ${name} timed out after ${ms}ms`);
+              resolve(null);
+            }, ms);
+          }),
+        ]);
+      };
+
       try {
+        console.log('[Telegram] Starting SDK initialization...');
+
         // Get raw init data first
         try {
           const rawData = retrieveRawInitData();
           if (rawData) {
             setRawInitDataState(rawData);
             setInitData(rawData);
+            console.log('[Telegram] Raw init data retrieved');
           }
         } catch (e) {
           console.warn('[Telegram] Failed to retrieve raw init data:', e);
@@ -229,74 +249,113 @@ function TelegramInner({ children }: { children: ReactNode }) {
             const userData = sdkUserToTelegramUser(launchParams.tgWebAppData.user);
             setUser(userData);
             setUserInfo(userData);
+            console.log('[Telegram] User data retrieved:', userData.firstName);
           }
         } catch (e) {
           console.warn('[Telegram] Failed to retrieve launch params:', e);
         }
 
-        // Mount swipe behavior
-        if (swipeBehavior.mount.isAvailable()) {
-          swipeBehavior.mount();
-          console.log('[Telegram] SwipeBehavior mounted');
+        // Mount swipe behavior (sync, safe)
+        try {
+          if (swipeBehavior.mount.isAvailable()) {
+            swipeBehavior.mount();
+            console.log('[Telegram] SwipeBehavior mounted');
 
-          if (swipeBehavior.enableVertical.isAvailable()) {
-            swipeBehavior.enableVertical();
-            console.log('[Telegram] Vertical swipes enabled');
+            if (swipeBehavior.enableVertical.isAvailable()) {
+              swipeBehavior.enableVertical();
+              console.log('[Telegram] Vertical swipes enabled');
+            }
           }
+        } catch (e) {
+          console.warn('[Telegram] SwipeBehavior failed:', e);
         }
 
-        // Disable vertical swipes immediately
-        // Mount viewport
-        if (viewport.mount.isAvailable()) {
-          await viewport.mount();
-          console.log('[Telegram] Viewport mounted');
+        // Mount viewport with timeout (can hang on some devices)
+        try {
+          if (viewport.mount.isAvailable()) {
+            await withTimeout(viewport.mount(), 2000, 'viewport.mount');
+            console.log('[Telegram] Viewport mounted');
 
-          // Bind CSS variables for safe area insets
-          if (viewport.bindCssVars.isAvailable()) {
-            viewport.bindCssVars();
-            console.log('[Telegram] Viewport CSS vars bound');
+            // Bind CSS variables for safe area insets
+            if (viewport.bindCssVars.isAvailable()) {
+              viewport.bindCssVars();
+              console.log('[Telegram] Viewport CSS vars bound');
+            }
           }
+        } catch (e) {
+          console.warn('[Telegram] Viewport mount failed:', e);
         }
 
-        // Expand viewport
-        if (viewport.expand.isAvailable()) {
-          viewport.expand();
-          console.log('[Telegram] Viewport expanded');
+        // Expand viewport (sync, safe)
+        try {
+          if (viewport.expand.isAvailable()) {
+            viewport.expand();
+            console.log('[Telegram] Viewport expanded');
+          }
+        } catch (e) {
+          console.warn('[Telegram] Viewport expand failed:', e);
         }
 
-        // Request fullscreen mode (removes Telegram header)
-        if (viewport.requestFullscreen.isAvailable()) {
-          try {
-            await viewport.requestFullscreen();
-            setIsFullscreen(true);
-            console.log('[Telegram] Fullscreen requested');
-          } catch (e) {
-            console.warn('[Telegram] Fullscreen request failed:', e);
+        // Request fullscreen mode with timeout
+        try {
+          if (viewport.requestFullscreen.isAvailable()) {
+            const result = await withTimeout(
+              viewport.requestFullscreen(),
+              2000,
+              'requestFullscreen',
+            );
+            if (result !== null) {
+              setIsFullscreen(true);
+              console.log('[Telegram] Fullscreen requested');
+            }
           }
+        } catch (e) {
+          console.warn('[Telegram] Fullscreen request failed:', e);
         }
 
         // Subscribe to fullscreen changes
-        if (viewport.isMounted()) {
-          viewport.isFullscreen.sub((value: boolean) => {
-            setIsFullscreen(value);
-          });
+        try {
+          if (viewport.isMounted()) {
+            viewport.isFullscreen.sub((value: boolean) => {
+              setIsFullscreen(value);
+            });
+          }
+        } catch (e) {
+          console.warn('[Telegram] Fullscreen subscription failed:', e);
         }
 
-        // Mount mini app
-        if (miniApp.mount.isAvailable()) {
-          miniApp.mount();
-          console.log('[Telegram] MiniApp mounted');
+        // Mount mini app (sync, safe)
+        try {
+          if (miniApp.mount.isAvailable()) {
+            miniApp.mount();
+            console.log('[Telegram] MiniApp mounted');
+          }
+        } catch (e) {
+          console.warn('[Telegram] MiniApp mount failed:', e);
         }
 
-        // Signal app is ready
-        if (miniApp.ready.isAvailable()) {
-          miniApp.ready();
-          console.log('[Telegram] MiniApp ready');
+        // Signal app is ready - CRITICAL, must always run
+        try {
+          if (miniApp.ready.isAvailable()) {
+            miniApp.ready();
+            console.log('[Telegram] MiniApp ready');
+          }
+        } catch (e) {
+          console.warn('[Telegram] MiniApp ready failed:', e);
         }
 
         setIsReady(true);
+        console.log('[Telegram] SDK initialization complete');
       } catch (e) {
         console.error('[Telegram] SDK initialization failed:', e);
+        // Still try to signal ready to remove native loader
+        try {
+          if (miniApp.ready.isAvailable()) {
+            miniApp.ready();
+          }
+        } catch {
+          // ignore
+        }
         setIsReady(true); // Still mark as ready to show UI
       }
     };
