@@ -26,7 +26,8 @@ services:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # Add other required backend env vars here
+    ports:
+      - '3000:3000' # nginx proxies /api and /socket.io here
     depends_on:
       - redis
       - postgres
