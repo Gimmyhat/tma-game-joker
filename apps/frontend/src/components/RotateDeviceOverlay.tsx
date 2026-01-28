@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTelegram } from '../providers/TelegramProvider';
 
 interface RotateDeviceOverlayProps {
   /** Force show overlay (for testing) */
@@ -51,44 +52,9 @@ async function tryLockLandscape(): Promise<boolean> {
   return false;
 }
 
-/**
- * Request fullscreen mode (required for orientation lock on many browsers)
- */
-async function requestFullscreen(): Promise<boolean> {
-  const elem = document.documentElement;
-
-  try {
-    if (elem.requestFullscreen) {
-      await elem.requestFullscreen();
-      return true;
-    }
-    // @ts-expect-error - Vendor prefixed
-    if (elem.webkitRequestFullscreen) {
-      // @ts-expect-error
-      await elem.webkitRequestFullscreen();
-      return true;
-    }
-    // @ts-expect-error - Vendor prefixed
-    if (elem.mozRequestFullScreen) {
-      // @ts-expect-error
-      await elem.mozRequestFullScreen();
-      return true;
-    }
-    // @ts-expect-error - Vendor prefixed
-    if (elem.msRequestFullscreen) {
-      // @ts-expect-error
-      await elem.msRequestFullscreen();
-      return true;
-    }
-  } catch (e) {
-    console.warn('[Fullscreen] Request failed:', e);
-  }
-
-  return false;
-}
-
 export function RotateDeviceOverlay({ forceShow }: RotateDeviceOverlayProps) {
   const { t } = useTranslation();
+  const { requestFullscreenMode } = useTelegram();
   const [isPortrait, setIsPortrait] = useState(false);
   const [lockAttempted, setLockAttempted] = useState(false);
 
@@ -121,9 +87,12 @@ export function RotateDeviceOverlay({ forceShow }: RotateDeviceOverlayProps) {
 
       if (!locked) {
         // Some browsers require fullscreen for orientation lock
-        const isFullscreen = await requestFullscreen();
-        if (isFullscreen) {
+        // Use Telegram SDK fullscreen first
+        try {
+          await requestFullscreenMode();
           locked = await tryLockLandscape();
+        } catch (e) {
+          console.warn('[Orientation] Fullscreen + lock failed:', e);
         }
       }
 
@@ -135,7 +104,7 @@ export function RotateDeviceOverlay({ forceShow }: RotateDeviceOverlayProps) {
     };
 
     attemptOrientationLock();
-  }, [lockAttempted]);
+  }, [lockAttempted, requestFullscreenMode]);
 
   // Listen for orientation changes
   useEffect(() => {
@@ -159,12 +128,14 @@ export function RotateDeviceOverlay({ forceShow }: RotateDeviceOverlayProps) {
 
   // Handle manual rotation request
   const handleRotateClick = useCallback(async () => {
-    // Try to lock orientation again (user interaction might enable it)
-    const isFullscreen = await requestFullscreen();
-    if (isFullscreen) {
+    // Try fullscreen + orientation lock on user interaction
+    try {
+      await requestFullscreenMode();
       await tryLockLandscape();
+    } catch (e) {
+      console.warn('[Orientation] Manual fullscreen request failed:', e);
     }
-  }, []);
+  }, [requestFullscreenMode]);
 
   if (!isPortrait) return null;
 
