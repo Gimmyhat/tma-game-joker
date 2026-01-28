@@ -58,6 +58,50 @@ export const Table: React.FC<TableProps> = ({
   const { tableCardSize, trumpCardSize, isMobileLandscape } = useResponsiveCards();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = React.useState(1);
+
+  const stageBaseWidth = 960;
+  const stageBaseHeight = 600;
+
+  React.useLayoutEffect(() => {
+    if (!isMobileLandscape) {
+      setFitScale(1);
+      return;
+    }
+
+    const updateScale = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const availableWidth = container.clientWidth || stageBaseWidth;
+      const availableHeight = container.clientHeight || stageBaseHeight;
+      const nextScale = Math.min(
+        1,
+        availableWidth / stageBaseWidth,
+        availableHeight / stageBaseHeight,
+      );
+
+      setFitScale(Number.isFinite(nextScale) ? nextScale : 1);
+    };
+
+    updateScale();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(updateScale);
+      resizeObserver.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateScale);
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [isMobileLandscape]);
 
   // Delay winning animation to let the last card land and be seen
   React.useEffect(() => {
@@ -144,15 +188,15 @@ export const Table: React.FC<TableProps> = ({
     // Compact positions for mobile landscape, more spacious for desktop
     const posStyles: Record<Position, string> = isMobileLandscape
       ? {
-          // Mobile landscape: tighter positioning
-          'bottom-center': '-bottom-6 left-1/2 -translate-x-1/2 translate-y-0',
-          'bottom-left': '-bottom-4 left-[20%] translate-y-full',
-          'bottom-right': '-bottom-4 right-[20%] translate-y-full',
-          'top-left': 'top-[15%] -left-4 -translate-x-full',
-          'top-center': '-top-8 left-1/2 -translate-x-1/2 translate-y-0',
-          'top-right': 'top-[15%] -right-4 translate-x-full',
-          'left-center': 'top-1/2 -left-6 -translate-x-full -translate-y-1/2',
-          'right-center': 'top-1/2 -right-6 translate-x-full -translate-y-1/2',
+          // Mobile landscape: keep all players inside stage
+          'bottom-center': 'bottom-2 left-1/2 -translate-x-1/2',
+          'bottom-left': 'bottom-2 left-[10%]',
+          'bottom-right': 'bottom-2 right-[10%]',
+          'top-left': 'top-[6%] left-[10%]',
+          'top-center': 'top-2 left-1/2 -translate-x-1/2',
+          'top-right': 'top-[6%] right-[10%]',
+          'left-center': 'top-1/2 left-2 -translate-y-1/2',
+          'right-center': 'top-1/2 right-2 -translate-y-1/2',
         }
       : {
           // Desktop: more spacious
@@ -176,6 +220,7 @@ export const Table: React.FC<TableProps> = ({
           position={position}
           isCurrentTurn={isTurn}
           isDealer={isDealer}
+          className={isMobileLandscape ? 'scale-[0.9] origin-center' : ''}
           onScoreClick={
             player.id === myPlayerId
               ? () => {
@@ -473,118 +518,133 @@ export const Table: React.FC<TableProps> = ({
     return null;
   };
 
+  const tableSurfaceSize = isMobileLandscape ? 'w-[70%] h-[70%]' : 'w-full h-full';
+  const stageStyle = isMobileLandscape
+    ? {
+        width: stageBaseWidth,
+        height: stageBaseHeight,
+        transform: `scale(${fitScale})`,
+        transformOrigin: 'center',
+      }
+    : undefined;
+  const stageClassName = `relative ${isMobileLandscape ? '' : 'w-full h-full'}`;
+
   return (
-    <div className={`relative flex items-center justify-center ${className}`}>
-      {/* The Oval Table Surface */}
-      <div
-        className="relative w-full h-full rounded-[50%] bg-[#0f3d23] shadow-[0_20px_60px_rgba(0,0,0,0.5),_inset_0_0_80px_rgba(0,0,0,0.5)]"
-        style={{
-          border: '12px solid #3d2211', // Wood border
-          boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 0 100px #051c0e',
-        }}
-      >
-        {/* Felt Texture */}
-        <div className="absolute inset-0 rounded-[50%] opacity-100 bg-[radial-gradient(ellipse_at_center,_#1a5c32_0%,_#0f3d23_100%)]">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
-        </div>
+    <div ref={containerRef} className={`relative flex items-center justify-center ${className}`}>
+      <div className={stageClassName} style={stageStyle}>
+        <div className={`relative ${tableSurfaceSize}`}>
+          {/* The Oval Table Surface */}
+          <div
+            className="relative w-full h-full rounded-[50%] bg-[#0f3d23] shadow-[0_20px_60px_rgba(0,0,0,0.5),_inset_0_0_80px_rgba(0,0,0,0.5)]"
+            style={{
+              border: '12px solid #3d2211', // Wood border
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 0 100px #051c0e',
+            }}
+          >
+            {/* Felt Texture */}
+            <div className="absolute inset-0 rounded-[50%] opacity-100 bg-[radial-gradient(ellipse_at_center,_#1a5c32_0%,_#0f3d23_100%)]">
+              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
+            </div>
 
-        {/* Center Decoration / HUD */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {/* Center Ring - subtle felt line */}
-          <div className="w-[40%] h-[40%] rounded-full border-2 border-green-800/30 flex items-center justify-center">
-            <div className="w-[80%] h-[80%] rounded-full border border-green-800/20" />
-          </div>
-
-          {/* Active Status Text Overlay */}
-          {currentPlayerId && (
-            <div className="absolute z-10 text-center">
-              <div className="text-[10px] text-yellow-500 uppercase tracking-[0.2em] mb-1 font-bold opacity-80">
-                {t('game.table.currentTurn')}
+            {/* Center Decoration / HUD */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Center Ring - subtle felt line */}
+              <div className="w-[40%] h-[40%] rounded-full border-2 border-green-800/30 flex items-center justify-center">
+                <div className="w-[80%] h-[80%] rounded-full border border-green-800/20" />
               </div>
-              <div className="text-2xl font-bold text-white tracking-widest drop-shadow-md">
-                {players.find((p) => p.id === currentPlayerId)?.name ===
-                players.find((p) => p.id === myPlayerId)?.name
-                  ? t('game.yourTurn')
-                  : t('game.waitingFor').toUpperCase() + '...'}
+
+              {/* Active Status Text Overlay */}
+              {currentPlayerId && (
+                <div className="absolute z-10 text-center">
+                  <div className="text-[10px] text-yellow-500 uppercase tracking-[0.2em] mb-1 font-bold opacity-80">
+                    {t('game.table.currentTurn')}
+                  </div>
+                  <div className="text-2xl font-bold text-white tracking-widest drop-shadow-md">
+                    {players.find((p) => p.id === currentPlayerId)?.name ===
+                    players.find((p) => p.id === myPlayerId)?.name
+                      ? t('game.yourTurn')
+                      : t('game.waitingFor').toUpperCase() + '...'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Trump Big Watermark - Hide during Tuzovanie */}
+            {gamePhase !== GamePhase.Tuzovanie && <TrumpIndicator />}
+
+            {/* Table Cards Area */}
+            <div className="absolute inset-0 z-20 overflow-visible">
+              {/* Center point anchor */}
+              <div className="absolute top-1/2 left-1/2 w-0 h-0">
+                {gamePhase === GamePhase.Tuzovanie ? renderTuzovanie() : renderTableCards()}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Trump Big Watermark - Hide during Tuzovanie */}
-        {gamePhase !== GamePhase.Tuzovanie && <TrumpIndicator />}
-
-        {/* Table Cards Area */}
-        <div className="absolute inset-0 z-20 overflow-visible">
-          {/* Center point anchor */}
-          <div className="absolute top-1/2 left-1/2 w-0 h-0">
-            {gamePhase === GamePhase.Tuzovanie ? renderTuzovanie() : renderTableCards()}
+            {/* Trick Winner Notification */}
+            <AnimatePresence>
+              {gamePhase === GamePhase.TrickComplete && winnerId && showWinningAnimation && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+                  animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                  exit={{ opacity: 0, scale: 1.1, x: '-50%', y: '-50%' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  className="absolute top-1/2 left-1/2 z-50 pointer-events-none whitespace-nowrap"
+                >
+                  <div className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] border-4 border-amber-300 flex items-center gap-3 transform -rotate-2">
+                    <span className="text-3xl font-black uppercase tracking-wider drop-shadow-sm">
+                      {t('game.trickWon', {
+                        player: players.find((p) => p.id === winnerId)?.name,
+                      })}
+                    </span>
+                    <span className="text-3xl">🏆</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* Trick Winner Notification */}
-        <AnimatePresence>
-          {gamePhase === GamePhase.TrickComplete && winnerId && showWinningAnimation && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
-              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-              exit={{ opacity: 0, scale: 1.1, x: '-50%', y: '-50%' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="absolute top-1/2 left-1/2 z-50 pointer-events-none whitespace-nowrap"
-            >
-              <div className="bg-amber-500 text-slate-900 px-8 py-4 rounded-2xl shadow-[0_10px_40px_rgba(245,158,11,0.5)] border-4 border-amber-300 flex items-center gap-3 transform -rotate-2">
-                <span className="text-3xl font-black uppercase tracking-wider drop-shadow-sm">
-                  {t('game.trickWon', {
-                    player: players.find((p) => p.id === winnerId)?.name,
-                  })}
+        {/* Players - Positioned absolutely around the table container */}
+        {orderedPlayers.map((p, i) => renderPlayer(p, i))}
+
+        {/* Current Trump Indicator - Floating near table edge top-right - Hide in Tuzovanie */}
+        {gamePhase !== GamePhase.Tuzovanie && (trump || trumpCard || isJokerTrump) && (
+          <div
+            className={`absolute ${isMobileLandscape ? 'top-2 right-2' : '-top-2 -right-2'} z-40 flex flex-col items-center`}
+          >
+            <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
+              {t('game.trump.label')}
+            </span>
+            {trumpCard ? (
+              // Show actual trump card when available (non-9-card rounds)
+              <div className="transform rotate-6 shadow-[0_4px_20px_rgba(234,179,8,0.4)] rounded-lg">
+                <Card
+                  card={trumpCard}
+                  size={trumpCardSize}
+                  className="border-2 border-yellow-500/50"
+                />
+              </div>
+            ) : trump ? (
+              // Fallback to suit symbol (9-card rounds where player selected trump)
+              <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
+                <span
+                  className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
+                >
+                  {trump === Suit.Hearts && '♥'}
+                  {trump === Suit.Diamonds && '♦'}
+                  {trump === Suit.Clubs && '♣'}
+                  {trump === Suit.Spades && '♠'}
                 </span>
-                <span className="text-3xl">🏆</span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              // No trump (joker was trump card)
+              <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
+                <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Players - Positioned absolutely around the table container */}
-      {orderedPlayers.map((p, i) => renderPlayer(p, i))}
-
-      {/* Current Trump Indicator - Floating near table edge top-right - Hide in Tuzovanie */}
-      {gamePhase !== GamePhase.Tuzovanie && (trump || trumpCard || isJokerTrump) && (
-        <div
-          className={`absolute ${isMobileLandscape ? '-top-1 -right-1' : '-top-2 -right-2'} z-40 flex flex-col items-center`}
-        >
-          <span className="text-[8px] text-yellow-500 uppercase tracking-widest mb-1 font-bold drop-shadow-lg">
-            {t('game.trump.label')}
-          </span>
-          {trumpCard ? (
-            // Show actual trump card when available (non-9-card rounds)
-            <div className="transform rotate-6 shadow-[0_4px_20px_rgba(234,179,8,0.4)] rounded-lg">
-              <Card
-                card={trumpCard}
-                size={trumpCardSize}
-                className="border-2 border-yellow-500/50"
-              />
-            </div>
-          ) : trump ? (
-            // Fallback to suit symbol (9-card rounds where player selected trump)
-            <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
-              <span
-                className={`text-2xl leading-none ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-slate-200'}`}
-              >
-                {trump === Suit.Hearts && '♥'}
-                {trump === Suit.Diamonds && '♦'}
-                {trump === Suit.Clubs && '♣'}
-                {trump === Suit.Spades && '♠'}
-              </span>
-            </div>
-          ) : (
-            // No trump (joker was trump card)
-            <div className="bg-slate-900/90 p-3 rounded-full border-2 border-yellow-600 shadow-xl">
-              <span className="text-xl leading-none text-slate-200 font-bold">Ø</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -101,7 +101,7 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
          The container is pointer-events-none so clicks pass through to the table.
       */}
 
-      <div className="relative pointer-events-auto w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="relative pointer-events-auto w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[calc(var(--tg-viewport-height,100dvh)-var(--tg-viewport-safe-area-inset-top,0px)-var(--tg-viewport-safe-area-inset-bottom,0px))] overflow-y-auto">
         {/* Header - Compact on mobile */}
         <div className="p-3 md:p-6 text-center border-b border-slate-800 relative">
           {step === 'suit' && (

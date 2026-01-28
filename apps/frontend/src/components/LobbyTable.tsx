@@ -80,7 +80,7 @@ export const LobbyTable: React.FC = () => {
   }, [playersInRoom, myPlayerId, user, t]);
 
   return (
-    <div className="w-full max-w-7xl aspect-[16/9] relative flex items-center justify-center opacity-80 scale-90">
+    <div className="w-full h-full max-w-5xl relative flex items-center justify-center opacity-80">
       {/* Overlay Message */}
       <div className="absolute inset-0 z-50 flex flex-col items-center justify-center">
         <div className="bg-black/60 backdrop-blur-sm p-6 rounded-2xl border border-white/10 text-center animate-pulse">
@@ -94,7 +94,7 @@ export const LobbyTable: React.FC = () => {
         tableCards={[]}
         trump={null}
         myPlayerId={myPlayerId || 'me'}
-        className="w-[85%] h-[65%]"
+        className="w-full h-full"
       />
     </div>
   );

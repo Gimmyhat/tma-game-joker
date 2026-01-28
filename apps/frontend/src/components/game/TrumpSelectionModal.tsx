@@ -59,7 +59,7 @@ export const TrumpSelectionModal: React.FC = () => {
       <div className="absolute inset-0" />
 
       {/* Modal Content - Compact for mobile landscape */}
-      <div className="relative w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-xs md:max-w-sm bg-slate-900 border border-slate-700 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[calc(var(--tg-viewport-height,100dvh)-var(--tg-viewport-safe-area-inset-top,0px)-var(--tg-viewport-safe-area-inset-bottom,0px))] overflow-y-auto">
         {/* Header */}
         <div className="p-2 md:p-4 text-center border-b border-slate-800 bg-slate-900/50">
           <h2 className="text-base md:text-xl font-bold text-white">

@@ -64,12 +64,14 @@ function LobbyScreen() {
           {(lobbyStatus === 'searching' ||
             lobbyStatus === 'waiting' ||
             lobbyStatus === 'starting') && (
-            <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
-              <LobbyTable />
+            <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500 min-h-0">
+              <div className="w-full flex items-center justify-center h-[55vh] max-h-[calc(var(--tg-viewport-height,100dvh)-180px)]">
+                <LobbyTable />
+              </div>
 
               <button
                 onClick={leaveQueue}
-                className="mt-8 py-2 px-6 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-sm font-medium transition-all backdrop-blur-sm"
+                className="mt-4 py-2 px-6 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-full text-red-200 text-sm font-medium transition-all backdrop-blur-sm"
               >
                 {t('lobby.leaveQueue')}
               </button>
