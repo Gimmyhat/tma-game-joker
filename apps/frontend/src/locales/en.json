@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Close"
+  },
   "lobby": {
     "title": "Joker",
     "subtitle": "Card Game",
@@ -18,16 +21,25 @@
     "loading": "Loading Game...",
     "trickWon": "{{player}} Wins!",
     "victory": "Victory!",
+    "victoryDesc": "You took 1st place in the game",
+    "resultDesc": "You took {{place}} place",
     "gameOver": "Game Over",
     "congrats": "Congratulations!",
     "winnerIs": "Winner: {{name}}",
     "you": "You",
     "returnToLobby": "Back to Lobby",
+    "scoreSheet": "Score Sheet",
+    "matchResults": "Match Results",
+    "viewScoreSheet": "View Score Sheet",
     "yourAction": "Your Action",
     "waitingFor": "Waiting for",
     "yourTurn": "YOUR TURN",
     "opponent": "OPPONENT",
     "timerFrozen": "PAUSED",
+    "rotateDevice": "Rotate Device",
+    "rotateDeviceHint": "For the best experience, rotate your phone to landscape",
+    "tapToFullscreen": "Tap for Fullscreen",
+    "confirm": "Confirm",
     "phase": {
       "betting": "Place Your Bet",
       "trump_selection": "Choose Trump",
@@ -39,7 +51,7 @@
     "dealerRestriction": "Dealer Restriction",
     "dealerRestrictionText": "You are the dealer. You cannot bet",
     "dealerRestrictionDetail": "Others bet {{otherBets}} of {{totalCards}} cards. Total bets cannot equal total cards.",
-    "makeBet": "Make Your Bet",
+    "makeBet": "Place Your Bet",
     "confirmBet": "Confirm Bet",
     "round": "Round",
     "cards": "Cards",
@@ -70,6 +82,7 @@
     "trump": {
       "choose": "Choose Trump",
       "subtitle": "Select a suit or play No Trump",
+      "jokerTrigger": "Joker flipped - you decide!",
       "hearts": "Hearts",
       "diamonds": "Diamonds",
       "clubs": "Clubs",
@@ -96,7 +109,11 @@
       "beatsHighest": "Always wins the trick",
       "takeLow": "Give Away",
       "beatsLowest": "Always loses the trick",
-      "back": "Back"
+      "back": "Back",
+      "high": "HIGH",
+      "low": "LOW",
+      "take": "TAKE",
+      "pass": "PASS"
     },
     "errors": {
       "mustFollow": "Must follow {{suit}}",

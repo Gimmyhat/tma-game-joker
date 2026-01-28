@@ -39,18 +39,19 @@ export const BetModal: React.FC<BetModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-transparent pointer-events-none">
-      <div className="relative w-[85%] max-w-[300px] bg-white text-slate-900 rounded-[1.5rem] shadow-2xl overflow-hidden transform scale-90 md:scale-100 animate-in zoom-in-95 duration-300 pointer-events-auto border border-white/20 origin-center">
+      {/* 40% smaller: max-w reduced from 300 to 220, padding reduced */}
+      <div className="relative w-[80%] max-w-[220px] bg-white text-slate-900 rounded-[1.2rem] shadow-2xl overflow-hidden transform scale-100 animate-in zoom-in-95 duration-300 pointer-events-auto border border-white/20 origin-center">
         {/* Header */}
-        <div className="pt-6 px-5 pb-2 text-center">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">
+        <div className="pt-4 px-4 pb-2 text-center">
+          <h2 className="text-base font-bold text-slate-900 mb-0.5">
             {t('game.makeBet', 'Place Your Bet')}
           </h2>
-          <div className="text-xs text-slate-500 font-medium flex items-center justify-center gap-2">
+          <div className="text-[10px] text-slate-500 font-medium flex items-center justify-center gap-2">
             <span>
               {t('game.round', 'Round')} {roundNumber}
             </span>
             {forbiddenBet !== undefined && (
-              <span className="text-red-500 font-bold text-[10px] bg-red-50 border border-red-100 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-red-500 font-bold text-[9px] bg-red-50 border border-red-100 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                 🚫 {forbiddenBet}
               </span>
             )}
@@ -58,8 +59,8 @@ export const BetModal: React.FC<BetModalProps> = ({
         </div>
 
         {/* Numpad Grid */}
-        <div className="p-5">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="p-3">
+          <div className="grid grid-cols-4 gap-1.5">
             {bets.map((bet) => {
               const isForbidden = bet === forbiddenBet;
               const isSelected = selectedBet === bet;
@@ -70,7 +71,7 @@ export const BetModal: React.FC<BetModalProps> = ({
                   disabled={isForbidden}
                   onClick={() => setSelectedBet(bet)}
                   className={`
-                      aspect-square rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-200
+                      aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-200
                       ${
                         isForbidden
                           ? 'text-slate-300 bg-slate-50 cursor-not-allowed'
@@ -88,12 +89,12 @@ export const BetModal: React.FC<BetModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 pt-0">
+        <div className="p-3 pt-0">
           <button
             onClick={handleConfirm}
             disabled={selectedBet === null}
             className={`
-              w-full py-3 rounded-xl font-bold text-base tracking-wide transition-all duration-300
+              w-full py-2.5 rounded-lg font-bold text-sm tracking-wide transition-all duration-300
               flex items-center justify-center gap-2
               ${
                 selectedBet !== null
@@ -104,7 +105,7 @@ export const BetModal: React.FC<BetModalProps> = ({
           >
             {t('game.confirm', 'CONFIRM')}
             {selectedBet !== null && (
-              <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-mono backdrop-blur-sm">
+              <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-mono backdrop-blur-sm">
                 {selectedBet}
               </span>
             )}

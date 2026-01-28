@@ -78,29 +78,29 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
       {/* Semi-transparent overlay only for top part, leaving hand visible */}
       <div className="absolute inset-0 bg-black/40 pointer-events-auto" style={{ bottom: '30%' }} />
 
-      <div className="relative w-full max-w-sm bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 pointer-events-auto backdrop-blur-md">
-        <div className="p-4 text-center border-b border-slate-800">
-          <h2 className="text-xl font-bold text-white">{t('game.trump.choose')}</h2>
-          <p className="text-slate-400 text-xs mt-1">
+      <div className="relative w-[85%] max-w-[280px] bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 pointer-events-auto backdrop-blur-md">
+        <div className="p-3 text-center border-b border-slate-800">
+          <h2 className="text-base font-bold text-white">{t('game.trump.choose')}</h2>
+          <p className="text-slate-400 text-[10px] mt-0.5">
             {trumpSelection?.trigger === 'JOKER_UPCARD'
               ? t('game.trump.jokerTrigger', 'Joker flipped - you decide!')
               : t('game.trump.subtitle')}
           </p>
           {timeLeft !== null && (
-            <p className="text-amber-400 text-sm mt-2 font-mono">
+            <p className="text-amber-400 text-xs mt-1 font-mono">
               {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
             </p>
           )}
         </div>
 
-        <div className="p-4 space-y-3">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="p-3 space-y-2">
+          <div className="grid grid-cols-4 gap-1.5">
             {suits.map((suit) => (
               <button
                 key={suit.type}
                 onClick={() => setSelectedSuit(suit.type)}
                 className={`
-                  flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
+                  flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200
                   ${
                     selectedSuit === suit.type
                       ? 'border-amber-500 bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-105'
@@ -108,9 +108,9 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
                   }
                 `}
               >
-                <SuitIcon suit={suit.type} className={`w-10 h-10 mb-1 ${suit.color}`} />
+                <SuitIcon suit={suit.type} className={`w-8 h-8 mb-0.5 ${suit.color}`} />
                 <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${selectedSuit === suit.type ? 'text-amber-500' : 'text-slate-400'}`}
+                  className={`text-[9px] font-bold uppercase tracking-wider ${selectedSuit === suit.type ? 'text-amber-500' : 'text-slate-400'}`}
                 >
                   {suit.label}
                 </span>
@@ -121,7 +121,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
           <button
             onClick={() => setSelectedSuit(null)}
             className={`
-              w-full p-3 rounded-xl border font-bold text-sm transition-all duration-200 flex items-center justify-center
+              w-full p-2.5 rounded-lg border font-bold text-xs transition-all duration-200 flex items-center justify-center
               ${
                 selectedSuit === null
                   ? 'border-amber-500 bg-amber-500/20 text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]'
@@ -129,7 +129,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
               }
             `}
           >
-            <span className="mr-2 text-lg">Ø</span>
+            <span className="mr-2 text-base">Ø</span>
             {isJokerTrump ? t('game.trump.noTrumpJoker') : t('game.trump.noTrump')}
           </button>
 
@@ -137,7 +137,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
           {canRedeal && (
             <button
               onClick={handleRedeal}
-              className="w-full p-3 rounded-xl border border-blue-700 bg-blue-900/50 font-bold text-sm transition-all duration-200 flex items-center justify-center text-blue-300 hover:bg-blue-900 hover:border-blue-600"
+              className="w-full p-2.5 rounded-lg border border-blue-700 bg-blue-900/50 font-bold text-xs transition-all duration-200 flex items-center justify-center text-blue-300 hover:bg-blue-900 hover:border-blue-600"
             >
               <span className="mr-2">🔄</span>
               {t('game.trump.redeal', 'Redeal')} ({redealsRemaining}/{maxRedeals})
@@ -148,7 +148,7 @@ export const TrumpSelector: React.FC<TrumpSelectorProps> = ({
             onClick={handleConfirm}
             disabled={selectedSuit === 'none'}
             className={`
-              w-full py-3 mt-1 rounded-xl font-bold text-base tracking-wide transition-all duration-200
+              w-full py-2.5 mt-1 rounded-lg font-bold text-sm tracking-wide transition-all duration-200
               ${
                 selectedSuit !== 'none'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-orange-500/20 active:scale-[0.98]'
