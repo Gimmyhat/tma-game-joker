@@ -50,7 +50,8 @@ export const Hand: React.FC<HandProps> = ({
 
         // Fan calculations
         const rotateDeg = offsetFromCenter * 3; // 3 degree spread per card
-        const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 2 : 5); // Gentle arc
+        // Gentle arc, but not dropping too low. Max drop is limited to 15px for outer cards
+        const translateY = Math.abs(offsetFromCenter) * (isMobileLandscape ? 2 : 3);
         const translateX = offsetFromCenter * 2; // Slight spacing adjustment
 
         const canPlay = isPlayable(card);

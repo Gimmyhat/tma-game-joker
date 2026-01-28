@@ -98,7 +98,7 @@ export const Table: React.FC<TableProps> = ({
 
   // Map relative index (0=Me) to physical table slots based on player count
   const getPosition = (index: number, total: number): Position => {
-    if (index === 0) return 'bottom-center'; // Hero strictly Bottom-Center
+    if (index === 0) return 'bottom-left'; // Force Hero to Bottom-Left per user request
 
     if (total === 2) {
       return 'top-center'; // Head to head
@@ -108,15 +108,15 @@ export const Table: React.FC<TableProps> = ({
       return 'top-right';
     }
     if (total === 4) {
-      // 4 Players: Me (BC), Clockwise -> Left, Top, Right
+      // 4 Players: Me (BL), Clockwise -> Left, Top, Right
       // Note: index 1 is Left, index 2 is Top, index 3 is Right
-      if (index === 1) return 'left-center'; // Or specific 'top-left' as per prompt? Prompt says Left: top 40%
+      if (index === 1) return 'left-center';
       if (index === 2) return 'top-center';
       return 'right-center';
     }
     // 5+ players (fallback)
     const positions: Position[] = [
-      'bottom-center',
+      'bottom-left',
       'left-center',
       'top-left',
       'top-right',
@@ -128,7 +128,7 @@ export const Table: React.FC<TableProps> = ({
   // Helper to find visual position of a specific playerId
   const getPlayerPosition = (pid: string): Position => {
     const index = orderedPlayers.findIndex((p) => p.id === pid);
-    if (index === -1) return 'bottom-center';
+    if (index === -1) return 'bottom-left'; // Default to Hero position
     return getPosition(index, orderedPlayers.length);
   };
 
@@ -211,9 +211,9 @@ export const Table: React.FC<TableProps> = ({
 
     // Absolute positioning styles around the SCREEN (Full Immersion)
     const posStyles: Record<Position, string> = {
-      // Hero (Bottom Center)
-      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40', // Slightly above bottom edge
-      'bottom-left': 'bottom-6 left-6 z-40',
+      // Hero (Bottom Left)
+      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40', // Fallback
+      'bottom-left': 'bottom-6 left-6 z-40', // Explicit Hero Position
       'bottom-right': 'bottom-6 right-6 z-40',
 
       // Top Opponents
