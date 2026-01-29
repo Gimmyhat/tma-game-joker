@@ -174,10 +174,12 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                   {tablePlayers.map((player) => (
                     <th
                       key={player.id}
-                      className="border-r-2 border-b-2 border-blue-900/50 p-1 relative h-[120px] align-bottom"
+                      className="border-r-2 border-b-2 border-blue-900/50 p-1 relative h-[100px] align-bottom"
                     >
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-max origin-bottom transform -rotate-90 text-sm sm:text-base font-bold whitespace-nowrap">
-                        {player.name}
+                      <div className="absolute bottom-1 left-1 origin-bottom-left transform -rotate-45 translate-x-2 -translate-y-1 w-[130px] pointer-events-none">
+                        <div className="truncate text-[10px] sm:text-xs font-bold text-blue-900 text-left">
+                          {player.name}
+                        </div>
                       </div>
                     </th>
                   ))}
