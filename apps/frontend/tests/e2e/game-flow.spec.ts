@@ -80,7 +80,8 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     });
 
     // Also verify the table element exists, confirming we are in game view
-    await expect(pages[0].locator('.w-full.h-full.z-10')).toBeVisible(); // Table container class
+    // Use .first() to resolve strict mode violation if multiple matching containers exist
+    await expect(pages[0].locator('.w-full.h-full.z-10').first()).toBeVisible();
   } finally {
     await Promise.all(pages.map((page) => page.close()));
     await Promise.all(contexts.map((context) => context.close()));
