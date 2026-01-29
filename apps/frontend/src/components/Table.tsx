@@ -17,6 +17,16 @@ import PlayerInfo from './PlayerInfo';
 import { SuitIcon } from './SuitIcon';
 import { useResponsiveCards } from '../hooks';
 
+type Position =
+  | 'bottom-center'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'top-center'
+  | 'top-left'
+  | 'top-right'
+  | 'left-center'
+  | 'right-center';
+
 interface TableProps {
   players: Player[];
   tableCards: TableCard[];
