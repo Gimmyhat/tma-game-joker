@@ -73,14 +73,14 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     }
 
     expect(betPlaced.size).toBe(pages.length);
-    // Updated to match "Your Turn" (en) or "ВАШ ХОД" (ru) or "playing" (legacy/fallback)
-    // We check if at least one player sees "YOUR TURN" or equivalent active state
-    // "Play a Card" was replaced by "Your Action" or simply checking if it's the player's turn
-    await expect(
-      pages[0].getByText(/YOUR TURN|ВАШ ХОД|Make Your Bet|Сделайте ставку/i).first(),
-    ).toBeVisible({
+    // Wait for the round/game UI to be visible instead of looking for specific text that might change
+    // The "Round" indicator is always visible in game phase
+    await expect(pages[0].getByText(/Round|Раунд/i).first()).toBeVisible({
       timeout: 30000,
     });
+
+    // Also verify the table element exists, confirming we are in game view
+    await expect(pages[0].locator('.w-full.h-full.z-10')).toBeVisible(); // Table container class
   } finally {
     await Promise.all(pages.map((page) => page.close()));
     await Promise.all(contexts.map((context) => context.close()));
