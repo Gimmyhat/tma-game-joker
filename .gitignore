@@ -40,6 +40,7 @@ coverage/
 .serena/
 apps/frontend/test-results/
 apps/frontend/playwright-report/
+apps/frontend/tests/e2e/*.png
 node_modules/
 nul
 *.kilocode*

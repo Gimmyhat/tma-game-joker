@@ -5,7 +5,7 @@ import { useGameStore } from './store';
 import { GameScreen } from './screens';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
-import { RotateDeviceOverlay } from './components/RotateDeviceOverlay';
+// import { RotateDeviceOverlay } from './components/RotateDeviceOverlay';
 
 /**
  * Lobby screen - shown before game starts
@@ -68,7 +68,7 @@ function LobbyScreen() {
             lobbyStatus === 'waiting' ||
             lobbyStatus === 'starting') && (
             <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500 h-full">
-              <div className="w-full aspect-[4/3] bg-black/10 rounded-xl overflow-hidden border border-white/5 mb-4 relative flex-1 max-h-[300px]">
+              <div className="w-full flex-1 bg-black/10 rounded-xl overflow-hidden border border-white/5 mb-4 relative min-h-[400px]">
                 <LobbyTable />
               </div>
 
@@ -192,7 +192,7 @@ function GameContent() {
 function App() {
   return (
     <TelegramProvider>
-      <RotateDeviceOverlay />
+      {/* <RotateDeviceOverlay /> Removed for Portrait Mode */}
       <GameContent />
     </TelegramProvider>
   );

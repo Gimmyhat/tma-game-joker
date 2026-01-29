@@ -22,6 +22,8 @@ export class GameAuditService {
     playerId: string,
     data: Record<string, unknown>,
   ): Promise<void> {
+    if (!this.redisService.isAvailable()) return;
+
     const client = this.redisService.getClient();
     if (!client) return;
 
@@ -52,6 +54,8 @@ export class GameAuditService {
    */
   async saveGameRecord(gameState: GameState): Promise<void> {
     const roomId = gameState.id;
+    if (!this.redisService.isAvailable()) return;
+
     const client = this.redisService.getClient();
     if (!client) return;
 

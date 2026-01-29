@@ -42,6 +42,16 @@ export const defaultTheme: TelegramTheme = {
 export function isInTelegram(): boolean {
   if (typeof window === 'undefined') return false;
 
+  // Force dev mode on localhost
+  if (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname === '0.0.0.0'
+  ) {
+    return false;
+  }
+
   // Method 1: Check for Telegram WebApp object with initData
   const telegram = (
     window as Window & { Telegram?: { WebApp?: { initData?: string; platform?: string } } }

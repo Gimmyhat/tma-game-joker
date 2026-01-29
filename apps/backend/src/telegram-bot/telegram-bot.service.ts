@@ -58,11 +58,23 @@ export class TelegramBotService {
     });
 
     this.logger.log('Starting Telegram bot (long polling)...');
-    this.bot.start({
-      onStart: (botInfo) => {
-        this.logger.log(`Bot @${botInfo.username} started successfully`);
-      },
-    });
+
+    // Use non-blocking start to prevent application crash on bot errors
+    this.bot
+      .start({
+        onStart: (botInfo) => {
+          this.logger.log(`Bot @${botInfo.username} started successfully`);
+        },
+      })
+      .catch((err) => {
+        if (err.description?.includes('Conflict: terminated by other getUpdates request')) {
+          this.logger.warn(
+            '⚠️ Telegram Bot Conflict: Another instance is running! Bot features will be disabled in this instance.',
+          );
+        } else {
+          this.logger.error(`Failed to start Telegram bot: ${err.message}`, err.stack);
+        }
+      });
   }
 
   async stop(): Promise<void> {

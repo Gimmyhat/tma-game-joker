@@ -1,48 +1,30 @@
 const { io } = require('socket.io-client');
 
-const URL = 'http://203.31.40.28';
-const USER_ID = 'test-bot-' + Math.floor(Math.random() * 1000);
+console.log('Testing connection to http://localhost:3000...');
 
-console.log(`Connecting to ${URL} as ${USER_ID}...`);
-
-const socket = io(URL, {
+const socket = io('http://localhost:3000', {
   transports: ['websocket'],
   query: {
-    userId: USER_ID,
-    userName: 'TestBot',
+    userId: 'test-user-1',
+    userName: 'TestUser',
   },
   auth: {
-    initData: 'mock_init_data', // Should be ignored with SKIP_AUTH
+    initData: 'query_id=...',
   },
 });
 
 socket.on('connect', () => {
-  console.log('✅ Connected! ID:', socket.id);
-
-  console.log('Sending find_game...');
-  socket.emit('find_game', {});
-});
-
-socket.on('disconnect', (reason) => {
-  console.log('❌ Disconnected:', reason);
+  console.log('✅ Connected successfully! Socket ID:', socket.id);
+  process.exit(0);
 });
 
 socket.on('connect_error', (err) => {
-  console.log('❌ Connection Error:', err.message);
+  console.error('❌ Connection error:', err.message);
+  process.exit(1);
 });
 
-socket.on('error', (err) => {
-  console.log('❌ Server Error:', err);
-});
-
-// Game events
-socket.on('game_started', (data) => {
-  console.log('🎮 Game Started!', data);
-});
-
-socket.on('game_state', (data) => {
-  console.log('📊 Game State Update:', data.state.phase);
-});
-
-// Keep alive
-setInterval(() => {}, 1000);
+// Timeout
+setTimeout(() => {
+  console.error('❌ Timeout waiting for connection');
+  process.exit(1);
+}, 5000);

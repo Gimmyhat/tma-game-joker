@@ -97,26 +97,30 @@ export const Table: React.FC<TableProps> = ({
   }, [players, myPlayerId]);
 
   // Map relative index (0=Me) to physical table slots based on player count
+  // Portrait Mode Mapping:
+  // 0 (Me) -> Bottom Center
+  // 1 -> Left Middle (Vertical)
+  // 2 -> Top Center (Upside Down)
+  // 3 -> Right Middle (Vertical)
   const getPosition = (index: number, total: number): Position => {
-    if (index === 0) return 'bottom-left'; // Force Hero to Bottom-Left per user request
+    if (index === 0) return 'bottom-center';
 
     if (total === 2) {
       return 'top-center'; // Head to head
     }
     if (total === 3) {
-      if (index === 1) return 'top-left';
-      return 'top-right';
+      if (index === 1) return 'left-center';
+      return 'right-center';
     }
     if (total === 4) {
-      // 4 Players: Me (BL), Clockwise -> Left, Top, Right
-      // Note: index 1 is Left, index 2 is Top, index 3 is Right
+      // 4 Players: Me (Bottom), Left, Top, Right
       if (index === 1) return 'left-center';
       if (index === 2) return 'top-center';
       return 'right-center';
     }
     // 5+ players (fallback)
     const positions: Position[] = [
-      'bottom-left',
+      'bottom-center',
       'left-center',
       'top-left',
       'top-right',
@@ -128,7 +132,7 @@ export const Table: React.FC<TableProps> = ({
   // Helper to find visual position of a specific playerId
   const getPlayerPosition = (pid: string): Position => {
     const index = orderedPlayers.findIndex((p) => p.id === pid);
-    if (index === -1) return 'bottom-left'; // Default to Hero position
+    if (index === -1) return 'bottom-center'; // Default to Hero position
     return getPosition(index, orderedPlayers.length);
   };
 
@@ -153,7 +157,7 @@ export const Table: React.FC<TableProps> = ({
         cardRotation = 180;
         break;
       case 'top-center':
-        containerClass = '-top-12 left-1/2 -translate-x-1/2 rotate-180';
+        containerClass = '-top-10 left-1/2 -translate-x-1/2 rotate-180';
         cardRotation = 180;
         break;
       case 'bottom-right':
@@ -161,11 +165,11 @@ export const Table: React.FC<TableProps> = ({
         cardRotation = -90;
         break;
       case 'left-center':
-        containerClass = 'top-[40%] -left-12 rotate-90'; // Left Opponent (top 40%)
+        containerClass = 'top-1/2 -translate-y-1/2 -left-10 rotate-90'; // Left Opponent (Vertically Centered)
         cardRotation = 90;
         break;
       case 'right-center':
-        containerClass = 'top-[40%] -right-12 -rotate-90'; // Right Opponent (top 40%)
+        containerClass = 'top-1/2 -translate-y-1/2 -right-10 -rotate-90'; // Right Opponent (Vertically Centered)
         cardRotation = -90;
         break;
       default:
@@ -211,19 +215,19 @@ export const Table: React.FC<TableProps> = ({
 
     // Absolute positioning styles around the SCREEN (Full Immersion)
     const posStyles: Record<Position, string> = {
-      // Hero (Bottom Left) - Shifted right (left-12 / 12%) to match reference
-      'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2 z-40',
-      'bottom-left': 'bottom-20 left-[12%] z-40', // Moved inward from left-6
+      // Hero (Bottom Center)
+      'bottom-center': 'bottom-32 left-1/2 -translate-x-1/2 z-40', // Raised to clear hand
+      'bottom-left': 'bottom-20 left-6 z-40',
       'bottom-right': 'bottom-20 right-6 z-40',
 
       // Top Opponents
-      'top-center': 'top-6 left-1/2 -translate-x-1/2',
+      'top-center': 'top-4 left-1/2 -translate-x-1/2',
       'top-left': 'top-6 left-6',
       'top-right': 'top-6 right-6',
 
-      // Side Opponents (Vertical Centered or Top 40% as requested)
-      'left-center': 'top-[35%] left-6 -translate-y-1/2', // Moved slightly up and inward
-      'right-center': 'top-[35%] right-6 -translate-y-1/2', // Moved slightly up and inward
+      // Side Opponents (Vertically Centered)
+      'left-center': 'top-1/2 -translate-y-1/2 left-2',
+      'right-center': 'top-1/2 -translate-y-1/2 right-2',
     };
 
     return (
@@ -261,8 +265,8 @@ export const Table: React.FC<TableProps> = ({
       const startPos: Record<Position, { x: number; y: number; rotate: number }> = {
         'bottom-center': { x: 0, y: 400, rotate: 0 },
         // Hero (Bottom-Left) starts from Bottom-Center (Hand position)
-        'bottom-left': { x: 0, y: 500, rotate: 0 },
-        'bottom-right': { x: 300, y: 400, rotate: -15 },
+        'bottom-left': { x: -150, y: 400, rotate: 0 },
+        'bottom-right': { x: 150, y: 400, rotate: -15 },
         'top-left': { x: -300, y: -400, rotate: 165 },
         'top-center': { x: 0, y: -400, rotate: 180 },
         'top-right': { x: 300, y: -400, rotate: 195 },
@@ -274,11 +278,11 @@ export const Table: React.FC<TableProps> = ({
       // Players throw cards "facing" the center
       const baseRotation: Record<Position, number> = {
         'bottom-center': 0,
-        'bottom-left': 5, // Slightly angled from left
-        'bottom-right': -30,
-        'top-left': 150,
+        'bottom-left': 15,
+        'bottom-right': -15,
+        'top-left': 165,
         'top-center': 180, // Facing me upside down
-        'top-right': 210,
+        'top-right': 195,
         'left-center': 90,
         'right-center': -90,
       };
@@ -286,14 +290,14 @@ export const Table: React.FC<TableProps> = ({
       // Target positions (center of table with slight offset towards player)
       // We use small offsets so they form a loose cluster/pile
       const targetPos: Record<Position, { x: number; y: number }> = {
-        'bottom-center': { x: 0, y: -20 }, // Shifted UP (was 30) to avoid hand overlap
-        'bottom-left': { x: -20, y: -20 }, // Shifted UP (was 30)
-        'bottom-right': { x: 20, y: -20 }, // Shifted UP (was 20)
-        'top-left': { x: -20, y: -40 },
-        'top-center': { x: 0, y: -50 },
-        'top-right': { x: 20, y: -40 },
-        'left-center': { x: -40, y: -20 },
-        'right-center': { x: 40, y: -20 },
+        'bottom-center': { x: 0, y: 20 },
+        'bottom-left': { x: -20, y: 20 },
+        'bottom-right': { x: 20, y: 20 },
+        'top-left': { x: -20, y: -20 },
+        'top-center': { x: 0, y: -40 },
+        'top-right': { x: 20, y: -20 },
+        'left-center': { x: -30, y: 0 },
+        'right-center': { x: 30, y: 0 },
       };
 
       const start = startPos[pos];
@@ -433,14 +437,14 @@ export const Table: React.FC<TableProps> = ({
 
       // Positions on the felt closer to players (near the edge)
       const targetPos: Record<Position, { x: number; y: number; rotate: number }> = {
-        'bottom-center': { x: 0, y: 150, rotate: 0 }, // Raised significantly from 220
-        'bottom-left': { x: -100, y: 120, rotate: 20 }, // Moved inward/up from -150/160
-        'bottom-right': { x: 100, y: 120, rotate: -20 }, // Moved inward/up from 150/160
-        'top-left': { x: -150, y: -160, rotate: 150 },
+        'bottom-center': { x: 0, y: 180, rotate: 0 },
+        'bottom-left': { x: -100, y: 150, rotate: 20 },
+        'bottom-right': { x: 100, y: 150, rotate: -20 },
+        'top-left': { x: -100, y: -180, rotate: 160 },
         'top-center': { x: 0, y: -220, rotate: 180 },
-        'top-right': { x: 150, y: -160, rotate: 210 },
-        'left-center': { x: -250, y: 0, rotate: 90 },
-        'right-center': { x: 250, y: 0, rotate: -90 },
+        'top-right': { x: 100, y: -180, rotate: 200 },
+        'left-center': { x: -140, y: 0, rotate: 90 },
+        'right-center': { x: 140, y: 0, rotate: -90 },
       };
 
       const t = targetPos[pos] || { x: 0, y: 0, rotate: 0 };
@@ -501,7 +505,7 @@ export const Table: React.FC<TableProps> = ({
     if (!trump && !trumpCard && !isJokerTrump) return null;
 
     return (
-      <div className="absolute top-[15%] right-[10%] z-20 flex flex-col items-center pointer-events-none transform rotate-[-5deg]">
+      <div className="absolute top-[18%] left-[10%] z-20 flex flex-col items-center pointer-events-none transform rotate-[15deg]">
         <div className="relative">
           {/* Deck Representation (Underneath) */}
           <div className="absolute -top-1 -left-1 w-full h-full bg-[#8b0000] rounded-lg border border-[#5a0000] shadow-sm transform -rotate-2" />

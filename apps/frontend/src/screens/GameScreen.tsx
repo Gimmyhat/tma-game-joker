@@ -16,7 +16,7 @@ import { BetModal } from '../components/BetModal';
 import { ScoringInfoModal } from '../components/ScoringInfoModal';
 import { JokerOptionModal } from '../components/JokerOptionModal';
 import { LeaveGameModal } from '../components/LeaveGameModal';
-import { LanguageSwitcher } from '../components/LanguageSwitcher';
+// import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import {
   PulkaResultsModal,
   TrumpSelectionModal,
@@ -389,98 +389,83 @@ export const GameScreen: React.FC = () => {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
 
       {/* Top Bar / HUD */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-2 md:p-4 pointer-events-none">
-        {/* Left: Info Menu Button */}
-        <button
-          onClick={() => setIsInfoDrawerOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gold"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div className="flex flex-col items-start">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wide">
-              {t('game.round')}
-            </span>
-            <span className="text-sm font-bold text-gold leading-none">{gameState.round}/24</span>
-          </div>
-        </button>
-
-        {/* Right: Timer Only */}
+      <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-2 pt-[env(safe-area-inset-top,10px)] md:p-4 pointer-events-none bg-gradient-to-b from-black/60 to-transparent pb-8">
+        {/* Left Group: Menu & Round Info */}
         <div className="pointer-events-auto flex items-center gap-2">
-          {/* Timer - Compact */}
+          {/* Menu / Leave Button */}
+          <button
+            onClick={() => setIsLeaveModalOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm shadow-lg"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+
+          {/* Info Button */}
+          <button
+            onClick={() => setIsInfoDrawerOpen(true)}
+            className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group h-10"
+          >
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-[9px] text-slate-400 uppercase tracking-wide">
+                {t('game.round')}
+              </span>
+              <span className="text-sm font-bold text-gold">{gameState.round}/24</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Right Group: Score Sheet & Timer */}
+        <div className="pointer-events-auto flex items-center gap-2">
+          {/* Score Sheet Button */}
+          <button
+            onClick={() => setShowScoreSheet(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm shadow-lg"
+            title={t('game.scoreSheet', 'Score Sheet')}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+              <path
+                fillRule="evenodd"
+                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+
+          {/* Timer */}
           <div
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl border backdrop-blur-sm transition-all duration-300
+            className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300
             ${isMyTurn ? 'bg-gold/20 border-gold/50 animate-pulse-glow' : 'bg-black/60 border-white/10'}`}
           >
             <span
-              className={`font-mono text-xl font-bold leading-none ${isMyTurn ? 'text-gold' : 'text-slate-300'}`}
+              className={`font-mono text-lg font-bold leading-none ${isMyTurn ? 'text-gold' : 'text-slate-300'}`}
             >
               {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
             </span>
           </div>
-
-          {/* Language Switcher - Desktop only */}
-          <div className="hidden md:block">
-            <LanguageSwitcher className="scale-75 origin-right" />
-          </div>
         </div>
       </div>
 
-      {/* Bottom Right Floating Action Group */}
-      <div className="absolute bottom-20 right-4 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)] pr-[env(safe-area-inset-right,0px)]">
-        {/* Score Sheet */}
-        <button
-          onClick={() => setShowScoreSheet(true)}
-          className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
-          title={t('game.scoreSheet', 'Score Sheet')}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-            <path
-              fillRule="evenodd"
-              d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-
-        {/* Leave/Menu Button */}
-        <button
-          onClick={() => setIsLeaveModalOpen(true)}
-          className="w-12 h-12 flex items-center justify-center rounded-full bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-      </div>
-
       {/* Main Table Area */}
-      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center">
+      <div className="flex-1 min-h-0 relative z-0 flex items-center justify-center pb-32">
+        {' '}
+        {/* Added padding bottom for hand */}
         <div className="h-full w-full relative">
           <Table
             players={gameState.players}
@@ -499,15 +484,15 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Player Hand */}
-      <div className="absolute bottom-[10%] md:bottom-[8%] left-0 right-0 z-50 flex justify-center pointer-events-none">
-        <div className="w-full max-w-[90%] md:max-w-5xl pointer-events-auto overflow-visible">
+      <div className="absolute bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom,10px)]">
+        <div className="w-full max-w-md px-2 pointer-events-auto overflow-visible">
           <Hand
             cards={sortedHand}
             onCardClick={handleCardClick}
             playableCards={playableCards}
             disabled={!canThrowCard}
             getValidationMessage={getValidationMessage}
-            className={!canThrowCard ? 'opacity-80 saturate-50 scale-95' : ''}
+            className={!canThrowCard ? 'opacity-80 saturate-50 scale-95 origin-bottom' : ''}
           />
         </div>
       </div>

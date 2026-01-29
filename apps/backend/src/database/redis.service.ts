@@ -81,6 +81,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       this.client.on('end', () => {
         this.isConnected = false;
+        // Do not set client to null here immediately to allow reconnection attempts if configured,
+        // but if retryStrategy returns null, ioredis will close it.
+        // We can check status.
+        if (this.client?.status === 'end') {
+          this.logger.warn('Redis connection ended permanently - switching to memory-only mode');
+          this.client = null;
+        }
       });
 
       // Test connection with ping
@@ -94,12 +101,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         `Redis not available: ${(error as Error).message} - running in memory-only mode`,
       );
       this.client = null;
+      this.isConnected = false;
     }
   }
 
   async onModuleDestroy(): Promise<void> {
     if (this.client) {
-      await this.client.quit();
+      try {
+        await this.client.quit();
+      } catch (e) {
+        // Ignore close errors
+      }
       this.logger.log('Redis connection closed');
     }
   }
@@ -108,7 +120,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Check if Redis is available
    */
   isAvailable(): boolean {
-    return this.isConnected && this.client !== null;
+    return this.isConnected && this.client !== null && this.client.status === 'ready';
   }
 
   // ==========================================
@@ -119,13 +131,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Save game state to Redis
    */
   async setGameState(roomId: string, state: GameState): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.GAME}${roomId}`;
-      await this.client.setex(key, GAME_STATE_TTL, JSON.stringify(state));
+      await this.client!.setex(key, GAME_STATE_TTL, JSON.stringify(state));
     } catch (error) {
-      this.logger.error(`Failed to save game state: ${(error as Error).message}`);
+      // Downgrade error to warn to reduce noise if Redis flakes
+      this.logger.warn(`Failed to save game state (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -133,14 +146,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Get game state from Redis
    */
   async getGameState(roomId: string): Promise<GameState | null> {
-    if (!this.client) return null;
+    if (!this.isAvailable()) return null;
 
     try {
       const key = `${KEYS.GAME}${roomId}`;
-      const data = await this.client.get(key);
+      const data = await this.client!.get(key);
       return data ? (JSON.parse(data) as GameState) : null;
     } catch (error) {
-      this.logger.error(`Failed to get game state: ${(error as Error).message}`);
+      this.logger.warn(`Failed to get game state (Redis): ${(error as Error).message}`);
       return null;
     }
   }
@@ -149,13 +162,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Delete game state from Redis
    */
   async deleteGameState(roomId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.GAME}${roomId}`;
-      await this.client.del(key);
+      await this.client!.del(key);
     } catch (error) {
-      this.logger.error(`Failed to delete game state: ${(error as Error).message}`);
+      this.logger.warn(`Failed to delete game state (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -163,13 +176,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Refresh game state TTL
    */
   async refreshGameTTL(roomId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.GAME}${roomId}`;
-      await this.client.expire(key, GAME_STATE_TTL);
+      await this.client!.expire(key, GAME_STATE_TTL);
     } catch (error) {
-      this.logger.error(`Failed to refresh game TTL: ${(error as Error).message}`);
+      this.logger.warn(`Failed to refresh game TTL (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -181,18 +194,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Map player to room (for reconnection)
    */
   async setPlayerRoom(playerId: string, roomId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.PLAYER_ROOM}${playerId}`;
-      await this.client.setex(key, PLAYER_SESSION_TTL, roomId);
+      await this.client!.setex(key, PLAYER_SESSION_TTL, roomId);
 
       // Also add to room's player set
       const roomPlayersKey = `${KEYS.ROOM_PLAYERS}${roomId}`;
-      await this.client.sadd(roomPlayersKey, playerId);
-      await this.client.expire(roomPlayersKey, GAME_STATE_TTL);
+      await this.client!.sadd(roomPlayersKey, playerId);
+      await this.client!.expire(roomPlayersKey, GAME_STATE_TTL);
     } catch (error) {
-      this.logger.error(`Failed to set player room: ${(error as Error).message}`);
+      this.logger.warn(`Failed to set player room (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -200,13 +213,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Get player's current room (for reconnection)
    */
   async getPlayerRoom(playerId: string): Promise<string | null> {
-    if (!this.client) return null;
+    if (!this.isAvailable()) return null;
 
     try {
       const key = `${KEYS.PLAYER_ROOM}${playerId}`;
-      return await this.client.get(key);
+      return await this.client!.get(key);
     } catch (error) {
-      this.logger.error(`Failed to get player room: ${(error as Error).message}`);
+      this.logger.warn(`Failed to get player room (Redis): ${(error as Error).message}`);
       return null;
     }
   }
@@ -215,7 +228,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Remove player from room mapping
    */
   async removePlayerRoom(playerId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       // Get current room first
@@ -223,15 +236,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       // Delete player -> room mapping
       const key = `${KEYS.PLAYER_ROOM}${playerId}`;
-      await this.client.del(key);
+      await this.client!.del(key);
 
       // Remove from room's player set
       if (roomId) {
         const roomPlayersKey = `${KEYS.ROOM_PLAYERS}${roomId}`;
-        await this.client.srem(roomPlayersKey, playerId);
+        await this.client!.srem(roomPlayersKey, playerId);
       }
     } catch (error) {
-      this.logger.error(`Failed to remove player room: ${(error as Error).message}`);
+      this.logger.warn(`Failed to remove player room (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -239,13 +252,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Map player to socket (for messaging)
    */
   async setPlayerSocket(playerId: string, socketId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.PLAYER_SOCKET}${playerId}`;
-      await this.client.setex(key, PLAYER_SESSION_TTL, socketId);
+      await this.client!.setex(key, PLAYER_SESSION_TTL, socketId);
     } catch (error) {
-      this.logger.error(`Failed to set player socket: ${(error as Error).message}`);
+      this.logger.warn(`Failed to set player socket (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -253,13 +266,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Get player's socket ID
    */
   async getPlayerSocket(playerId: string): Promise<string | null> {
-    if (!this.client) return null;
+    if (!this.isAvailable()) return null;
 
     try {
       const key = `${KEYS.PLAYER_SOCKET}${playerId}`;
-      return await this.client.get(key);
+      return await this.client!.get(key);
     } catch (error) {
-      this.logger.error(`Failed to get player socket: ${(error as Error).message}`);
+      this.logger.warn(`Failed to get player socket (Redis): ${(error as Error).message}`);
       return null;
     }
   }
@@ -268,13 +281,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Remove player's socket mapping
    */
   async removePlayerSocket(playerId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       const key = `${KEYS.PLAYER_SOCKET}${playerId}`;
-      await this.client.del(key);
+      await this.client!.del(key);
     } catch (error) {
-      this.logger.error(`Failed to remove player socket: ${(error as Error).message}`);
+      this.logger.warn(`Failed to remove player socket (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -286,13 +299,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Get all players in a room
    */
   async getRoomPlayers(roomId: string): Promise<string[]> {
-    if (!this.client) return [];
+    if (!this.isAvailable()) return [];
 
     try {
       const key = `${KEYS.ROOM_PLAYERS}${roomId}`;
-      return await this.client.smembers(key);
+      return await this.client!.smembers(key);
     } catch (error) {
-      this.logger.error(`Failed to get room players: ${(error as Error).message}`);
+      this.logger.warn(`Failed to get room players (Redis): ${(error as Error).message}`);
       return [];
     }
   }
@@ -301,14 +314,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Clean up all room data
    */
   async cleanupRoom(roomId: string): Promise<void> {
-    if (!this.client) return;
+    if (!this.isAvailable()) return;
 
     try {
       // Get all players in room
       const players = await this.getRoomPlayers(roomId);
 
       // Remove all player mappings
-      const pipeline = this.client.pipeline();
+      const pipeline = this.client!.pipeline();
 
       for (const playerId of players) {
         pipeline.del(`${KEYS.PLAYER_ROOM}${playerId}`);
@@ -321,9 +334,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       await pipeline.exec();
 
-      this.logger.log(`Cleaned up room ${roomId}`);
+      this.logger.log(`Cleaned up room ${roomId} (Redis)`);
     } catch (error) {
-      this.logger.error(`Failed to cleanup room: ${(error as Error).message}`);
+      this.logger.warn(`Failed to cleanup room (Redis): ${(error as Error).message}`);
     }
   }
 
@@ -335,10 +348,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * Ping Redis (health check)
    */
   async ping(): Promise<boolean> {
-    if (!this.client) return false;
+    if (!this.isAvailable()) return false;
 
     try {
-      const result = await this.client.ping();
+      const result = await this.client!.ping();
       return result === 'PONG';
     } catch {
       return false;
@@ -347,9 +360,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Get Redis client for advanced operations
-   * Use with caution - prefer using service methods
+   * Returns null if not connected/ready
    */
   getClient(): Redis | null {
-    return this.client;
+    return this.isAvailable() ? this.client : null;
   }
 }
