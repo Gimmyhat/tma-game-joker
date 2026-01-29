@@ -390,28 +390,8 @@ export const GameScreen: React.FC = () => {
 
       {/* Top Bar / HUD */}
       <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-2 pt-[env(safe-area-inset-top,10px)] md:p-4 pointer-events-none bg-gradient-to-b from-black/60 to-transparent pb-8">
-        {/* Left Group: Menu & Round Info */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          {/* Menu / Leave Button */}
-          <button
-            onClick={() => setIsLeaveModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm shadow-lg"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-
-          {/* Info Button */}
+        {/* Left: Round Info */}
+        <div className="pointer-events-auto">
           <button
             onClick={() => setIsInfoDrawerOpen(true)}
             className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group h-10"
@@ -425,30 +405,8 @@ export const GameScreen: React.FC = () => {
           </button>
         </div>
 
-        {/* Right Group: Score Sheet & Timer */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          {/* Score Sheet Button */}
-          <button
-            onClick={() => setShowScoreSheet(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm shadow-lg"
-            title={t('game.scoreSheet', 'Score Sheet')}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path
-                fillRule="evenodd"
-                d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-
-          {/* Timer */}
+        {/* Right: Timer */}
+        <div className="pointer-events-auto">
           <div
             className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300
             ${isMyTurn ? 'bg-gold/20 border-gold/50 animate-pulse-glow' : 'bg-black/60 border-white/10'}`}
@@ -460,6 +418,49 @@ export const GameScreen: React.FC = () => {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Bottom Right Floating Action Group */}
+      <div className="absolute bottom-[20%] right-2 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)]">
+        {/* Score Sheet Button */}
+        <button
+          onClick={() => setShowScoreSheet(true)}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-gold transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
+          title={t('game.scoreSheet', 'Score Sheet')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+            <path
+              fillRule="evenodd"
+              d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
+        {/* Menu / Leave Button */}
+        <button
+          onClick={() => setIsLeaveModalOpen(true)}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-red-900/60 hover:bg-red-800/80 border border-red-700/50 text-red-200 transition-colors backdrop-blur-sm shadow-lg shadow-black/30"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Main Table Area */}
