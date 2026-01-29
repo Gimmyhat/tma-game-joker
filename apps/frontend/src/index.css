@@ -75,6 +75,8 @@
 }
 
 html {
+  /* Set base background color to black to prevent white bars in safe areas */
+  background-color: #000000;
   /* Prevent zoom on double-tap */
   touch-action: manipulation;
   /* Prevent text selection */

@@ -329,6 +329,16 @@ function TelegramInner({ children }: { children: ReactNode }) {
           if (miniApp.mount.isAvailable()) {
             miniApp.mount();
             console.log('[Telegram] MiniApp mounted');
+
+            // Set colors to match game theme (prevent white bar)
+            if (miniApp.setHeaderColor.isAvailable()) {
+              miniApp.setHeaderColor('#000000'); // Black to blend with safe area
+              console.log('[Telegram] Header color set');
+            }
+            if (miniApp.setBackgroundColor.isAvailable()) {
+              miniApp.setBackgroundColor('#000000');
+              console.log('[Telegram] Background color set');
+            }
           }
         } catch (e) {
           console.warn('[Telegram] MiniApp mount failed:', e);
