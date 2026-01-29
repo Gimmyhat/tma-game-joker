@@ -615,6 +615,19 @@ describe('App (e2e)', () => {
     state.currentPlayerIndex = stateMachine.getFirstPlayerIndex(state.dealerIndex);
 
     state = gameEngine.startGame(state);
+
+    // In round 1, phase might be TrumpSelection or Betting depending on card deal
+    expect([GamePhase.Betting, GamePhase.TrumpSelection]).toContain(state.phase);
+
+    // If we landed in Trump Selection, force a decision to proceed to Betting
+    if (state.phase === GamePhase.TrumpSelection && state.trumpSelection) {
+      const chooserId = state.trumpSelection.chooserPlayerId;
+      state = gameEngine.selectTrump(state, chooserId, {
+        type: TrumpDecisionType.Suit,
+        suit: Suit.Hearts,
+      });
+    }
+
     expect(state.phase).toBe(GamePhase.Betting);
 
     for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT - 1; i++) {
