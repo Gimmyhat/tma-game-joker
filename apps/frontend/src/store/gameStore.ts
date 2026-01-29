@@ -63,6 +63,7 @@ export const useGameStore = create<GameStore>()(
         playersInRoom: 0,
         tuzovanieCards: null,
         tuzovanieDealerIndex: null,
+        tuzovanieSequence: null,
         gameState: null,
         myHand: [],
         turnExpiresAt: null,
@@ -127,11 +128,11 @@ function setupSocketListeners(
   });
 
   // Tuzovanie event
-  socket.on('tuzovanie_started', (data) => {
+  socket.on('tuzovanie_started', (data: any) => {
     console.log('[Store] Tuzovanie started:', data);
 
     // Create mock game state to switch to GameScreen
-    const mockPlayers = data.players.map((p) => ({
+    const mockPlayers = data.players.map((p: any) => ({
       id: p.id,
       name: p.name,
       isBot: false, // Doesn't matter for UI
@@ -172,6 +173,7 @@ function setupSocketListeners(
       lobbyStatus: 'tuzovanie',
       tuzovanieCards: data.cardsDealt,
       tuzovanieDealerIndex: data.dealerIndex,
+      tuzovanieSequence: data.dealSequence, // Store the server sequence
       // Set GameState immediately to trigger screen switch
       gameState: mockGameState,
       myHand: [],

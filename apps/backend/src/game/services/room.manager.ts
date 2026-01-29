@@ -252,11 +252,32 @@ export class RoomManager {
     acePlayerId: string | null;
   } {
     const sequence: TuzovanieDeal[] = [];
+
+    // Step 0: Deal one card to the center (Face Down)
+    // We create a dummy entry for visual purposes
+    sequence.push({
+      playerId: 'center-deck',
+      card: { type: 'standard', suit: 'hearts', rank: 'A', id: 'center-card' } as any, // Dummy card, will be faceDown
+      dealIndex: 0,
+    });
+
     const maxRounds = Math.max(...cardsDealt.map((hand) => hand.length));
 
-    let dealIndex = 0;
+    let dealIndex = 1; // Start players from 1
+    // User requested to start dealing from the "Top" player (12 o'clock).
+    // Assuming Player 0 is Bottom (Creator), Player 2 is Top.
+    // Order: Top (2) -> Right (3) -> Bottom (0) -> Left (1)
+    const playerOffset = 2;
+    let aceFound = false;
+
     for (let r = 0; r < maxRounds; r++) {
-      for (let p = 0; p < playerIds.length; p++) {
+      // If Ace was found, stop dealing immediately
+      if (aceFound) break;
+
+      for (let i = 0; i < playerIds.length; i++) {
+        // Apply offset to start from Top player
+        const p = (i + playerOffset) % playerIds.length;
+
         const card = cardsDealt[p]?.[r];
         if (!card) continue;
 
@@ -265,6 +286,12 @@ export class RoomManager {
           card,
           dealIndex: dealIndex++,
         });
+
+        // Check if Ace
+        if (card.type === 'standard' && card.rank === Rank.Ace) {
+          aceFound = true;
+          break; // Stop loop for current round
+        }
       }
     }
 

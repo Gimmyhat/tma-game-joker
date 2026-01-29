@@ -31,16 +31,6 @@ interface TableProps {
   tuzovanieDealerIndex?: number | null;
 }
 
-type Position =
-  | 'bottom-center'
-  | 'bottom-left'
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'bottom-right'
-  | 'left-center'
-  | 'right-center';
-
 export const Table: React.FC<TableProps> = ({
   players,
   tableCards,
@@ -57,6 +47,8 @@ export const Table: React.FC<TableProps> = ({
   const { t } = useTranslation();
   const { tableCardSize } = useResponsiveCards();
   const gamePhase = useGameStore((state) => state.gameState?.phase);
+  // Get tuzovanieSequence from store, if available
+  const tuzovanieSequence = useGameStore((state) => state.tuzovanieSequence);
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
 
   // Delay winning animation to let the last card land and be seen
@@ -411,63 +403,87 @@ export const Table: React.FC<TableProps> = ({
 
   // 4. Render Tuzovanie Animation
   const renderTuzovanie = () => {
-    if (!tuzovanieCards || gamePhase !== GamePhase.Tuzovanie) return null;
+    if (gamePhase !== GamePhase.Tuzovanie) return null;
 
-    // Flatten cards into a timeline: Round 1 (P1, P2, P3, P4), Round 2...
-    const sequence: { card: CardType; playerId: string; dealIndex: number }[] = [];
-    const maxRounds = Math.max(...tuzovanieCards.map((h) => h.length));
+    let sequence = tuzovanieSequence;
 
-    let dealIndex = 0;
-    for (let r = 0; r < maxRounds; r++) {
-      for (let i = 0; i < players.length; i++) {
-        // Only process if player has a card this round
-        if (tuzovanieCards[i] && tuzovanieCards[i][r]) {
-          sequence.push({
-            card: tuzovanieCards[i][r],
-            playerId: players[i].id,
-            dealIndex: dealIndex++,
-          });
+    // Fallback if sequence is missing but we have cards (should not happen with new backend)
+    if (!sequence && tuzovanieCards) {
+      const fallbackSeq: { card: CardType; playerId: string; dealIndex: number }[] = [];
+      const maxRounds = Math.max(...tuzovanieCards.map((h) => h.length));
+      let dealIndex = 0;
+      for (let r = 0; r < maxRounds; r++) {
+        for (let i = 0; i < players.length; i++) {
+          if (tuzovanieCards[i] && tuzovanieCards[i][r]) {
+            fallbackSeq.push({
+              card: tuzovanieCards[i][r],
+              playerId: players[i].id,
+              dealIndex: dealIndex++,
+            });
+          }
         }
       }
+      sequence = fallbackSeq;
     }
 
+    if (!sequence) return null;
+
     return sequence.map(({ card, playerId, dealIndex }) => {
+      // Common delay calculation: dealIndex * speed
+      // Speed was 0.2, now keeping it uniform
+      const delay = dealIndex * 0.2;
+      const duration = 0.28;
+
+      // Special case for the "Center Deck" card
+      if (playerId === 'center-deck') {
+        return (
+          <motion.div
+            key="tuz-center-deck"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay, duration }} // Apply delay here too
+            className="absolute z-0"
+          >
+            <Card card={undefined} faceDown size={tableCardSize} className="shadow-xl" />
+          </motion.div>
+        );
+      }
+
       const pos = getPlayerPosition(playerId);
       const isAce = card.type === 'standard' && card.rank === Rank.Ace;
 
       // Positions on the felt closer to players (near the edge)
       const targetPos: Record<Position, { x: number; y: number; rotate: number }> = {
-        'bottom-center': { x: 0, y: 180, rotate: 0 },
-        'bottom-left': { x: -100, y: 150, rotate: 20 },
-        'bottom-right': { x: 100, y: 150, rotate: -20 },
-        'top-left': { x: -100, y: -180, rotate: 160 },
-        'top-center': { x: 0, y: -220, rotate: 180 },
-        'top-right': { x: 100, y: -180, rotate: 200 },
-        'left-center': { x: -140, y: 0, rotate: 90 },
-        'right-center': { x: 140, y: 0, rotate: -90 },
+        'bottom-center': { x: 0, y: 80, rotate: 0 },
+        'bottom-left': { x: -60, y: 60, rotate: 20 },
+        'bottom-right': { x: 60, y: 60, rotate: -20 },
+        'top-left': { x: -60, y: -80, rotate: 160 },
+        'top-center': { x: 0, y: -80, rotate: 180 },
+        'top-right': { x: 60, y: -80, rotate: 200 },
+        'left-center': { x: -70, y: 0, rotate: 90 },
+        'right-center': { x: 70, y: 0, rotate: -90 },
       };
 
       const t = targetPos[pos] || { x: 0, y: 0, rotate: 0 };
 
       // Add messy randomness (+/- 10 degrees)
-      // Use card ID hash for stable randomness
       const hash = card.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomAngle = (hash % 20) - 10;
 
       return (
         <motion.div
           key={`tuz-${playerId}-${card.id}`}
-          initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 0 }} // No spin
+          initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 0 }}
           animate={{
             x: t.x,
             y: t.y,
-            scale: isAce ? 1.3 : 1,
+            scale: 1,
             opacity: 1,
-            rotate: t.rotate + randomAngle, // Messy alignment
+            rotate: t.rotate + randomAngle,
           }}
           transition={{
-            delay: dealIndex * 0.42,
-            duration: 0.56,
+            delay, // Use same consistent delay logic
+            duration,
             type: 'spring',
             stiffness: 100,
             damping: 15,
@@ -486,7 +502,7 @@ export const Table: React.FC<TableProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 0, scale: 0 }}
                 animate={{ opacity: 1, y: 45, scale: 1 }}
-                transition={{ delay: dealIndex * 0.42 + 0.35, type: 'spring' }}
+                transition={{ delay: delay + 0.15, type: 'spring' }} // Relative to this card's appearance
                 className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-50"
               >
                 <div className="bg-gradient-to-r from-yellow-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap border border-yellow-300">

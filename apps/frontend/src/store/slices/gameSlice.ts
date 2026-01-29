@@ -13,9 +13,16 @@ import {
 import { emitLeaveGame, emitMakeBet, emitThrowCard, emitSelectTrump } from '../../lib/socket';
 import { TelegramUser } from '../../lib/telegram';
 
+export interface TuzovanieDeal {
+  playerId: string;
+  card: Card;
+  dealIndex: number;
+}
+
 export interface GameSlice {
   user: TelegramUser | null;
   gameState: GameState | null;
+  tuzovanieSequence: TuzovanieDeal[] | null;
   myHand: Card[];
   myPlayerId: string | null;
   turnExpiresAt: number | null;
@@ -40,6 +47,7 @@ export interface GameSlice {
 export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set, get) => ({
   user: null,
   gameState: null,
+  tuzovanieSequence: null,
   myHand: [],
   myPlayerId: null,
   turnExpiresAt: null,

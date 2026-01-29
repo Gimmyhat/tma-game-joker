@@ -95,7 +95,8 @@ export const Card: React.FC<CardProps> = ({
     ${className}
   `;
 
-  if (faceDown || !card) {
+  // Check if it's undefined explicitly to support "card={undefined}" case for backs
+  if (faceDown || card === undefined || card === null) {
     return (
       <div className={`${baseClasses} shadow-card`} onClick={onClick} style={style}>
         <CardBack />
