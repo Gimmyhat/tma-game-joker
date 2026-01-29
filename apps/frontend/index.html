@@ -15,7 +15,29 @@
       // Initialize Eruda for debugging (can be removed in production later)
       if (typeof eruda !== 'undefined') {
         eruda.init();
-        console.log('[Debug] Eruda initialized');
+
+        // Softly set initial position to bottom-left (allow dragging)
+        setTimeout(() => {
+          try {
+            const entry = eruda.get('entry');
+            // Check if user has already moved it manually (stored in localStorage)
+            const hasStoredPos = localStorage.getItem('eruda-entry-pos');
+
+            if (!hasStoredPos && entry && entry.cfg) {
+              // Only set default position if not already customized
+              const size = 50; // approximate button size
+              const margin = 20;
+              // Set to bottom-left
+              entry.cfg.set('pos', {
+                x: margin,
+                y: window.innerHeight - margin - size,
+              });
+              console.log('[Debug] Eruda initial position set to bottom-left');
+            }
+          } catch (e) {
+            console.warn('[Debug] Failed to set Eruda position:', e);
+          }
+        }, 500);
       }
     </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>

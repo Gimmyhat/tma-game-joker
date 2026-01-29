@@ -388,40 +388,35 @@ export const GameScreen: React.FC = () => {
       {/* Vignette */}
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
 
-      {/* Top Bar / HUD */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between p-2 pt-[env(safe-area-inset-top,10px)] md:p-4 pointer-events-none bg-gradient-to-b from-black/60 to-transparent pb-8">
-        {/* Left: Round Info */}
-        <div className="pointer-events-auto">
-          <button
-            onClick={() => setIsInfoDrawerOpen(true)}
-            className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group h-10"
-          >
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-[9px] text-slate-400 uppercase tracking-wide">
-                {t('game.round')}
-              </span>
-              <span className="text-sm font-bold text-gold">{gameState.round}/24</span>
-            </div>
-          </button>
-        </div>
-
-        {/* Right: Timer */}
-        <div className="pointer-events-auto">
-          <div
-            className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300
-            ${isMyTurn ? 'bg-gold/20 border-gold/50 animate-pulse-glow' : 'bg-black/60 border-white/10'}`}
-          >
-            <span
-              className={`font-mono text-lg font-bold leading-none ${isMyTurn ? 'text-gold' : 'text-slate-300'}`}
-            >
-              {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Top Bar removed - items moved to bottom right */}
 
       {/* Bottom Right Floating Action Group */}
       <div className="absolute bottom-[20%] right-2 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)]">
+        {/* Timer - Moved from top right */}
+        <div
+          className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300 shadow-lg
+          ${isMyTurn ? 'bg-gold/20 border-gold/50 animate-pulse-glow' : 'bg-black/60 border-white/10'}`}
+        >
+          <span
+            className={`font-mono text-lg font-bold leading-none ${isMyTurn ? 'text-gold' : 'text-slate-300'}`}
+          >
+            {isTimerFrozen ? '--' : timeLeft.toString().padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Round Info - Moved from top left */}
+        <button
+          onClick={() => setIsInfoDrawerOpen(true)}
+          className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10 hover:border-gold/30 transition-colors group h-10 shadow-lg"
+        >
+          <div className="flex flex-col items-end leading-none">
+            <span className="text-[9px] text-slate-400 uppercase tracking-wide">
+              {t('game.round')}
+            </span>
+            <span className="text-sm font-bold text-gold">{gameState.round}/24</span>
+          </div>
+        </button>
+
         {/* Score Sheet Button */}
         <button
           onClick={() => setShowScoreSheet(true)}

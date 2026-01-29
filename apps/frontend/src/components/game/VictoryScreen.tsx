@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../store/gameStore';
@@ -7,53 +7,67 @@ export const VictoryScreen: React.FC = () => {
   const { t } = useTranslation();
   const { showVictoryScreen, setShowVictoryScreen, finalResults, finalPlace, setShowScoreSheet } =
     useGameStore();
+  const myPlayerId = useGameStore((state) => state.myPlayerId);
 
+  // Mock data for dev/preview if needed, or rely on store
   if (!showVictoryScreen || !finalResults) return null;
 
   const isWinner = finalPlace === 1;
 
-  // Prepare ordered list for podium display (2nd, 1st, 3rd, 4th)
-  const getOrderedRankings = () => {
+  // Prepare ordered list for podium display (2nd, 1st, 3rd)
+  // We filter out 4th place for the podium, they go to the list only
+  const podiumPlayers = useMemo(() => {
     const r = finalResults.rankings;
     const first = r.find((p) => p.place === 1);
     const second = r.find((p) => p.place === 2);
     const third = r.find((p) => p.place === 3);
-    const fourth = r.find((p) => p.place === 4);
 
-    // Layout order: 2nd, 1st, 3rd, 4th
-    return [second, first, third, fourth].filter(Boolean) as typeof r;
-  };
+    // Layout order: 2nd (Left), 1st (Center), 3rd (Right)
+    return [second, first, third].filter(Boolean) as typeof r;
+  }, [finalResults]);
 
-  const podiumPlayers = getOrderedRankings();
+  // All players sorted for the list
+  const allPlayersSorted = useMemo(() => {
+    return [...finalResults.rankings].sort((a, b) => a.place - b.place);
+  }, [finalResults]);
 
   // Heights for bars
   const getHeight = (place: number) => {
     switch (place) {
       case 1:
-        return 'h-48 sm:h-64';
+        return 'h-40 sm:h-52';
       case 2:
-        return 'h-32 sm:h-44';
+        return 'h-28 sm:h-36';
       case 3:
-        return 'h-24 sm:h-32';
-      case 4:
-        return 'h-16 sm:h-20';
+        return 'h-20 sm:h-24';
       default:
-        return 'h-12';
+        return 'h-0';
     }
   };
 
-  const getColor = (place: number) => {
+  const getGradient = (place: number) => {
     switch (place) {
-      case 1:
-        return 'bg-gradient-to-t from-amber-600 to-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.4)]'; // Gold
-      case 2:
-        return 'bg-gradient-to-t from-slate-600 to-slate-300 shadow-[0_0_15px_rgba(203,213,225,0.2)]'; // Silver
-      case 3:
-        return 'bg-gradient-to-t from-orange-900 to-amber-700 shadow-[0_0_15px_rgba(180,83,9,0.2)]'; // Bronze
-      case 4:
-        return 'bg-gradient-to-t from-slate-800 to-slate-600'; // Stone
+      case 1: // Gold
+        return 'bg-gradient-to-b from-[#ffd700] via-[#fdb931] to-[#e1ad01] shadow-[0_0_25px_rgba(253,185,49,0.4)] border-t border-[#ffffac]';
+      case 2: // Silver
+        return 'bg-gradient-to-b from-[#e0e0e0] via-[#c0c0c0] to-[#a0a0a0] shadow-[0_0_20px_rgba(192,192,192,0.3)] border-t border-[#ffffff]';
+      case 3: // Bronze
+        return 'bg-gradient-to-b from-[#cd7f32] via-[#b87333] to-[#a0522d] shadow-[0_0_20px_rgba(205,127,50,0.3)] border-t border-[#ffcc99]';
       default:
         return 'bg-slate-700';
+    }
+  };
+
+  const getRomanPlace = (place: number) => {
+    switch (place) {
+      case 1:
+        return 'I';
+      case 2:
+        return 'II';
+      case 3:
+        return 'III';
+      default:
+        return place;
     }
   };
 
@@ -63,163 +77,189 @@ export const VictoryScreen: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#051c14] overflow-hidden"
+        className="fixed inset-0 z-[100] flex flex-col bg-[#051c14] overflow-hidden font-sans"
       >
-        {/* Background Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a2f23] to-[#020c09] opacity-80" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-900/40 via-transparent to-transparent" />
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f3d2e] to-[#020c09]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent" />
 
-        {/* Content Container */}
-        <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center h-full max-h-full py-8">
-          {/* Header */}
-          <div className="relative w-full text-center mt-8 mb-4 sm:mb-12">
-            <motion.button
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => setShowVictoryScreen(false)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
+        {/* Confetti / particles could go here */}
+
+        {/* Header Section */}
+        <div className="relative z-10 w-full pt-12 pb-4 px-4 text-center">
+          {/* Close Button */}
+          <button
+            onClick={() => setShowVictoryScreen(false)}
+            className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-sm border border-white/5 transition-all text-emerald-100/70"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm font-medium">{t('common.close', 'Close')}</span>
+          </button>
+
+          <motion.h1
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-4xl sm:text-5xl font-black text-white uppercase tracking-widest drop-shadow-lg mb-2"
+          >
+            {isWinner ? t('game.victory', 'VICTORY!') : t('game.finished', 'GAME OVER')}
+          </motion.h1>
+
+          <motion.p
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-emerald-200/60 text-sm sm:text-base font-medium max-w-xs mx-auto"
+          >
+            {isWinner
+              ? t('game.victoryDesc', 'You took first place in the match')
+              : t('game.resultDesc', 'You finished in {{place}} place', { place: finalPlace })}
+          </motion.p>
+        </div>
+
+        {/* Podium Section */}
+        <div className="relative z-10 flex-shrink-0 w-full flex items-end justify-center gap-2 sm:gap-4 px-4 pb-8 pt-4">
+          {podiumPlayers.map((player, index) => {
+            const isMe = player.playerId === myPlayerId;
+            const delay = 0.4 + index * 0.2;
+
+            return (
+              <div
+                key={player.playerId}
+                className="flex flex-col items-center justify-end w-1/3 max-w-[120px]"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-              <span className="hidden sm:inline text-lg">{t('common.close', 'Закрыть')}</span>
-            </motion.button>
-
-            <motion.h1
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              className="text-5xl sm:text-7xl font-black text-white uppercase tracking-wider drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
-            >
-              {isWinner ? t('game.victory', 'ПОБЕДА!') : t('game.finished', 'ИГРА ОКОНЧЕНА')}
-            </motion.h1>
-
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-emerald-200/70 text-lg sm:text-xl font-medium mt-2 max-w-md mx-auto leading-relaxed"
-            >
-              {isWinner
-                ? t('game.victoryDesc', 'Вы заняли первое место в игре')
-                : t('game.resultDesc', 'Вы заняли {{place}} место', { place: finalPlace })}
-            </motion.p>
-          </div>
-
-          {/* Podium */}
-          <div className="flex-1 w-full flex items-end justify-center gap-2 sm:gap-4 pb-20 sm:pb-32 px-2">
-            {podiumPlayers.map((player, index) => {
-              const isMe = player.playerId === useGameStore.getState().myPlayerId;
-
-              return (
-                <div
-                  key={player.playerId}
-                  className="flex flex-col items-center flex-1 max-w-[140px]"
+                {/* Player Name & Score */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: delay + 0.3 }}
+                  className="mb-3 text-center"
                 >
-                  {/* Avatar / Name */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 + index * 0.1 }} // Staggered names
-                    className="mb-2 sm:mb-4 text-center"
+                  <div
+                    className={`font-bold text-sm sm:text-base truncate max-w-full px-1 ${isMe ? 'text-amber-400' : 'text-white'}`}
                   >
-                    <div className="text-white font-bold text-sm sm:text-lg truncate w-full max-w-[100px] sm:max-w-full">
-                      {player.playerName}
-                    </div>
-                    {isMe && (
-                      <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
-                        {t('game.you', 'ВЫ')}
+                    {player.playerName}
+                  </div>
+                  <div
+                    className={`text-xs font-mono font-bold ${player.totalScore >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {player.totalScore > 0 ? '+' : ''}
+                    {player.totalScore}
+                  </div>
+                </motion.div>
+
+                {/* The Bar */}
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: 'auto' }}
+                  className="w-full relative"
+                >
+                  <motion.div
+                    className={`w-full ${getHeight(player.place)} ${getGradient(player.place)} rounded-t-lg relative flex items-center justify-center`}
+                    initial={{ scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ delay: delay, duration: 0.6, type: 'spring' }}
+                    style={{ originY: 1 }}
+                  >
+                    {/* Crown for 1st place */}
+                    {player.place === 1 && (
+                      <div className="absolute -top-6 text-3xl drop-shadow-md animate-bounce">
+                        👑
                       </div>
                     )}
-                  </motion.div>
 
-                  {/* Bar */}
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: 'auto' }} // Allows classes to control height
-                    className="w-full relative flex flex-col justify-end"
-                  >
-                    <motion.div
-                      className={`w-full ${getHeight(player.place)} ${getColor(
-                        player.place,
-                      )} rounded-t-lg sm:rounded-t-xl relative group transition-all duration-300 hover:brightness-110`}
-                      initial={{ scaleY: 0 }}
-                      animate={{ scaleY: 1 }}
-                      transition={{
-                        delay: 0.5 + index * 0.1, // Staggered bars
-                        duration: 0.8,
-                        type: 'spring',
-                        bounce: 0.3,
-                      }}
-                      style={{ originY: 1 }}
-                    >
-                      {/* Place Number inside Bar */}
-                      {player.place <= 3 && (
-                        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/20 font-black text-4xl sm:text-6xl select-none">
-                          {player.place}
-                        </div>
-                      )}
-                    </motion.div>
+                    {/* Roman Numeral */}
+                    <span className="font-serif italic font-bold text-3xl sm:text-4xl text-black/20 mix-blend-overlay">
+                      {getRomanPlace(player.place)}
+                    </span>
                   </motion.div>
-                </div>
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Leaderboard List (Scrollable) */}
+        <div className="flex-1 w-full relative z-10 bg-black/40 backdrop-blur-md border-t border-white/10 flex flex-col">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 text-[10px] uppercase tracking-wider text-white/30 font-bold">
+            <span className="w-8 text-center">#</span>
+            <span className="flex-1 text-left px-2">Player</span>
+            <span className="w-16 text-right">Points</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {allPlayersSorted.map((player) => {
+              const isMe = player.playerId === myPlayerId;
+              return (
+                <motion.div
+                  key={player.playerId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1 }}
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
+                    isMe ? 'bg-white/10 border-amber-500/30' : 'bg-white/5 border-transparent'
+                  }`}
+                >
+                  <div className="w-8 flex justify-center">
+                    <span
+                      className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        player.place === 1
+                          ? 'bg-amber-500 text-black'
+                          : player.place === 2
+                            ? 'bg-slate-300 text-black'
+                            : player.place === 3
+                              ? 'bg-orange-700 text-white'
+                              : 'bg-white/10 text-white/50'
+                      }`}
+                    >
+                      {player.place}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 px-3 flex flex-col">
+                    <span className={`text-sm font-bold ${isMe ? 'text-amber-400' : 'text-white'}`}>
+                      {player.playerName}
+                    </span>
+                    {isMe && <span className="text-[9px] text-white/30 uppercase">You</span>}
+                  </div>
+
+                  <div
+                    className={`w-16 text-right font-mono font-bold text-sm ${player.totalScore >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {player.totalScore}
+                  </div>
+                </motion.div>
               );
             })}
           </div>
 
-          {/* Footer Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5 }}
-            className="w-full absolute bottom-0 left-0 bg-gradient-to-t from-black/90 to-transparent p-6 pb-8 flex flex-col items-center gap-4"
-          >
-            <div className="flex items-center gap-2 text-white/40 mb-2">
-              <svg
-                className="w-5 h-5 animate-bounce"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                />
-              </svg>
-            </div>
+          {/* Bottom Actions */}
+          <div className="p-4 bg-black/60 border-t border-white/5 flex justify-center pb-8">
             <button
               onClick={() => setShowScoreSheet(true)}
-              className="w-full max-w-md py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-xl text-white font-bold text-lg uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center gap-3"
+              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-xs uppercase tracking-widest font-bold py-2"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <span>View Score Sheet</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  d="M19 9l-7 7-7-7"
                 />
               </svg>
-              {t('game.viewScoreSheet', 'Посмотреть лист счета')}
             </button>
-          </motion.div>
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
