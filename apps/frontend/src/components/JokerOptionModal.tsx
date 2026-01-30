@@ -95,9 +95,9 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   const leadSuitInfo = leadSuit ? suits.find((s) => s.type === leadSuit) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 pointer-events-none">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
       {/* Modal Content - Scaled down to match BetModal/LeaveGameModal */}
-      <div className="relative pointer-events-auto w-[85%] max-w-[280px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-[85%] max-w-[280px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header - Compact */}
         <div className="p-3 text-center border-b border-slate-800 relative">
           {step === 'suit' && (

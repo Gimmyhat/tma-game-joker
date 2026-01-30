@@ -88,6 +88,20 @@ export function isInTelegram(): boolean {
   return false;
 }
 
+export function getTelegramInitData(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const telegram = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram;
+  const initData = typeof telegram?.WebApp?.initData === 'string' ? telegram.WebApp.initData : '';
+  if (initData) return initData;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(
+    window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash,
+  );
+  return searchParams.get('tgWebAppData') || hashParams.get('tgWebAppData');
+}
+
 /**
  * Development mock user for testing outside Telegram
  */

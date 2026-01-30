@@ -261,8 +261,16 @@ export const GameScreen: React.FC = () => {
   // Usually max bet is equal to number of cards in hand for the round
   const maxBet = gameState.cardsPerPlayer;
 
-  const myPlayer = gameState.players.find((p) => p.id === myPlayerId) || null;
-  const hasPlacedBet = myPlayer?.bet !== null;
+  const myBet = gameState.players.find((p) => p.id === myPlayerId)?.bet;
+  const hasPlacedBet = myBet != null;
+  const isModalOpen =
+    isJokerModalOpen ||
+    isLeaveModalOpen ||
+    isInfoDrawerOpen ||
+    isScoringModalOpen ||
+    showScoreSheet ||
+    (canMakeBet && !hasPlacedBet) ||
+    gameState.phase === 'trump_selection';
 
   const otherPlayersBetsSum = useMemo(() => {
     if (gameState.phase !== 'betting') return undefined;
@@ -391,7 +399,9 @@ export const GameScreen: React.FC = () => {
       {/* Top Bar removed - items moved to bottom right */}
 
       {/* Bottom Right Floating Action Group */}
-      <div className="absolute bottom-[25%] right-2 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)]">
+      <div
+        className={`absolute bottom-[25%] right-2 z-[110] flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom,20px)] ${isModalOpen ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      >
         {/* Timer - Moved from top right */}
         <div
           className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300 shadow-lg

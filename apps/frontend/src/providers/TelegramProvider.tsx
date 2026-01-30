@@ -22,7 +22,13 @@ import {
   type User,
 } from '@telegram-apps/sdk';
 import { setInitData, setUserInfo } from '../lib/socket';
-import { getMockUser, getMockInitData, isInTelegram, type TelegramUser } from '../lib/telegram';
+import {
+  getMockUser,
+  getMockInitData,
+  isInTelegram,
+  getTelegramInitData,
+  type TelegramUser,
+} from '../lib/telegram';
 
 interface TelegramContextType {
   user: TelegramUser | null;
@@ -237,9 +243,22 @@ function TelegramInner({ children }: { children: ReactNode }) {
             setRawInitDataState(rawData);
             setInitData(rawData);
             console.log('[Telegram] Raw init data retrieved');
+          } else {
+            const fallbackInitData = getTelegramInitData();
+            if (fallbackInitData) {
+              setRawInitDataState(fallbackInitData);
+              setInitData(fallbackInitData);
+              console.log('[Telegram] Raw init data retrieved (fallback)');
+            }
           }
         } catch (e) {
           console.warn('[Telegram] Failed to retrieve raw init data:', e);
+          const fallbackInitData = getTelegramInitData();
+          if (fallbackInitData) {
+            setRawInitDataState(fallbackInitData);
+            setInitData(fallbackInitData);
+            console.log('[Telegram] Raw init data retrieved (fallback)');
+          }
         }
 
         // Get user from launch params
