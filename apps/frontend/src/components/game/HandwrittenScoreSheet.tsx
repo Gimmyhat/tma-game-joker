@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import { GAME_CONSTANTS, ScoreSheetRoundEntry, PulkaSummary } from '@joker/shared';
@@ -18,6 +18,34 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
 }) => {
   const { t } = useTranslation();
   const { gameState, finalResults } = useGameStore();
+
+  // Swipe handling state
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !touchStartY.current || !onClose) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchStartX.current - touchEndX;
+    const diffY = touchStartY.current - touchEndY;
+
+    // Detect horizontal swipe (left or right)
+    // Threshold: 50px, and horizontal movement must be significantly larger than vertical
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      onClose();
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   // Prepare data for rendering
   const displayData = useMemo(() => {
@@ -118,8 +146,16 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
   const tablePlayers = [...displayData.players].sort((a, b) => a.seatIndex - b.seatIndex);
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-1 sm:p-2 md:p-4 animate-in fade-in duration-300">
-      <div className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-[#fdfbf7] text-blue-900 rounded-lg shadow-2xl overflow-hidden flex flex-col relative font-handwritten">
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-1 sm:p-2 md:p-4 animate-in fade-in duration-300"
+      onClick={onClose} // Close on backdrop click
+    >
+      <div
+        className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-[#fdfbf7] text-blue-900 rounded-lg shadow-2xl overflow-hidden flex flex-col relative font-handwritten"
+        onClick={(e) => e.stopPropagation()} // Prevent close when clicking content
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Paper Texture Overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-50 z-0 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]" />
 
@@ -135,13 +171,11 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
 
         {/* Header - Compact on mobile */}
         <div className="relative z-10 flex items-center justify-between p-2 md:p-4 border-b-2 border-blue-900/30">
-          <h2 className="text-xl md:text-3xl font-bold text-blue-800 tracking-wide">
-            {title || t('game.scoreSheet', 'Лист счета')}
-          </h2>
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute right-2 top-2 p-1.5 md:p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors"
+              className="p-1.5 md:p-2 hover:bg-blue-50 rounded-full text-blue-800 transition-colors mr-2"
+              aria-label={t('common.close', 'Close')}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -159,6 +193,10 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
               </svg>
             </button>
           )}
+          <h2 className="text-xl md:text-3xl font-bold text-blue-800 tracking-wide flex-1 text-center">
+            {title || t('game.scoreSheet', 'Лист счета')}
+          </h2>
+          <div className="w-8 md:w-10" /> {/* Spacer to balance the header */}
         </div>
 
         {/* Scrollable Table Container */}
@@ -408,11 +446,18 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
         </div>
 
         {/* Footer (Timer etc) */}
-        {footer && (
-          <div className="relative z-10 bg-[#fdfbf7] p-2 md:p-4 border-t-2 border-blue-900/30 flex justify-center">
-            {footer}
-          </div>
-        )}
+        <div className="relative z-10 bg-[#fdfbf7] p-2 md:p-4 border-t-2 border-blue-900/30 flex flex-col gap-2">
+          {footer && <div className="flex justify-center">{footer}</div>}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-full bg-blue-900/10 hover:bg-blue-900/20 active:bg-blue-900/30 text-blue-900 font-bold py-3 rounded-lg transition-colors border-2 border-blue-900/20 flex items-center justify-center gap-2"
+            >
+              <span>{t('common.close', 'Закрыть')}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
