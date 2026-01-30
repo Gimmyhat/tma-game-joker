@@ -189,7 +189,21 @@ export class GameProcessService {
    * Handle player disconnect
    */
   async handleDisconnect(playerId: string): Promise<void> {
+    // Check if player was in queue BEFORE removing
+    const wasInQueue = this.roomManager.isInQueue(playerId);
+
     await this.roomManager.handleDisconnect(playerId);
+
+    // If player was in queue, manage bot fill timer
+    if (wasInQueue) {
+      if (this.roomManager.getQueueLength() === 0) {
+        this.clearBotFillTimer();
+      }
+      this.broadcastQueueStatus();
+      return;
+    }
+
+    // Handle room disconnect logic
     const room = this.roomManager.getRoomByPlayerIdSync(playerId);
     if (room && this.shouldFreezeTimers(room.gameState)) {
       this.freezeTimersIfSingleHuman(room.id, room.gameState);
@@ -241,7 +255,8 @@ export class GameProcessService {
       return 'started';
     }
 
-    if (this.roomManager.getQueueLength() === 1 && !this.botFillTimer) {
+    // Start timer if there are players in queue and timer isn't running
+    if (this.roomManager.getQueueLength() > 0 && !this.botFillTimer) {
       this.startBotFillTimer();
     }
 

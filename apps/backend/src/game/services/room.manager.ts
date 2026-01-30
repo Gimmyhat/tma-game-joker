@@ -98,6 +98,13 @@ export class RoomManager {
     return this.queue.map((p) => p.socketId).filter(Boolean);
   }
 
+  /**
+   * Check if player is in matchmaking queue
+   */
+  isInQueue(playerId: string): boolean {
+    return this.queue.some((p) => p.id === playerId);
+  }
+
   // ==========================================
   // Room Creation
   // ==========================================
