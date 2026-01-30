@@ -122,6 +122,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
 
     // Priority 2: Query params (only works if SKIP_AUTH was used in dev)
+    // P0-1: Strictly disabled in production
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+    if (!isDevelopment) {
+      return null;
+    }
+
     const userId = client.handshake.query.userId as string;
     const userName = (client.handshake.query.userName as string) || 'Player';
 
@@ -168,7 +174,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   async handleDisconnect(client: Socket): Promise<void> {
     const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (playerInfo) {
-      await this.gameProcess.handleDisconnect(playerInfo.id);
+      // Pass client.id to detect stale disconnects (race condition fix)
+      await this.gameProcess.handleDisconnect(playerInfo.id, client.id);
       this.connectionRegistry.unregister(client.id);
       // Clean up rate limit tracking
       this.lastThrowCardTime.delete(playerInfo.id);
