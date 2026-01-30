@@ -16,5 +16,21 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // React core
+                    'vendor-react': ['react', 'react-dom'],
+                    // Animation library
+                    'vendor-motion': ['framer-motion'],
+                    // Telegram SDK
+                    'vendor-telegram': ['@telegram-apps/sdk-react'],
+                    // i18n
+                    'vendor-i18n': ['i18next', 'react-i18next'],
+                    // State management
+                    'vendor-zustand': ['zustand'],
+                },
+            },
+        },
     },
 });
