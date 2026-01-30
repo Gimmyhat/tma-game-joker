@@ -44,16 +44,9 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
     ? 'bottom-[105%] mb-1' // Above avatar for bottom player
     : 'top-[105%] mt-1'; // Below avatar for others
 
-  let betPositionClass = '';
-  if (isBottom) {
-    betPositionClass = 'top-[105%] mt-1'; // Below avatar for bottom player
-  } else if (isTop) {
-    // For top player, put bet to the RIGHT of the avatar to avoid top edge clipping
-    betPositionClass = 'left-[100%] top-1/2 -translate-y-1/2 ml-3';
-  } else {
-    // Left/Right players
-    betPositionClass = 'bottom-[105%] mb-1'; // Above avatar for others
-  }
+  const betPositionClass = isBottom
+    ? 'top-[105%] mt-1' // Below avatar for bottom player
+    : 'bottom-[105%] mb-1'; // Above avatar for others
 
   return (
     <div

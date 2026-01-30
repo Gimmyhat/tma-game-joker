@@ -216,6 +216,7 @@ export const Table: React.FC<TableProps> = ({
     const isDealer = dealerIndex !== undefined && originalPlayerIndex === dealerIndex;
 
     // Absolute positioning styles around the SCREEN (Full Immersion)
+    // SYSTEMATIC LAYOUT FIX: Used a slightly larger 'top' offset to accommodate badges
     const posStyles: Record<Position, string> = {
       // Hero (Bottom Center)
       'bottom-center': 'bottom-32 left-1/2 -translate-x-1/2 z-40', // Raised to clear hand
@@ -223,9 +224,10 @@ export const Table: React.FC<TableProps> = ({
       'bottom-right': 'bottom-20 right-6 z-40',
 
       // Top Opponents
-      'top-center': 'top-4 left-1/2 -translate-x-1/2',
-      'top-left': 'top-6 left-6',
-      'top-right': 'top-6 right-6',
+      // Increased from top-4 to top-14 to allow "Badge on Top" design to stay within Safe Area
+      'top-center': 'top-14 left-1/2 -translate-x-1/2',
+      'top-left': 'top-14 left-6',
+      'top-right': 'top-14 right-6',
 
       // Side Opponents (Vertically Centered)
       'left-center': 'top-1/2 -translate-y-1/2 left-2',
@@ -598,7 +600,9 @@ export const Table: React.FC<TableProps> = ({
         </div>
       </div>
 
-      <div className={`relative w-full h-full z-10`}>
+      {/* SYSTEMATIC SAFE AREA CONTAINER */}
+      {/* This ensures no UI element touches the extreme edges, especially on Telegram/Mobile */}
+      <div className={`relative w-full h-full z-10 px-safe-x py-safe-y`}>
         {/* Center Active Turn Text */}
         {currentPlayerId && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[140%] z-0 text-center pointer-events-none transition-opacity duration-300">
