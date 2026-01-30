@@ -253,10 +253,9 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                           const bidText = roundData.bid === 0 ? '-' : roundData.bid;
                           const scoreText = roundData.score === -200 ? '—' : roundData.score;
 
-                          // Markers logic
-                          const isSpoiled =
-                            roundData.bid !== null && roundData.tricks < roundData.bid;
-                          const isOver = roundData.bid !== null && roundData.tricks > roundData.bid;
+                          // Per canonical Georgian Joker rules:
+                          // - Dot (●) next to bid when player had joker in hand
+                          // - No colored markers for over/under (removed)
 
                           return (
                             <td
@@ -264,49 +263,27 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                               className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0 relative"
                             >
                               <div className="flex h-full min-h-[24px] items-center text-xs">
-                                {/* Bid Column - Narrower */}
+                                {/* Bid Column */}
                                 <div className="w-[35%] text-right pr-1 font-medium border-r border-blue-900/30 h-full flex items-center justify-end relative">
                                   {bidText}
-                                  {/* Status Markers */}
-                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center leading-none">
-                                    {roundData.bidMade && roundData.bid !== 0 && (
-                                      <span className="text-blue-900 text-[8px] leading-none">
-                                        •
-                                      </span>
-                                    )}
-                                    {isOver && (
-                                      <span className="text-emerald-600 text-[8px] leading-none">
-                                        ●
-                                      </span>
-                                    )}
-                                    {isSpoiled && (
-                                      <span className="text-red-600 text-[8px] font-bold leading-none">
-                                        ✗
-                                      </span>
-                                    )}
-                                  </div>
                                 </div>
 
-                                {/* Joker Stars on the line */}
+                                {/* Joker dots on the dividing line (canonical: fat dot for joker in hand) */}
                                 {roundData.jokerCount > 0 && (
-                                  <div className="absolute left-[35%] top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-10 bg-[#fdfbf7]/80 rounded-sm">
+                                  <div className="absolute left-[35%] top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-10">
                                     {Array.from({ length: roundData.jokerCount }).map((_, i) => (
                                       <span
                                         key={i}
-                                        className="text-[8px] leading-none text-amber-600 drop-shadow-sm"
+                                        className="text-[10px] leading-none text-blue-900 font-bold"
                                       >
-                                        ★
+                                        ●
                                       </span>
                                     ))}
                                   </div>
                                 )}
 
                                 {/* Score Column */}
-                                <div
-                                  className={`flex-1 text-center font-bold ${isSpoiled ? 'text-red-800/70' : ''} ${isOver ? 'text-emerald-800/80' : ''}`}
-                                >
-                                  {scoreText}
-                                </div>
+                                <div className="flex-1 text-center font-bold">{scoreText}</div>
                               </div>
                             </td>
                           );
@@ -314,32 +291,6 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                       </tr>,
                     );
                   });
-
-                  // Pulka Divider Row (Average)
-                  pulkaRows.push(
-                    <tr
-                      key={`p-${pulka.pulka}-avg`}
-                      className="bg-blue-100/30 border-t-2 border-b-2 border-blue-900/50"
-                    >
-                      <td
-                        colSpan={2}
-                        className="border-r-2 border-blue-900/50 p-0.5 text-center font-bold text-sm"
-                      >
-                        X
-                      </td>
-                      {tablePlayers.map((player) => {
-                        const summary = player.pulkaSummaries[pulkaIdx];
-                        return (
-                          <td
-                            key={player.id}
-                            className="border-r-2 border-blue-900/50 p-0.5 text-center text-xs font-bold"
-                          >
-                            {summary.rounds.some((r) => r.bid !== null) ? summary.pulkaAverage : ''}
-                          </td>
-                        );
-                      })}
-                    </tr>,
-                  );
 
                   // Premium Row
                   // Only show if pulka is finished (has cumulative total)
