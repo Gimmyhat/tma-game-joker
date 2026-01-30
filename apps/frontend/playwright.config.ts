@@ -30,6 +30,7 @@ export default defineConfig({
       env: {
         SKIP_AUTH: 'true',
         E2E_TEST: 'true',
+        NODE_ENV: 'test',
         PORT: String(backendPort),
       },
     },

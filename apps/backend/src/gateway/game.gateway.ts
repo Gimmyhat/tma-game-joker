@@ -123,7 +123,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       };
     }
 
-    // Priority 2: Validate initData on connection (guards don't run on handleConnection)
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+    const skipAuth = process.env.SKIP_AUTH === 'true';
+
+    // Priority 2: Query params in dev/test when SKIP_AUTH is enabled
+    if (skipAuth && isDevelopment) {
+      const userId = client.handshake.query.userId as string;
+      const userName = (client.handshake.query.userName as string) || 'Player';
+      if (userId) {
+        return { userId, userName };
+      }
+    }
+
+    // Priority 3: Validate initData on connection (guards don't run on handleConnection)
     const initData =
       (client.handshake.auth?.initData as string | undefined) ||
       (client.handshake.query.initData as string | undefined);
@@ -140,9 +152,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       }
     }
 
-    // Priority 3: Query params (only works if SKIP_AUTH was used in dev)
+    // Priority 4: Query params (only works if SKIP_AUTH was used in dev)
     // P0-1: Strictly disabled in production
-    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
     if (!isDevelopment) {
       return null;
     }

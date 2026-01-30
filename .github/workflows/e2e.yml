@@ -36,6 +36,7 @@ jobs:
 
     env:
       SKIP_AUTH: true
+      NODE_ENV: test
       REDIS_URL: redis://localhost:6379
       DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
 
@@ -99,6 +100,7 @@ jobs:
 
           # Explicitly export env vars
           export SKIP_AUTH=true
+          export NODE_ENV=test
           export REDIS_URL=redis://localhost:6379
           export DATABASE_URL=postgresql://joker:joker_secret@localhost:5432/joker_db
 
