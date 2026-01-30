@@ -39,6 +39,15 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
     return `https://api.dicebear.com/7.x/personas/svg?seed=${seed}&backgroundColor=transparent`;
   }, [player.id, player.name]);
 
+  // Determine badge and bet positions to avoid overlap
+  const badgePositionClass = isBottom
+    ? 'bottom-[105%] mb-1' // Above avatar for bottom player
+    : 'top-[105%] mt-1'; // Below avatar for others
+
+  const betPositionClass = isBottom
+    ? 'top-[105%] mt-1' // Below avatar for bottom player
+    : 'bottom-[105%] mb-1'; // Above avatar for others
+
   return (
     <div
       className={`
@@ -106,10 +115,10 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
         )}
       </div>
 
-      {/* Info Badge (Pill) - Compact & Overlapping */}
+      {/* Info Badge (Pill) - No Overlap */}
       <div
         className={`
-          absolute -bottom-3 left-1/2 -translate-x-1/2 z-20
+          absolute ${badgePositionClass} left-1/2 -translate-x-1/2 z-20
           flex items-center gap-2 py-0.5 px-3 rounded-full
           bg-black/80 backdrop-blur-md border border-white/10 shadow-lg
           whitespace-nowrap transition-all duration-300
@@ -133,7 +142,9 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
 
       {/* Bet Info (Floating Tag) */}
       {player.bet !== null && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-600 rounded-md px-1.5 py-0.5 z-20 shadow-sm flex items-center gap-1">
+        <div
+          className={`absolute ${betPositionClass} left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-600 rounded-md px-1.5 py-0.5 z-20 shadow-sm flex items-center gap-1`}
+        >
           <span className="text-[8px] text-slate-400 uppercase">Bet</span>
           <span className="text-[9px] font-bold text-white">{player.bet}</span>
         </div>
