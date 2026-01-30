@@ -15,6 +15,9 @@ import { GameProcessService } from '../game/services/game-process.service';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { ConnectionRegistryService } from './connection-registry.service';
 
+/** Rate limit for throw_card: 1 card per 300ms */
+const THROW_CARD_RATE_LIMIT_MS = 300;
+
 @Injectable()
 @WebSocketGateway({
   transports: ['polling', 'websocket'], // Allow polling for reliable fallback
@@ -29,6 +32,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   server!: Server;
 
   private readonly logger = new Logger(GameGateway.name);
+
+  /** Track last throw_card timestamp per player for rate limiting */
+  private lastThrowCardTime = new Map<string, number>();
 
   constructor(
     private connectionRegistry: ConnectionRegistryService,
@@ -77,6 +83,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     if (playerInfo) {
       await this.gameProcess.handleDisconnect(playerInfo.id);
       this.connectionRegistry.unregister(client.id);
+      // Clean up rate limit tracking
+      this.lastThrowCardTime.delete(playerInfo.id);
     }
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -167,7 +175,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   }
 
   /**
-   * Throw card
+   * Throw card (rate limited: 1 card per 300ms)
    */
   @SubscribeMessage('throw_card')
   async handleThrowCard(
@@ -176,6 +184,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   ): Promise<void> {
     const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (!playerInfo) return;
+
+    // Rate limiting check
+    const now = Date.now();
+    const lastTime = this.lastThrowCardTime.get(playerInfo.id) || 0;
+    if (now - lastTime < THROW_CARD_RATE_LIMIT_MS) {
+      client.emit('error', {
+        code: 'RATE_LIMITED',
+        message: `Please wait before throwing another card`,
+      });
+      return;
+    }
+    this.lastThrowCardTime.set(playerInfo.id, now);
 
     try {
       await this.gameProcess.processUserCard(

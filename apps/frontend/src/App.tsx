@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TelegramProvider, useTelegram } from './providers';
 import { useGameStore } from './store';
-import { GameScreen } from './screens';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
+
+// Lazy load GameScreen for better initial bundle size
+const GameScreen = lazy(() =>
+  import('./screens/GameScreen').then((module) => ({ default: module.GameScreen })),
+);
 // import { RotateDeviceOverlay } from './components/RotateDeviceOverlay';
 
 /**
@@ -180,7 +184,17 @@ function GameContent() {
   const isGameActive = gameState && gameState.phase !== 'waiting' && gameState.phase !== 'finished';
 
   if (isGameActive) {
-    return <GameScreen />;
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-full bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <GameScreen />
+      </Suspense>
+    );
   }
 
   return <LobbyScreen />;

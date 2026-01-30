@@ -9,6 +9,9 @@ import { GameAuditService } from './services/game-audit.service';
 import { GameCleanupService } from './services/game-cleanup.service';
 import { RoomManager } from './services/room.manager';
 import { GameProcessService } from './services/game-process.service';
+import { TrumpService } from './services/trump.service';
+import { RoundService } from './services/round.service';
+import { PulkaService } from './services/pulka.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { DatabaseModule } from '../database/database.module';
 import { BotModule } from '../bot/bot.module';
@@ -21,8 +24,11 @@ import { BotModule } from '../bot/bot.module';
     BetValidator,
     ScoringService,
     StateMachineService,
-    GameEngineService,
     GameAuditService,
+    TrumpService,
+    RoundService,
+    PulkaService,
+    GameEngineService,
     GameCleanupService,
     RoomManager,
     GameProcessService,
@@ -35,6 +41,9 @@ import { BotModule } from '../bot/bot.module';
     StateMachineService,
     GameEngineService,
     GameAuditService,
+    TrumpService,
+    RoundService,
+    PulkaService,
     RoomManager,
     GameProcessService,
   ],
