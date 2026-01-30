@@ -68,6 +68,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    * Returns true if action should be blocked
    */
   private isRateLimited(playerId: string, client: Socket): boolean {
+    if (process.env.E2E_TEST === 'true') return false;
+
     const now = Date.now();
     let data = this.rateLimitData.get(playerId);
 
@@ -295,17 +297,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       return;
     }
 
-    // Specific throw_card rate limiting (faster check)
-    const now = Date.now();
-    const lastTime = this.lastThrowCardTime.get(playerInfo.id) || 0;
-    if (now - lastTime < THROW_CARD_RATE_LIMIT_MS) {
-      client.emit('error', {
-        code: 'RATE_LIMITED',
-        message: 'Please wait before throwing another card',
-      });
-      return;
+    if (process.env.E2E_TEST !== 'true') {
+      // Specific throw_card rate limiting (faster check)
+      const now = Date.now();
+      const lastTime = this.lastThrowCardTime.get(playerInfo.id) || 0;
+      if (now - lastTime < THROW_CARD_RATE_LIMIT_MS) {
+        client.emit('error', {
+          code: 'RATE_LIMITED',
+          message: 'Please wait before throwing another card',
+        });
+        return;
+      }
+      this.lastThrowCardTime.set(playerInfo.id, now);
     }
-    this.lastThrowCardTime.set(playerInfo.id, now);
 
     try {
       await this.gameProcess.processUserCard(
