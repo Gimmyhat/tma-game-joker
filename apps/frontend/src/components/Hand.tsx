@@ -36,7 +36,7 @@ export const Hand: React.FC<HandProps> = ({
   // But CSS transform translateX is relative to element width.
   // We use fixed pixels here. Let's try -10px for tight stack or -15px.
   const baseOverlap = isMobileLandscape ? -10 : -15;
-  const overlap = totalCards > 8 ? baseOverlap - 5 : baseOverlap;
+  const overlap = totalCards > 8 ? baseOverlap - 12 : baseOverlap;
 
   // Height based on card size
   const heightClass = isMobileLandscape ? 'h-32' : 'h-64';

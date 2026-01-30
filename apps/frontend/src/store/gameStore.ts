@@ -50,6 +50,10 @@ export const useGameStore = create<GameStore>()(
       setUserInfo(resolvedUser);
 
       const socket = getSocket();
+
+      // P2-6: Clean up existing listeners before setting up new ones
+      // This prevents duplicate handlers on re-initialization
+      cleanupSocketListeners(socket);
       setupSocketListeners(socket, set, get);
 
       set({ connectionStatus: 'connecting' });
@@ -79,6 +83,28 @@ export const useGameStore = create<GameStore>()(
 // =====================================
 // Socket Event Handlers
 // =====================================
+
+/**
+ * P2-6: Clean up socket listeners to prevent duplicates on re-initialization
+ */
+function cleanupSocketListeners(socket: GameSocket): void {
+  // Remove all listeners for events we manage
+  socket.off('connect');
+  socket.off('disconnect');
+  socket.off('connect_error');
+  socket.off('waiting_for_players');
+  socket.off('player_left');
+  socket.off('queue_left');
+  socket.off('left_game');
+  socket.off('tuzovanie_started');
+  socket.off('game_started');
+  socket.off('game_state');
+  socket.off('turn_timer_started');
+  socket.off('pulka_recap_started');
+  socket.off('player_replaced');
+  socket.off('game:finished');
+  socket.off('error');
+}
 
 function setupSocketListeners(
   socket: GameSocket,

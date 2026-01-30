@@ -391,7 +391,7 @@ export const GameScreen: React.FC = () => {
       {/* Top Bar removed - items moved to bottom right */}
 
       {/* Bottom Right Floating Action Group */}
-      <div className="absolute bottom-[20%] right-2 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)]">
+      <div className="absolute bottom-[25%] right-2 z-[90] flex flex-col items-end gap-3 pointer-events-auto pb-[env(safe-area-inset-bottom,20px)]">
         {/* Timer - Moved from top right */}
         <div
           className={`flex items-center justify-center w-12 h-10 rounded-xl border backdrop-blur-sm transition-all duration-300 shadow-lg
@@ -480,7 +480,7 @@ export const GameScreen: React.FC = () => {
       </div>
 
       {/* Bottom Player Hand */}
-      <div className="absolute bottom-[15%] left-0 right-0 z-50 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom,10px)]">
+      <div className="absolute bottom-[15%] left-0 right-0 z-[95] flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom,10px)]">
         <div className="w-full max-w-md px-2 pointer-events-auto overflow-visible">
           <Hand
             cards={sortedHand}

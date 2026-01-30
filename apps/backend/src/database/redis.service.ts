@@ -20,10 +20,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis | null = null;
   private readonly logger = new Logger(RedisService.name);
   private isConnected = false;
+  private _isProduction = false;
+  private _redisRequired = false;
 
   constructor(private configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    const nodeEnv = this.configService.get('NODE_ENV') || process.env.NODE_ENV;
+    this._isProduction = nodeEnv === 'production';
+    this._redisRequired = this.configService.get('REQUIRE_REDIS') === 'true';
+
     // Skip Redis connection in E2E tests to avoid open handles/reconnect loops
     if (process.env.E2E_TEST === 'true') {
       this.logger.log('Running in E2E test mode - Redis disabled (in-memory only)');
@@ -32,8 +38,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     const redisUrl = this.configService.get<string>('REDIS_URL');
 
+    // P0-4: Enforce Redis requirement in production
     if (!redisUrl) {
-      this.logger.warn('REDIS_URL not configured - running in memory-only mode');
+      if (this._isProduction && this._redisRequired) {
+        this.logger.error(
+          'FATAL: REDIS_URL not configured but REQUIRE_REDIS=true in production. ' +
+            'Redis is required for production deployments to ensure state persistence.',
+        );
+        throw new Error('Redis is required in production. Set REDIS_URL or disable REQUIRE_REDIS.');
+      }
+      this.logger.warn(
+        'REDIS_URL not configured - running in memory-only mode. ' +
+          'WARNING: Game state will be lost on restart!',
+      );
       return;
     }
 
@@ -97,6 +114,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Redis connected and verified');
       }
     } catch (error) {
+      // P0-4: Fail hard in production if Redis is required but unavailable
+      if (this._isProduction && this._redisRequired) {
+        this.logger.error(
+          `FATAL: Redis connection failed in production: ${(error as Error).message}`,
+        );
+        throw new Error('Redis connection required in production but failed to connect.');
+      }
+
       this.logger.warn(
         `Redis not available: ${(error as Error).message} - running in memory-only mode`,
       );
