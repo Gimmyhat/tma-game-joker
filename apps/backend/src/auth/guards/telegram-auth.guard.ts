@@ -79,7 +79,7 @@ export class TelegramAuthGuard implements CanActivate {
    *
    * @returns VerifiedTelegramUser if valid, null otherwise
    */
-  private validateAndParseInitData(initData: string): VerifiedTelegramUser | null {
+  validateAndParseInitData(initData: string): VerifiedTelegramUser | null {
     try {
       const urlParams = new URLSearchParams(initData);
       const hash = urlParams.get('hash');

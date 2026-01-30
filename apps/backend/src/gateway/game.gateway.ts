@@ -57,6 +57,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   constructor(
     private connectionRegistry: ConnectionRegistryService,
     private gameProcess: GameProcessService,
+    private telegramAuthGuard: TelegramAuthGuard,
   ) {}
 
   afterInit(server: Server) {
@@ -109,6 +110,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   /**
    * P0-1: Extract verified user from socket data (set by TelegramAuthGuard)
    * Falls back to query params only in dev mode for backward compatibility
+   * On connection, validates initData directly since guards don't run on connect
    */
   private getVerifiedUser(client: Socket): { userId: string; userName: string } | null {
     // Priority 1: Use verified user from guard (P0-1 fix)
@@ -121,7 +123,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       };
     }
 
-    // Priority 2: Query params (only works if SKIP_AUTH was used in dev)
+    // Priority 2: Validate initData on connection (guards don't run on handleConnection)
+    const initData =
+      (client.handshake.auth?.initData as string | undefined) ||
+      (client.handshake.query.initData as string | undefined);
+
+    if (initData) {
+      const parsed = this.telegramAuthGuard.validateAndParseInitData(initData);
+      if (parsed) {
+        // Store for future message handlers
+        client.data.verifiedUser = parsed;
+        return {
+          userId: String(parsed.id),
+          userName: parsed.firstName + (parsed.lastName ? ` ${parsed.lastName}` : ''),
+        };
+      }
+    }
+
+    // Priority 3: Query params (only works if SKIP_AUTH was used in dev)
     // P0-1: Strictly disabled in production
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
     if (!isDevelopment) {
