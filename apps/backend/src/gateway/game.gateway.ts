@@ -174,8 +174,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   async handleDisconnect(client: Socket): Promise<void> {
     const playerInfo = this.connectionRegistry.getBySocketId(client.id);
     if (playerInfo) {
-      // Pass client.id to detect stale disconnects (race condition fix)
-      await this.gameProcess.handleDisconnect(playerInfo.id, client.id);
+      await this.gameProcess.handleDisconnect(playerInfo.id);
       this.connectionRegistry.unregister(client.id);
       // Clean up rate limit tracking
       this.lastThrowCardTime.delete(playerInfo.id);
