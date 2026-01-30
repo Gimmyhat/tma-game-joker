@@ -8,6 +8,8 @@ import {
   TrumpDecision,
   calculatePlayerBadges,
   GameFinishedPayload,
+  JokerOption,
+  Suit,
 } from '@joker/shared';
 import { GameEngineService } from './game-engine.service';
 import { RoomManager } from './room.manager';
@@ -116,8 +118,8 @@ export class GameProcessService {
     roomId: string,
     playerId: string,
     cardId: string,
-    jokerOption?: any,
-    requestedSuit?: any,
+    jokerOption?: JokerOption,
+    requestedSuit?: Suit,
   ): Promise<void> {
     const room = this.roomManager.getRoomSync(roomId);
     if (!room) {
@@ -443,10 +445,19 @@ export class GameProcessService {
     const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
     if (!currentPlayer || !currentPlayer.isBot) return;
 
+    // Clear existing timeout if any
+    this.roomManager.clearBotMoveTimeout(roomId);
+
     // Add small delay for UX
-    setTimeout(async () => {
+    const timeout = setTimeout(async () => {
+      // Re-check room existence inside timeout to prevent race condition
+      const currentRoom = this.roomManager.getRoomSync(roomId);
+      if (!currentRoom) return;
+
       await this.makeBotMove(roomId, currentPlayer.id);
     }, GAME_CONSTANTS.BOT_MOVE_DELAY_MS);
+
+    this.roomManager.setBotMoveTimeout(roomId, timeout);
   }
 
   /**

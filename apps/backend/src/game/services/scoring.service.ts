@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   Player,
   RoundHistory,
@@ -34,6 +34,8 @@ export interface PulkaScoreResult {
 
 @Injectable()
 export class ScoringService {
+  private readonly logger = new Logger(ScoringService.name);
+
   /**
    * Calculate score for a single round for a player
    *
@@ -246,11 +248,13 @@ export class ScoringService {
       // Apply to scores
       if (receives && selfMax > 0) {
         playerScores[players[i].id] += selfMax;
-        console.log(`Premium: ${players[i].name} receives +${selfMax} (their own max)`);
+        this.logger.log(`Premium: ${players[i].name} receives +${selfMax} (their own max)`);
       }
       if (subtracts && neighborMax > 0) {
         playerScores[players[nextIdx].id] -= neighborMax;
-        console.log(`Premium: ${players[nextIdx].name} penalized -${neighborMax} (their own max)`);
+        this.logger.log(
+          `Premium: ${players[nextIdx].name} penalized -${neighborMax} (their own max)`,
+        );
       }
     }
 

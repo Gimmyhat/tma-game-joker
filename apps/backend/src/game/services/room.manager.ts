@@ -18,6 +18,7 @@ interface GameRoom {
   sockets: Map<string, string>; // playerId -> socketId
   botFillTimeout?: NodeJS.Timeout;
   turnTimeout?: NodeJS.Timeout;
+  botMoveTimeout?: NodeJS.Timeout;
 }
 
 interface TuzovanieDeal {
@@ -255,9 +256,16 @@ export class RoomManager {
 
     // Step 0: Deal one card to the center (Face Down)
     // We create a dummy entry for visual purposes
+    const dummyCard: Card = {
+      type: 'standard',
+      suit: 'hearts' as any,
+      rank: 'A' as any,
+      id: 'center-card',
+    };
+
     sequence.push({
       playerId: 'center-deck',
-      card: { type: 'standard', suit: 'hearts', rank: 'A', id: 'center-card' } as any, // Dummy card, will be faceDown
+      card: dummyCard, // Dummy card, will be faceDown
       dealIndex: 0,
     });
 
@@ -557,6 +565,30 @@ export class RoomManager {
     }
   }
 
+  /**
+   * Set bot move timeout
+   */
+  setBotMoveTimeout(roomId: string, timeout: NodeJS.Timeout): void {
+    const room = this.rooms.get(roomId);
+    if (room) {
+      if (room.botMoveTimeout) {
+        clearTimeout(room.botMoveTimeout);
+      }
+      room.botMoveTimeout = timeout;
+    }
+  }
+
+  /**
+   * Clear bot move timeout
+   */
+  clearBotMoveTimeout(roomId: string): void {
+    const room = this.rooms.get(roomId);
+    if (room?.botMoveTimeout) {
+      clearTimeout(room.botMoveTimeout);
+      room.botMoveTimeout = undefined;
+    }
+  }
+
   // ==========================================
   // Cleanup
   // ==========================================
@@ -571,6 +603,7 @@ export class RoomManager {
     // Clear timeouts
     this.clearBotFillTimeout(roomId);
     this.clearTurnTimeout(roomId);
+    this.clearBotMoveTimeout(roomId);
 
     // Remove player mappings from memory
     for (const playerId of room.sockets.keys()) {

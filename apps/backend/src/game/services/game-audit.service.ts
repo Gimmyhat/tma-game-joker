@@ -93,7 +93,7 @@ export class GameAuditService {
           startedAt: new Date(gameState.createdAt),
           finishedAt: isFinished ? new Date() : null,
           winnerId: gameState.winnerId,
-          players: players as any,
+          players: players as any, // Cast to any because Prisma Json type is flexible but TS is strict here
           gameLog: logs as any,
         },
         update: {
