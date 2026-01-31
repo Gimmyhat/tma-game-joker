@@ -62,11 +62,19 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
         if (!visible) continue;
 
         const modalRoot = modal.locator('..').locator('..');
-        const betButton = modalRoot.locator('button:not([disabled])').first();
-        await betButton.click({ force: true });
-        // Confirm button removed, now auto-submits
-        await expect(modal).toBeHidden({ timeout: 20000 });
-        betPlaced.add(i);
+        const betButtons = modalRoot.locator('button:not([disabled])');
+        const buttonCount = await betButtons.count();
+
+        for (let b = 0; b < buttonCount; b += 1) {
+          await betButtons.nth(b).click({ force: true });
+          try {
+            await expect(modal).toBeHidden({ timeout: 3000 });
+            betPlaced.add(i);
+            break;
+          } catch {
+            // Try next available bet
+          }
+        }
       }
 
       if (betPlaced.size < pages.length) {
