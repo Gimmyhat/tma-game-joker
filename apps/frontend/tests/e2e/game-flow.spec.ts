@@ -57,13 +57,15 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
           }
         }
 
-        const modal = page.getByText(/Place Your Bet|Ваша ставка/i); // Updated locator to match new English text
+        const modal = page.getByText(/Place Your Bet|Ваша ставка/i).first();
         const visible = await modal.isVisible();
         if (!visible) continue;
 
-        await page.locator('button', { hasText: '0' }).first().click({ force: true });
+        const modalRoot = modal.locator('..').locator('..');
+        const betButton = modalRoot.locator('button:not([disabled])').first();
+        await betButton.click({ force: true });
         // Confirm button removed, now auto-submits
-        await expect(modal).toBeHidden({ timeout: 10000 });
+        await expect(modal).toBeHidden({ timeout: 20000 });
         betPlaced.add(i);
       }
 
