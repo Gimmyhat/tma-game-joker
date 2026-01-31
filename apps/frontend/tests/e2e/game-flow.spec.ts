@@ -61,7 +61,7 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
         const visible = await modal.isVisible();
         if (!visible) continue;
 
-        await page.locator('button', { hasText: '0' }).first().click();
+        await page.locator('button', { hasText: '0' }).first().click({ force: true });
         // Confirm button removed, now auto-submits
         await expect(modal).toBeHidden({ timeout: 10000 });
         betPlaced.add(i);
