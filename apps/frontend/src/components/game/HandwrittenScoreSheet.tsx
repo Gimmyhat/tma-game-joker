@@ -144,6 +144,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
 
   // Sort players by seat index for the table columns
   const tablePlayers = [...displayData.players].sort((a, b) => a.seatIndex - b.seatIndex);
+  const formatHundreds = (value: number) => (value / 100).toFixed(1).replace('.', ',');
 
   return (
     <div
@@ -245,17 +246,41 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
               <tbody>
                 {GAME_CONSTANTS.PULKA_STRUCTURE.map((pulka, pulkaIdx) => {
                   const pulkaRows: React.ReactNode[] = [];
+                  const premiumRoundIndexByPlayer = new Map<string, number>();
+
+                  tablePlayers.forEach((player) => {
+                    const summary = player.pulkaSummaries[pulkaIdx];
+                    const allRoundsDone = summary.rounds.every((r) => r.bid !== null);
+                    if (!allRoundsDone || summary.premiumScore <= 0) return;
+
+                    const roundsExceptLast = summary.rounds.slice(0, -1);
+                    let maxScore = 0;
+                    let maxIndex = -1;
+
+                    roundsExceptLast.forEach((round, idx) => {
+                      if (round.score > maxScore) {
+                        maxScore = round.score;
+                        maxIndex = idx;
+                      }
+                    });
+
+                    if (maxIndex >= 0) {
+                      premiumRoundIndexByPlayer.set(player.id, maxIndex);
+                    }
+                  });
 
                   // Add rounds
                   pulka.rounds.forEach((roundNum, roundIdx) => {
                     pulkaRows.push(
                       <tr key={`r-${roundNum}`} className="hover:bg-blue-50/30">
                         <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-xs text-gray-500 text-center">
-                          {roundNum}
+                          {pulka.cardsPerRound[roundIdx]}
                         </td>
                         {tablePlayers.map((player) => {
                           const roundData = player.pulkaSummaries[pulkaIdx].rounds[roundIdx];
                           const isEmpty = !roundData || roundData.bid === null;
+                          const showPremiumMark =
+                            premiumRoundIndexByPlayer.get(player.id) === roundIdx;
 
                           if (isEmpty) {
                             return (
@@ -292,8 +317,13 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                                   </div>
                                 )}
                               </td>
-                              <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-center text-sm font-bold">
+                              <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-center text-sm font-bold relative">
                                 {scoreText}
+                                {showPremiumMark && (
+                                  <span className="absolute right-1 top-0.5 text-[10px] leading-none text-blue-900">
+                                    ○
+                                  </span>
+                                )}
                               </td>
                             </React.Fragment>
                           );
@@ -305,7 +335,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                   pulkaRows.push(
                     <tr
                       key={`p-${pulka.pulka}-mark`}
-                      className="bg-blue-50/40 border-b-4 border-blue-900/80"
+                      className="bg-blue-50/40 border-b border-blue-900/50"
                     >
                       <td className="border-r-2 border-blue-900/50 p-0.5"></td>
                       {tablePlayers.map((player) => {
@@ -313,18 +343,45 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                         const hasFailure = summary.rounds.some((r) => r.bid !== null && !r.bidMade);
                         const allRoundsDone = summary.rounds.every((r) => r.bid !== null);
                         const showPremium = !hasFailure && allRoundsDone;
+                        const prevTotal =
+                          pulkaIdx > 0 ? player.pulkaSummaries[pulkaIdx - 1].cumulativeTotal : 0;
+                        const pulkaTotal = summary.cumulativeTotal - prevTotal;
+                        const totalText = allRoundsDone ? formatHundreds(pulkaTotal) : '';
 
                         return (
-                          <td
-                            key={player.id}
-                            colSpan={2}
-                            className="border-r-2 border-blue-900/50 p-0.5 text-center text-sm font-bold"
-                          >
-                            {hasFailure && <span className="text-blue-900">X</span>}
-                            {!hasFailure && showPremium && (
-                              <span className="text-emerald-600">P</span>
-                            )}
-                          </td>
+                          <React.Fragment key={player.id}>
+                            <td className="border-r border-blue-900/50 p-0.5 text-center text-sm font-bold">
+                              {hasFailure && <span className="text-blue-900">X</span>}
+                              {!hasFailure && showPremium && (
+                                <span className="text-emerald-600">P</span>
+                              )}
+                            </td>
+                            <td className="border-r-2 border-blue-900/50 p-0.5 text-center text-sm font-bold">
+                              {totalText}
+                            </td>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tr>,
+                  );
+
+                  pulkaRows.push(
+                    <tr key={`p-${pulka.pulka}-sum`} className="border-b-4 border-blue-900/80">
+                      <td className="border-r-2 border-blue-900/50 p-0.5"></td>
+                      {tablePlayers.map((player) => {
+                        const summary = player.pulkaSummaries[pulkaIdx];
+                        const allRoundsDone = summary.rounds.every((r) => r.bid !== null);
+                        const totalText = allRoundsDone
+                          ? formatHundreds(summary.cumulativeTotal)
+                          : '';
+
+                        return (
+                          <React.Fragment key={player.id}>
+                            <td className="border-r border-blue-900/50 p-0.5"></td>
+                            <td className="border-r-2 border-blue-900/50 p-0.5 text-center text-sm font-bold">
+                              {totalText}
+                            </td>
+                          </React.Fragment>
                         );
                       })}
                     </tr>,
