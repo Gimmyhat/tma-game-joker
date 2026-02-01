@@ -202,24 +202,43 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
         {/* Scrollable Table Container */}
         <div className="flex-1 overflow-auto relative z-10 p-1 sm:p-2 md:p-4 custom-scrollbar">
           <div className="min-w-full mx-auto bg-white/50 shadow-sm border-2 border-blue-900/50">
-            <table className="w-full border-collapse text-center text-xs md:text-base table-fixed">
+            <table className="w-full border-collapse text-center text-sm md:text-lg table-fixed">
               <thead>
                 <tr>
-                  <th className="w-6 border-r-2 border-b-2 border-blue-900/50 p-1 bg-blue-50/50"></th>
-                  <th className="w-6 border-r-2 border-b-2 border-blue-900/50 p-1 bg-blue-50/50 text-[10px]">
-                    N
+                  <th
+                    rowSpan={2}
+                    className="w-7 border-r-2 border-b-2 border-blue-900/50 p-0 bg-blue-50/50 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="-rotate-90 text-[9px] leading-none tracking-wide text-blue-900">
+                        {t('game.deals', 'Раздачи')}
+                      </span>
+                    </div>
                   </th>
                   {tablePlayers.map((player) => (
                     <th
                       key={player.id}
-                      className="border-r-2 border-b-2 border-blue-900/50 p-1 relative h-[100px] align-bottom"
+                      colSpan={2}
+                      className="border-r-2 border-b-2 border-blue-900/50 p-1 relative h-[100px] align-bottom overflow-hidden"
                     >
-                      <div className="absolute bottom-1 left-1 origin-bottom-left transform -rotate-45 translate-x-2 -translate-y-1 w-[130px] pointer-events-none">
-                        <div className="truncate text-[10px] sm:text-xs font-bold text-blue-900 text-left">
+                      <div className="absolute bottom-1 left-1 origin-bottom-left transform -rotate-45 translate-x-1 -translate-y-0.5 w-[110px] pointer-events-none">
+                        <div className="truncate text-[10px] sm:text-xs font-bold leading-tight text-blue-900 text-left">
                           {player.name}
                         </div>
                       </div>
                     </th>
+                  ))}
+                </tr>
+                <tr>
+                  {tablePlayers.map((player) => (
+                    <React.Fragment key={`${player.id}-cols`}>
+                      <th className="border-r border-b-2 border-blue-900/50 p-1 bg-blue-50/50 text-[10px] sm:text-xs uppercase tracking-wide">
+                        {t('game.order', 'Заказ')}
+                      </th>
+                      <th className="border-r-2 border-b-2 border-blue-900/50 p-1 bg-blue-50/50 text-[10px] sm:text-xs uppercase tracking-wide">
+                        {t('game.points', 'Очки')}
+                      </th>
+                    </React.Fragment>
                   ))}
                 </tr>
               </thead>
@@ -231,46 +250,37 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                   pulka.rounds.forEach((roundNum, roundIdx) => {
                     pulkaRows.push(
                       <tr key={`r-${roundNum}`} className="hover:bg-blue-50/30">
-                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-xs font-bold text-blue-800/70 text-center">
+                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-xs text-gray-500 text-center">
                           {roundNum}
-                        </td>
-                        <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-[10px] text-gray-500 text-center">
-                          {pulka.cardsPerRound[roundIdx]}
                         </td>
                         {tablePlayers.map((player) => {
                           const roundData = player.pulkaSummaries[pulkaIdx].rounds[roundIdx];
-                          if (!roundData || roundData.bid === null) {
+                          const isEmpty = !roundData || roundData.bid === null;
+
+                          if (isEmpty) {
                             return (
-                              <td
-                                key={player.id}
-                                className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5"
-                              >
-                                <div className="h-6"></div>
-                              </td>
+                              <React.Fragment key={player.id}>
+                                <td className="border-r border-blue-900/30 border-b border-blue-900/20 p-0.5">
+                                  <div className="h-6"></div>
+                                </td>
+                                <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5">
+                                  <div className="h-6"></div>
+                                </td>
+                              </React.Fragment>
                             );
                           }
 
                           const bidText = roundData.bid === 0 ? '-' : roundData.bid;
                           const scoreText = roundData.score === -200 ? '—' : roundData.score;
 
-                          // Per canonical Georgian Joker rules:
-                          // - Dot (●) next to bid when player had joker in hand
-                          // - No colored markers for over/under (removed)
-
                           return (
-                            <td
-                              key={player.id}
-                              className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0 relative"
-                            >
-                              <div className="flex h-full min-h-[24px] items-center text-xs">
-                                {/* Bid Column */}
-                                <div className="w-[35%] text-right pr-1 font-medium border-r border-blue-900/30 h-full flex items-center justify-end relative">
+                            <React.Fragment key={player.id}>
+                              <td className="border-r border-blue-900/30 border-b border-blue-900/20 p-0.5 relative">
+                                <div className="flex h-full min-h-[24px] items-center justify-end pr-1 text-sm font-medium">
                                   {bidText}
                                 </div>
-
-                                {/* Joker dots on the dividing line (canonical: fat dot for joker in hand) */}
                                 {roundData.jokerCount > 0 && (
-                                  <div className="absolute left-[35%] top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-0.5 z-10">
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 flex flex-col gap-0.5 z-10">
                                     {Array.from({ length: roundData.jokerCount }).map((_, i) => (
                                       <span
                                         key={i}
@@ -281,75 +291,39 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                                     ))}
                                   </div>
                                 )}
-
-                                {/* Score Column */}
-                                <div className="flex-1 text-center font-bold">{scoreText}</div>
-                              </div>
-                            </td>
+                              </td>
+                              <td className="border-r-2 border-blue-900/30 border-b border-blue-900/20 p-0.5 text-center text-sm font-bold">
+                                {scoreText}
+                              </td>
+                            </React.Fragment>
                           );
                         })}
                       </tr>,
                     );
                   });
-
-                  // Premium Row
-                  // Only show if pulka is finished (has cumulative total)
-                  const isPulkaFinished = tablePlayers.some(
-                    (p) =>
-                      p.pulkaSummaries[pulkaIdx].cumulativeTotal !== 0 ||
-                      p.pulkaSummaries[pulkaIdx].premiumScore !== 0,
-                  );
-
-                  if (isPulkaFinished) {
-                    pulkaRows.push(
-                      <tr
-                        key={`p-${pulka.pulka}-prem`}
-                        className="bg-green-50/50 border-b-2 border-blue-900/50"
-                      >
-                        <td
-                          colSpan={2}
-                          className="border-r-2 border-blue-900/50 p-0.5 text-center font-bold text-xs text-emerald-700"
-                        >
-                          Prem
-                        </td>
-                        {tablePlayers.map((player) => {
-                          const summary = player.pulkaSummaries[pulkaIdx];
-                          const premium = summary.premiumScore;
-                          const hasPremium = premium !== 0;
-
-                          return (
-                            <td
-                              key={player.id}
-                              className="border-r-2 border-blue-900/50 p-0.5 text-center text-xs font-bold"
-                            >
-                              {hasPremium && (
-                                <span className={premium > 0 ? 'text-emerald-600' : 'text-red-500'}>
-                                  {premium > 0 ? `+${premium}` : premium}
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>,
-                    );
-                  }
-
-                  // Cumulative Row
+                  // X / Premium Row
                   pulkaRows.push(
-                    <tr key={`p-${pulka.pulka}-cum`} className="border-b-4 border-blue-900/80">
-                      <td colSpan={2} className="border-r-2 border-blue-900/50 bg-blue-50/50"></td>
+                    <tr
+                      key={`p-${pulka.pulka}-mark`}
+                      className="bg-blue-50/40 border-b-4 border-blue-900/80"
+                    >
+                      <td className="border-r-2 border-blue-900/50 p-0.5"></td>
                       {tablePlayers.map((player) => {
                         const summary = player.pulkaSummaries[pulkaIdx];
-                        const hasPlayed = summary.rounds.some((r) => r.bid !== null);
-                        // Also show if we have a cumulative total (e.g. from premiums)
-                        const showTotal = hasPlayed || summary.cumulativeTotal !== 0;
+                        const hasFailure = summary.rounds.some((r) => r.bid !== null && !r.bidMade);
+                        const allRoundsDone = summary.rounds.every((r) => r.bid !== null);
+                        const showPremium = !hasFailure && allRoundsDone;
 
                         return (
                           <td
                             key={player.id}
-                            className="border-r-2 border-blue-900/50 p-1 text-center text-sm font-black text-blue-900"
+                            colSpan={2}
+                            className="border-r-2 border-blue-900/50 p-0.5 text-center text-sm font-bold"
                           >
-                            {showTotal ? summary.cumulativeTotal : ''}
+                            {hasFailure && <span className="text-blue-900">X</span>}
+                            {!hasFailure && showPremium && (
+                              <span className="text-emerald-600">P</span>
+                            )}
                           </td>
                         );
                       })}
@@ -362,10 +336,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                 {/* Final Results Row */}
                 {displayData.isFinal && (
                   <tr className="bg-amber-50/50">
-                    <td
-                      colSpan={2}
-                      className="border-r-2 border-blue-900/50 p-2 font-bold text-xs text-right"
-                    >
+                    <td className="border-r-2 border-blue-900/50 p-2 font-bold text-xs text-right">
                       {t('game.matchResults', 'Итог')}
                     </td>
                     {tablePlayers.map((player) => {
@@ -375,6 +346,7 @@ export const HandwrittenScoreSheet: React.FC<HandwrittenScoreSheetProps> = ({
                       return (
                         <td
                           key={player.id}
+                          colSpan={2}
                           className="border-r-2 border-blue-900/50 p-2 text-center"
                         >
                           <div className="flex flex-col items-center gap-0.5">
