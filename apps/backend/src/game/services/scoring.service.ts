@@ -221,8 +221,10 @@ export class ScoringService {
       const prevIdx = (i - 1 + playerCount) % playerCount;
       const nextIdx = (i + 1) % playerCount;
 
-      // Receives if previous player is NOT clean
-      // (previous player didn't "try" to subtract from this player)
+      // "Popular" Variant Rule:
+      // Player receives premium ONLY if they are NOT pressured by the previous player.
+      // - Prev is Clean -> Prev attempts to subtract -> I am protected but LOSE my bonus.
+      // - Prev is Dirty -> Prev does not act -> I am free to take my bonus.
       const prevTriedToSubtract = isClean[prevIdx];
       const receives = !prevTriedToSubtract;
 
@@ -248,12 +250,15 @@ export class ScoringService {
       // Apply to scores
       if (receives && selfMax > 0) {
         playerScores[players[i].id] += selfMax;
-        this.logger.log(`Premium: ${players[i].name} receives +${selfMax} (their own max)`);
+        this.logger.log(`Premium: ${players[i].name} receives +${selfMax} (own max from current pulka)`);
+      } else if (isClean[i]) {
+        this.logger.log(`Premium: ${players[i].name} is Clean but receives 0 (Protected/Pressured by prev clean player)`);
       }
+
       if (subtracts && neighborMax > 0) {
         playerScores[players[nextIdx].id] -= neighborMax;
         this.logger.log(
-          `Premium: ${players[nextIdx].name} penalized -${neighborMax} (their own max)`,
+          `Premium: ${players[nextIdx].name} penalized -${neighborMax} (their own max) by ${players[i].name}`,
         );
       }
     }

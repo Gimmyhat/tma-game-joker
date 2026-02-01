@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+env:
+  PLAYWRIGHT_VERSION: latest
+
 jobs:
   e2e:
     runs-on: ubuntu-latest

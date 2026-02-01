@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # IMAGE_NAME will be set dynamically in lowercase
+  IMAGE_NAME: tma-game-joker
 
 jobs:
   build-backend:

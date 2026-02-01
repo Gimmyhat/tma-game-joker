@@ -30,7 +30,7 @@ export class GameProcessService {
     private botService: BotService,
     private configService: ConfigService,
     private gameAuditService: GameAuditService,
-  ) { }
+  ) {}
 
   setServer(server: Server) {
     this.server = server;
@@ -335,7 +335,14 @@ export class GameProcessService {
     const result = await this.roomManager.createRoom();
     if (!result) return;
 
-    const { room, tuzovanieCards, tuzovanieSequence, tuzovanieAcePlayerId } = result;
+    const {
+      room,
+      tuzovanieCards,
+      tuzovanieSequence,
+      tuzovanieAcePlayerId,
+      tuzovanieStartIndex,
+      tuzovanieStartPlayerId,
+    } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
@@ -357,6 +364,8 @@ export class GameProcessService {
       dealerIndex: room.gameState.dealerIndex,
       dealerPlayerId:
         tuzovanieAcePlayerId ?? room.gameState.players[room.gameState.dealerIndex]?.id ?? null,
+      startIndex: tuzovanieStartIndex,
+      startPlayerId: tuzovanieStartPlayerId,
       dealSequence: tuzovanieSequence,
     });
 
@@ -398,7 +407,14 @@ export class GameProcessService {
     const result = await this.roomManager.createRoomWithBots();
     if (!result) return;
 
-    const { room, tuzovanieCards, tuzovanieSequence, tuzovanieAcePlayerId } = result;
+    const {
+      room,
+      tuzovanieCards,
+      tuzovanieSequence,
+      tuzovanieAcePlayerId,
+      tuzovanieStartIndex,
+      tuzovanieStartPlayerId,
+    } = result;
 
     // Join sockets to room
     for (const [, socketId] of room.sockets) {
@@ -421,6 +437,8 @@ export class GameProcessService {
       dealerIndex: room.gameState.dealerIndex,
       dealerPlayerId:
         tuzovanieAcePlayerId ?? room.gameState.players[room.gameState.dealerIndex]?.id ?? null,
+      startIndex: tuzovanieStartIndex,
+      startPlayerId: tuzovanieStartPlayerId,
       dealSequence: tuzovanieSequence,
     });
 

@@ -51,14 +51,8 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
   return (
     <>
       {sequence.map(({ card, playerId, dealIndex }) => {
-        const isFirst = dealIndex === 0;
-        // First card animation timing:
-        // 0s: Start
-        // 0.8s: Landed (duration)
-        // +1.0s: Delay (pause)
-        // 1.8s: Next cards start
-        const delay = isFirst ? 0 : 1.8 + (dealIndex - 1) * 0.6;
-        const duration = isFirst ? 0.8 : 0.5;
+        const animDelay = dealIndex * 0.34;
+        const duration = 0.6;
 
         // Special case for the "Center Deck" card
         if (playerId === 'center-deck') {
@@ -72,7 +66,7 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
               initial={{ scale: 1.5, opacity: 0, y: -50, rotate: randomAngle }}
               animate={{ scale: 1, opacity: 1, y: 0, rotate: randomAngle }}
               transition={{
-                delay,
+                delay: animDelay,
                 duration,
                 type: 'spring',
                 stiffness: 120,
@@ -106,7 +100,7 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
               rotate: t.rotate + randomAngle,
             }}
             transition={{
-              delay,
+              delay: animDelay,
               duration,
               type: 'spring',
               stiffness: 100,
@@ -126,7 +120,7 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: 0, scale: 0 }}
                   animate={{ opacity: 1, y: 45, scale: 1 }}
-                  transition={{ delay: delay + 0.15, type: 'spring' }}
+                  transition={{ delay: animDelay + 0.15, type: 'spring' }}
                   className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-50"
                 >
                   <div className="bg-gradient-to-r from-yellow-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap border border-yellow-300">

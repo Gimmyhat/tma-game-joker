@@ -117,6 +117,8 @@ export class RoomManager {
     tuzovanieCards: Card[][];
     tuzovanieSequence: TuzovanieDeal[];
     tuzovanieAcePlayerId: string | null;
+    tuzovanieStartIndex: number;
+    tuzovanieStartPlayerId: string | null;
   } | null> {
     if (this.queue.length < GAME_CONSTANTS.PLAYERS_COUNT) {
       return null;
@@ -128,11 +130,14 @@ export class RoomManager {
     const playerIds = players.map((p) => p.id);
     const playerNames = players.map((p) => p.name);
 
-    // Perform tuzovanie
-    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+    // Perform tuzovanie with random start index
+    const startIndex = Math.floor(Math.random() * GAME_CONSTANTS.PLAYERS_COUNT);
+    const startPlayerId = playerIds[startIndex] ?? null;
+    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4, startIndex);
     const { sequence: tuzovanieSequence, acePlayerId } = this.buildTuzovanieSequence(
       cardsDealt,
       playerIds,
+      startIndex,
     );
 
     // Create game state with determined dealer
@@ -170,6 +175,8 @@ export class RoomManager {
       tuzovanieCards: sortedCardsDealt,
       tuzovanieSequence,
       tuzovanieAcePlayerId: acePlayerId,
+      tuzovanieStartIndex: startIndex,
+      tuzovanieStartPlayerId: startPlayerId,
     };
   }
 
@@ -181,6 +188,8 @@ export class RoomManager {
     tuzovanieCards: Card[][];
     tuzovanieSequence: TuzovanieDeal[];
     tuzovanieAcePlayerId: string | null;
+    tuzovanieStartIndex: number;
+    tuzovanieStartPlayerId: string | null;
   } | null> {
     if (this.queue.length === 0) {
       return null;
@@ -206,11 +215,14 @@ export class RoomManager {
     const playerIds = allPlayers.map((p) => p.id);
     const playerNames = allPlayers.map((p) => p.name);
 
-    // Perform tuzovanie
-    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4);
+    // Perform tuzovanie with random start index
+    const startIndex = Math.floor(Math.random() * GAME_CONSTANTS.PLAYERS_COUNT);
+    const startPlayerId = playerIds[startIndex] ?? null;
+    const { dealerIndex, cardsDealt } = this.gameEngine.tuzovanie(4, startIndex);
     const { sequence: tuzovanieSequence, acePlayerId } = this.buildTuzovanieSequence(
       cardsDealt,
       playerIds,
+      startIndex,
     );
 
     // Create game state with determined dealer
@@ -249,51 +261,34 @@ export class RoomManager {
       tuzovanieCards: sortedCardsDealt,
       tuzovanieSequence,
       tuzovanieAcePlayerId: acePlayerId,
+      tuzovanieStartIndex: startIndex,
+      tuzovanieStartPlayerId: startPlayerId,
     };
   }
 
   private buildTuzovanieSequence(
     cardsDealt: Card[][],
     playerIds: string[],
+    startIndex: number,
   ): {
     sequence: TuzovanieDeal[];
     acePlayerId: string | null;
   } {
     const sequence: TuzovanieDeal[] = [];
 
-    // Step 0: Deal one card to the center (Face Down)
-    // We create a dummy entry for visual purposes
-    const dummyCard: Card = {
-      type: 'standard',
-      suit: 'hearts' as any,
-      rank: 'A' as any,
-      id: 'center-card',
-    };
-
-    sequence.push({
-      playerId: 'center-deck',
-      card: dummyCard, // Dummy card, will be faceDown
-      dealIndex: 0,
-    });
-
     const maxRounds = Math.max(...cardsDealt.map((hand) => hand.length));
 
-    let dealIndex = 1; // Start players from 1
-    // User requested to start dealing from the "Top" player (12 o'clock).
-    // Assuming Player 0 is Bottom (Creator), Player 2 is Top.
-    // Order: Top (2) -> Right (3) -> Bottom (0) -> Left (1)
-    const playerOffset = 2;
+    let dealIndex = 0;
     let aceFound = false;
 
     for (let r = 0; r < maxRounds; r++) {
-      // If Ace was found, stop dealing immediately
       if (aceFound) break;
 
       for (let i = 0; i < playerIds.length; i++) {
-        // Apply offset to start from Top player
-        const p = (i + playerOffset) % playerIds.length;
+        const p = (startIndex + i) % playerIds.length;
 
         const card = cardsDealt[p]?.[r];
+
         if (!card) continue;
 
         sequence.push({
@@ -302,10 +297,9 @@ export class RoomManager {
           dealIndex: dealIndex++,
         });
 
-        // Check if Ace
         if (card.type === 'standard' && card.rank === Rank.Ace) {
           aceFound = true;
-          break; // Stop loop for current round
+          break;
         }
       }
     }

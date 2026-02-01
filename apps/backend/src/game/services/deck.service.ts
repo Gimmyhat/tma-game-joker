@@ -144,13 +144,18 @@ export class DeckService {
 
   /**
    * Perform "Tuzovanie" - dealing cards one by one until first Ace
+   * @param playerCount - Number of players
+   * @param startPlayerIndex - Index of player to start dealing to (default 0)
    * @returns index of player who gets first Ace (becomes first dealer)
    */
-  tuzovanie(playerCount: number): { dealerIndex: number; cardsDealt: Card[][] } {
+  tuzovanie(
+    playerCount: number,
+    startPlayerIndex = 0,
+  ): { dealerIndex: number; cardsDealt: Card[][] } {
     const deck = this.shuffle(this.createDeck());
     const cardsDealt: Card[][] = Array.from({ length: playerCount }, () => []);
 
-    let currentPlayer = 0;
+    let currentPlayer = startPlayerIndex;
 
     for (const card of deck) {
       cardsDealt[currentPlayer].push(card);

@@ -24,6 +24,7 @@ interface TableProps {
   isJokerTrump?: boolean;
   tuzovanieCards?: CardType[][] | null;
   tuzovanieDealerIndex?: number | null;
+  showTuzovanieForce?: boolean; // Prop from parent to force tuzovanie view
 }
 
 export const Table: React.FC<TableProps> = ({
@@ -38,6 +39,7 @@ export const Table: React.FC<TableProps> = ({
   isJokerTrump = false,
   tuzovanieCards = null,
   tuzovanieDealerIndex = null,
+  showTuzovanieForce = false,
 }) => {
   const { t } = useTranslation();
   const { tableCardSize } = useResponsiveCards();
@@ -47,6 +49,7 @@ export const Table: React.FC<TableProps> = ({
     | null;
   const cardsPerPlayer = useGameStore((state) => state.gameState?.cardsPerPlayer) || 0;
   const [showWinningAnimation, setShowWinningAnimation] = React.useState(false);
+  // Removed local showTuzovanie state in favor of prop control for better orchestration
 
   // Delay winning animation to let the last card land and be seen
   React.useEffect(() => {
@@ -183,8 +186,8 @@ export const Table: React.FC<TableProps> = ({
           </div>
         )}
 
-        {/* Trump Area */}
-        {gamePhase !== GamePhase.Tuzovanie && (
+        {/* Trump Area - Hide during Tuzovanie OR if we are forcing Tuzovanie view */}
+        {gamePhase !== GamePhase.Tuzovanie && !showTuzovanieForce && (
           <TrumpIndicator
             trump={trump}
             trumpCard={trumpCard}
@@ -196,7 +199,7 @@ export const Table: React.FC<TableProps> = ({
         {/* Table Cards Area */}
         <div className="absolute inset-0 z-20 overflow-visible pointer-events-none">
           <div className="absolute top-1/2 left-1/2 w-0 h-0">
-            {gamePhase === GamePhase.Tuzovanie ? (
+            {showTuzovanieForce ? (
               <TuzovanieAnimation
                 players={players}
                 tuzovanieCards={tuzovanieCards}

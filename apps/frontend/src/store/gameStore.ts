@@ -275,6 +275,14 @@ function setupSocketListeners(
 
     // Call internal setter from GameSlice
     get()._setGameState(data.state, myHand);
+
+    // Reset tuzovanie data if phase is no longer tuzovanie and game has truly started
+    // But keep it for a moment if we want to support transition animations
+    if (data.state.phase !== GamePhase.Tuzovanie && data.state.phase !== GamePhase.Waiting) {
+      // We DO NOT clear tuzovanie* fields here immediately.
+      // We let the UI component decide when to stop showing them,
+      // or clear them on next 'tuzovanie_started' event or explicit reset.
+    }
   });
 
   // Turn timer

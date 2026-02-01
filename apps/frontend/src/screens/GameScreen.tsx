@@ -134,6 +134,22 @@ export const GameScreen: React.FC = () => {
 
   const isTimerFrozen = humanPlayerCount <= 1;
 
+  // Manage visibility of Tuzovanie animation at the screen level
+  // This allows us to suppress other UI elements while the animation is finishing
+  const [showTuzovanie, setShowTuzovanie] = useState(false);
+
+  useEffect(() => {
+    if (gameState?.phase === 'tuzovanie') {
+      setShowTuzovanie(true);
+    } else if (showTuzovanie) {
+      // Phase changed from Tuzovanie to something else
+      // Keep showing it for 4s extra to ensure visibility of the Ace
+      // and prevent UI overlap
+      const timer = setTimeout(() => setShowTuzovanie(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState?.phase]);
+
   // Custom Hook for Telegram Viewport Height
   useEffect(() => {
     const setViewportHeight = () => {
@@ -485,12 +501,15 @@ export const GameScreen: React.FC = () => {
             isJokerTrump={!gameState.trump && gameState.trumpCard?.type === 'joker'}
             tuzovanieCards={tuzovanieCards}
             tuzovanieDealerIndex={tuzovanieDealerIndex}
+            showTuzovanieForce={showTuzovanie}
           />
         </div>
       </div>
 
-      {/* Bottom Player Hand */}
-      <div className="absolute bottom-[15%] left-0 right-0 z-[95] flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom,10px)]">
+      {/* Bottom Player Hand - Hide during Tuzovanie to prevent distraction */}
+      <div
+        className={`absolute bottom-[15%] left-0 right-0 z-[95] flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom,10px)] transition-opacity duration-500 ${showTuzovanie ? 'opacity-0' : 'opacity-100'}`}
+      >
         <div className="w-full max-w-md px-2 pointer-events-auto overflow-visible">
           <Hand
             cards={sortedHand}
@@ -516,9 +535,9 @@ export const GameScreen: React.FC = () => {
       {/* Scoring Info Modal */}
       <ScoringInfoModal isOpen={isScoringModalOpen} onClose={() => setIsScoringModalOpen(false)} />
 
-      {/* Betting Modal */}
+      {/* Betting Modal - Hide during Tuzovanie buffer */}
       <BetModal
-        isOpen={canMakeBet && !hasPlacedBet}
+        isOpen={canMakeBet && !hasPlacedBet && !showTuzovanie}
         onBet={handleBetSubmit}
         maxBet={maxBet}
         forbiddenBet={forbiddenBet}
@@ -527,8 +546,9 @@ export const GameScreen: React.FC = () => {
         otherPlayersBetsSum={otherPlayersBetsSum}
       />
 
-      {/* Trump Selection Modal */}
-      <TrumpSelectionModal />
+      {/* Trump Selection Modal - Hide during Tuzovanie buffer */}
+      {/* (Technically trump selection happens after deal, so buffer should be gone, but safe to add check) */}
+      {!showTuzovanie && <TrumpSelectionModal />}
 
       {/* Joker Options */}
       <JokerOptionModal

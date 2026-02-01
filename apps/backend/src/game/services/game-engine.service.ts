@@ -107,8 +107,8 @@ export class GameEngineService {
   /**
    * Perform tuzovanie to select dealer
    */
-  tuzovanie(playersCount: number) {
-    return this.deckService.tuzovanie(playersCount);
+  tuzovanie(playersCount: number, startPlayerIndex?: number) {
+    return this.deckService.tuzovanie(playersCount, startPlayerIndex);
   }
 
   /**
