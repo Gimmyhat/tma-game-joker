@@ -30,7 +30,7 @@ export class GameProcessService {
     private botService: BotService,
     private configService: ConfigService,
     private gameAuditService: GameAuditService,
-  ) {}
+  ) { }
 
   setServer(server: Server) {
     this.server = server;
@@ -370,20 +370,24 @@ export class GameProcessService {
       totalCards * GAME_CONSTANTS.TUZOVANIE_CARD_DELAY_MS + GAME_CONSTANTS.TUZOVANIE_BUFFER_MS;
 
     setTimeout(async () => {
-      // Check if room still exists (players might disconnect)
-      const currentRoom = this.roomManager.getRoomSync(room.id);
-      if (!currentRoom) return;
+      try {
+        // Check if room still exists (players might disconnect)
+        const currentRoom = this.roomManager.getRoomSync(room.id);
+        if (!currentRoom) return;
 
-      // Start the game logic
-      currentRoom.gameState = this.gameEngine.startGame(currentRoom.gameState);
-      await this.roomManager.updateGameState(currentRoom.id, currentRoom.gameState);
+        // Start the game logic
+        currentRoom.gameState = this.gameEngine.startGame(currentRoom.gameState);
+        await this.roomManager.updateGameState(currentRoom.id, currentRoom.gameState);
 
-      // Notify start
-      this.server.to(currentRoom.id).emit('game_started', { roomId: currentRoom.id });
+        // Notify start
+        this.server.to(currentRoom.id).emit('game_started', { roomId: currentRoom.id });
 
-      this.logger.log(`Game started in room ${currentRoom.id}`);
-      await this.emitGameState(currentRoom.id);
-      this.startTurnTimer(currentRoom.id);
+        this.logger.log(`Game started in room ${currentRoom.id}`);
+        await this.emitGameState(currentRoom.id);
+        this.startTurnTimer(currentRoom.id);
+      } catch (error) {
+        this.logger.error(`Error starting game in room ${room.id}:`, error);
+      }
     }, delayMs);
   }
 

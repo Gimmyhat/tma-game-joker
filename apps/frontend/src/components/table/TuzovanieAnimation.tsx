@@ -54,11 +54,11 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
         const isFirst = dealIndex === 0;
         // First card animation timing:
         // 0s: Start
-        // 0.6s: Landed (duration)
+        // 0.8s: Landed (duration)
         // +1.0s: Delay (pause)
-        // 1.6s: Next cards start
-        const delay = isFirst ? 0 : 1.6 + (dealIndex - 1) * 0.3;
-        const duration = isFirst ? 0.6 : 0.35;
+        // 1.8s: Next cards start
+        const delay = isFirst ? 0 : 1.8 + (dealIndex - 1) * 0.6;
+        const duration = isFirst ? 0.8 : 0.5;
 
         // Special case for the "Center Deck" card
         if (playerId === 'center-deck') {
