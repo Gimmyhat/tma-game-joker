@@ -66,8 +66,25 @@ jobs:
           cd apps/backend
           npx prisma generate
 
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(pnpm list --filter @joker/frontend --depth=0 | grep @playwright/test | awk '{print $2}')" >> $GITHUB_ENV
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browsers
         run: pnpm --filter @joker/frontend exec playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Install Playwright browsers (OS deps only)
+        run: pnpm --filter @joker/frontend exec playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Run Database Migrations
         run: |

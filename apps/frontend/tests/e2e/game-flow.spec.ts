@@ -114,6 +114,13 @@ async function waitForGameReady(
       return;
     }
 
+    // Check for generic round indicator (means game screen is loaded)
+    // This is needed for players who are NOT the active better/chooser
+    const roundIndicator = page.getByText(/Round|Раунд/i).first();
+    if (await roundIndicator.isVisible().catch(() => false)) {
+      return;
+    }
+
     // Small wait before retrying
     await page.waitForTimeout(200);
   }
