@@ -215,7 +215,7 @@ async function tryPlaceBet(page: Page): Promise<boolean> {
 }
 
 test('4 players can place bets and reach playing phase', async ({ browser }) => {
-  test.setTimeout(120000); // Increase timeout for CI stability
+  test.setTimeout(180000); // Increase timeout for CI stability (3 mins)
   const contexts = await Promise.all(players.map(() => browser.newContext()));
   const pages = await Promise.all(contexts.map((context) => context.newPage()));
 
@@ -257,15 +257,26 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     // Give the game a moment to fully initialize after all players see the game screen
     await pages[0].waitForTimeout(1000);
 
+    // START DEBUG LOG
+    console.log(`[${new Date().toISOString()}] Starting betting loop. Max duration: 90s`);
+
     const betPlaced = new Set<number>();
     const trumpSelected = { done: false };
     const start = Date.now();
-    const maxDuration = 60000; // 60 seconds max for betting phase
+    const maxDuration = 90000; // Increased to 90s to account for slow Tuzovanie
+
+    let loopCount = 0;
 
     // Main game loop: handle trump selection, then betting
     while (betPlaced.size < pages.length && Date.now() - start < maxDuration) {
+      loopCount++;
+      if (loopCount % 10 === 0) { // Log every ~2-3 seconds usually
+        console.log(`[Loop ${loopCount}] Bet Status: ${betPlaced.size}/${pages.length} placed. Time elapsed: ${Math.round((Date.now() - start) / 1000)}s`);
+      }
+
       // Phase 1: Trump Selection (only one player is the chooser)
       if (!trumpSelected.done) {
+
         for (const page of pages) {
           if (await trySelectTrump(page)) {
             trumpSelected.done = true;

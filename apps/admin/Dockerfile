@@ -3,48 +3,47 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+FROM base AS dependencies
+WORKDIR /app
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY apps/admin/package.json ./apps/admin/
+
+# Install dependencies using the root lockfile (respects overrides!)
+RUN pnpm install --frozen-lockfile
+
 FROM base AS build
 WORKDIR /app
+COPY . .
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=dependencies /app/apps/admin/node_modules ./apps/admin/node_modules
 
-# Copy only admin package files
-COPY apps/admin/package.json ./package.json
-COPY apps/admin/.npmrc ./.npmrc
-COPY apps/admin/prisma ./prisma
-COPY apps/admin/src ./src
-COPY apps/admin/tsconfig.json ./tsconfig.json
-
-# Install ALL deps (including devDeps for bundler)
-RUN pnpm install
-
-# Generate Prisma client
+# Generate Prisma Client for Admin
+WORKDIR /app/apps/admin
+# Use pnpm exec to ensure we use the workspace dependency
 RUN pnpm exec prisma generate
 
-# Build TypeScript
-RUN pnpm exec tsc
+# Build Admin (TSC + Bundle)
+# This uses the root pnpm configuration, so tiptap overrides work
+RUN pnpm run build
 
-# Bundle AdminJS frontend assets (CRITICAL for production)
-# This runs Rollup to create static assets, avoiding runtime bundling
-RUN pnpm run bundle
+# Create a pruned production deployment
+WORKDIR /app
+RUN pnpm --filter @joker/admin deploy --prod /app/pruned
 
 FROM base AS deploy
 WORKDIR /app
 
-# Copy compiled JS
-COPY --from=build /app/dist ./dist
+# Copy production node_modules from pruned
+COPY --from=build /app/pruned/node_modules ./node_modules
+COPY --from=build /app/pruned/package.json ./package.json
 
-# Copy prebundled AdminJS assets
-COPY --from=build /app/public ./public
-
-# Copy Prisma schema and generated client
-COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy package.json for reference
-COPY --from=build /app/package.json ./package.json
-
-# Install ONLY production dependencies (no devDeps, no bundler)
-RUN pnpm install --prod
+# Copy built assets
+COPY --from=build /app/apps/admin/dist ./dist
+COPY --from=build /app/apps/admin/public ./public
+COPY --from=build /app/apps/admin/prisma ./prisma
 
 ENV NODE_ENV=production
 EXPOSE 3001
