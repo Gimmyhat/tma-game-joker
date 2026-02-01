@@ -1,4 +1,5 @@
 import { expect, test, Page } from '@playwright/test';
+import * as path from 'path';
 
 const players = [
   { id: 1001, name: 'Player 1' },
@@ -8,10 +9,89 @@ const players = [
 ];
 
 /**
+ * Helper: Capture debug screenshot with timestamp
+ */
+async function captureDebugScreenshot(
+  page: Page,
+  playerIndex: number,
+  label: string,
+): Promise<string> {
+  const timestamp = Date.now();
+  const filename = `debug-player${playerIndex + 1}-${label}-${timestamp}.png`;
+  const screenshotPath = path.join('test-results', filename);
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  return screenshotPath;
+}
+
+/**
+ * Helper: Get current page state for debugging
+ */
+async function getPageState(page: Page): Promise<string> {
+  const url = page.url();
+
+  // Check for various UI elements
+  const checks = {
+    lobbyTitle: await page
+      .getByRole('heading', { name: /Joker|Джокер/i })
+      .isVisible()
+      .catch(() => false),
+    findGameBtn: await page
+      .getByRole('button', { name: /Find Game|Найти игру/i })
+      .isVisible()
+      .catch(() => false),
+    leaveQueueBtn: await page
+      .getByRole('button', { name: /Leave Queue|Покинуть очередь/i })
+      .isVisible()
+      .catch(() => false),
+    waitingText: await page
+      .getByText(/Waiting for players|Ожидание/i)
+      .isVisible()
+      .catch(() => false),
+    roundIndicator: await page
+      .getByText(/Round|Раунд/i)
+      .first()
+      .isVisible()
+      .catch(() => false),
+    trumpModal: await page
+      .getByText(/Choose Trump|Выбор козыря/i)
+      .isVisible()
+      .catch(() => false),
+    trumpWaiting: await page
+      .getByText(/is choosing|выбирает/i)
+      .isVisible()
+      .catch(() => false),
+    betModal: await page
+      .getByText(/Place Your Bet|Ваша ставка/i)
+      .isVisible()
+      .catch(() => false),
+    loadingSpinner: await page
+      .locator('.animate-spin')
+      .isVisible()
+      .catch(() => false),
+    errorBanner: await page
+      .locator('.bg-red-900, .text-red-400')
+      .first()
+      .isVisible()
+      .catch(() => false),
+  };
+
+  const visibleElements = Object.entries(checks)
+    .filter(([, visible]) => visible)
+    .map(([name]) => name);
+
+  return `URL: ${url} | Visible: [${visibleElements.join(', ')}]`;
+}
+
+/**
  * Helper: Wait for the game to be ready for betting/playing
  * This waits until the game is past tuzovanie and into an actionable phase
  */
-async function waitForGameReady(page: Page, timeout = 45000): Promise<void> {
+async function waitForGameReady(
+  page: Page,
+  playerIndex: number,
+  allPages: Page[],
+  timeout = 45000,
+): Promise<void> {
   const start = Date.now();
 
   // Poll for game ready indicators
@@ -38,7 +118,22 @@ async function waitForGameReady(page: Page, timeout = 45000): Promise<void> {
     await page.waitForTimeout(200);
   }
 
-  throw new Error('Timeout waiting for game to be ready (past tuzovanie)');
+  // TIMEOUT - capture debug info for ALL pages
+  console.error(`\n=== TIMEOUT DEBUG INFO (Player ${playerIndex + 1}) ===`);
+  for (let i = 0; i < allPages.length; i++) {
+    try {
+      const state = await getPageState(allPages[i]);
+      console.error(`Player ${i + 1}: ${state}`);
+      await captureDebugScreenshot(allPages[i], i, 'timeout');
+    } catch (e) {
+      console.error(`Player ${i + 1}: Failed to capture state - ${e}`);
+    }
+  }
+  console.error('=== END DEBUG INFO ===\n');
+
+  throw new Error(
+    `Timeout waiting for game to be ready (past tuzovanie) - Player ${playerIndex + 1}`,
+  );
 }
 
 /**
@@ -138,12 +233,19 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
       // Wait for socket connection - button only appears when connected
       const findGameButton = page.getByRole('button', { name: /Find Game|Найти игру/i });
       await findGameButton.waitFor({ state: 'visible', timeout: 20000 });
+
+      // Capture baseline screenshot before clicking Find Game
+      await captureDebugScreenshot(page, i, 'before-find-game');
+      console.log(`Player ${i + 1}: Clicking Find Game...`);
+
       await findGameButton.click();
     }
 
+    console.log('All players clicked Find Game, waiting for game to be ready...');
+
     // Wait for the game to start on all pages (should see Round indicator)
     // This ensures we're past matchmaking and into the actual game
-    await Promise.all(pages.map((page) => waitForGameReady(page, 45000)));
+    await Promise.all(pages.map((page, index) => waitForGameReady(page, index, pages, 45000)));
 
     // Give the game a moment to fully initialize after all players see the game screen
     await pages[0].waitForTimeout(1000);

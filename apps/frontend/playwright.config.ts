@@ -17,9 +17,12 @@ const socketUrl = process.env.PLAYWRIGHT_SOCKET_URL ?? `http://127.0.0.1:${backe
 
 export default defineConfig({
   testDir: './tests/e2e',
+  outputDir: './test-results',
   timeout: 30_000,
   use: {
     baseURL,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
   },
   webServer: [
     {
