@@ -51,17 +51,33 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
   return (
     <>
       {sequence.map(({ card, playerId, dealIndex }) => {
-        const delay = dealIndex * 0.2;
-        const duration = 0.28;
+        const isFirst = dealIndex === 0;
+        // First card animation timing:
+        // 0s: Start
+        // 0.6s: Landed (duration)
+        // +1.0s: Delay (pause)
+        // 1.6s: Next cards start
+        const delay = isFirst ? 0 : 1.6 + (dealIndex - 1) * 0.3;
+        const duration = isFirst ? 0.6 : 0.35;
 
         // Special case for the "Center Deck" card
         if (playerId === 'center-deck') {
+          // Add messy randomness for the deck too
+          const hash = hashString(card.id);
+          const randomAngle = (hash % 20) - 10;
+
           return (
             <motion.div
               key="tuz-center-deck"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay, duration }}
+              initial={{ scale: 1.5, opacity: 0, y: -50, rotate: randomAngle }}
+              animate={{ scale: 1, opacity: 1, y: 0, rotate: randomAngle }}
+              transition={{
+                delay,
+                duration,
+                type: 'spring',
+                stiffness: 120,
+                damping: 12,
+              }}
               className="absolute z-0"
             >
               <Card card={undefined} faceDown size={tableCardSize} className="shadow-xl" />

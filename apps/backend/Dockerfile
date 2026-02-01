@@ -81,4 +81,15 @@ EXPOSE 3000
 # When running from root, 'nest build' outputs to dist/
 # In monorepo with shared libs, tsc preserves directory structure:
 # dist/apps/backend/src/main.js
+
+# Allow node user to write to these directories (required for Prisma client generation at runtime if needed, and logs)
+RUN chown -R node:node /app
+
+# Switch to non-root user for security
+USER node
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
 CMD [ "node", "dist/apps/backend/src/main" ]
