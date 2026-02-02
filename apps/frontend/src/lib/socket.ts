@@ -94,7 +94,11 @@ function getSocketUrl(): string {
   if (envUrl) return envUrl;
 
   // In development, use localhost
-  if (import.meta.env.DEV) {
+  if (
+    import.meta.env.DEV ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) {
     return 'http://localhost:3000';
   }
   // In production, use same origin
@@ -121,7 +125,7 @@ export function createSocket(): GameSocket {
     reconnectionAttempts: 10,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    timeout: 10000,
+    timeout: 20000,
     transports: ['websocket'], // WebSocket only - game requires low latency
     query: {
       userId: String(user.id),

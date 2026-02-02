@@ -35,7 +35,7 @@ interface RateLimitData {
 
 @Injectable()
 @WebSocketGateway({
-  transports: ['polling', 'websocket'], // Allow polling for reliable fallback
+  transports: ['websocket'],
   cors: {
     origin: '*',
     credentials: true,
@@ -58,7 +58,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     private connectionRegistry: ConnectionRegistryService,
     private gameProcess: GameProcessService,
     private telegramAuthGuard: TelegramAuthGuard,
-  ) {}
+  ) { }
 
   afterInit(server: Server) {
     this.gameProcess.setServer(server);
@@ -69,8 +69,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    * Returns true if action should be blocked
    */
   private isRateLimited(playerId: string, client: Socket): boolean {
-    if (process.env.E2E_TEST === 'true') return false;
-
     const now = Date.now();
     let data = this.rateLimitData.get(playerId);
 
