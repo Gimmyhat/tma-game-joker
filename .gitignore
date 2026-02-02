@@ -102,3 +102,6 @@ apps/frontend/src/components/AGENTS.md
 
 # Debug UI components
 apps/frontend/src/components/DevLogPanel.tsx
+
+# Ignored docs folder
+docs/
