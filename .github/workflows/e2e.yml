@@ -135,10 +135,20 @@ jobs:
       - name: Build Frontend
         run: pnpm --filter @joker/frontend build
 
+      - name: Start Frontend for e2e tests
+        run: |
+          cd apps/frontend
+          pnpm preview --host 127.0.0.1 --port 5173 &
+
+          echo "Waiting for frontend to start..."
+          timeout 30 bash -c 'until curl -s http://127.0.0.1:5173 > /dev/null; do sleep 1; done'
+          echo "Frontend started!"
+
       - name: Run frontend e2e
         env:
           PLAYWRIGHT_BACKEND_PORT: 3000
           PLAYWRIGHT_SOCKET_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
         run: pnpm --filter @joker/frontend test:e2e
 
       - name: Upload test artifacts

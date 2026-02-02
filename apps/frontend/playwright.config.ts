@@ -24,36 +24,34 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: [
-    // Backend: In CI, reuse existing (started separately). Locally, start dev server.
-    ...(process.env.CI
-      ? []
-      : [
-          {
-            command: 'pnpm --filter @joker/backend dev',
-            port: backendPort,
-            reuseExistingServer: true,
-            cwd: repoRoot,
-            env: {
-              SKIP_AUTH: 'true',
-              E2E_TEST: 'true',
-              NODE_ENV: 'test',
-              PORT: String(backendPort),
-              FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
-            },
+  // In CI, both backend and frontend are started externally by the workflow.
+  // Locally, start both servers via Playwright's webServer.
+  webServer: process.env.CI
+    ? []
+    : [
+        {
+          command: 'pnpm --filter @joker/backend dev',
+          port: backendPort,
+          reuseExistingServer: true,
+          cwd: repoRoot,
+          env: {
+            SKIP_AUTH: 'true',
+            E2E_TEST: 'true',
+            NODE_ENV: 'test',
+            PORT: String(backendPort),
+            FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
           },
-        ]),
-    {
-      // Frontend: serve static dist files
-      command: `pnpm --filter @joker/frontend preview -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
-      port: frontendPort,
-      reuseExistingServer: true,
-      cwd: repoRoot,
-      env: {
-        SKIP_AUTH: 'true',
-        VITE_SOCKET_URL: socketUrl,
-      },
-    },
-  ],
+        },
+        {
+          command: `pnpm --filter @joker/frontend preview -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
+          port: frontendPort,
+          reuseExistingServer: true,
+          cwd: repoRoot,
+          env: {
+            SKIP_AUTH: 'true',
+            VITE_SOCKET_URL: socketUrl,
+          },
+        },
+      ],
   reporter: 'list',
 });
