@@ -46,3 +46,59 @@ nul
 *.kilocode*
 installation_guide.md
 docs/Admin_Panel_Comparison.md
+
+# AI/Agent tooling
+.agent/
+.sisyphus/
+
+# Debug & analysis files
+analyze_tuzovanie.py
+last_game_log_v3.json
+
+# Security - never commit keys
+id_rsa.pub
+*.pem
+*.key
+
+# Generated bundles
+apps/admin/public/*.bundle.js
+apps/admin/.adminjs/
+
+# Command wrappers
+biome.cmd
+run-opencode.cmd
+typescript-language-server.cmd
+
+# Temp files
+*.temp
+nginx.conf.temp
+
+# Empty directory artifacts
+-p/
+
+# Design/concept assets (optional - uncomment if needed)
+# image.webp
+# Концепт_стола.webp
+
+# Development documentation
+AGENTS.md
+Backend-TOR.md
+DEVELOPMENT_PLAN.md
+OPEN_QUESTIONS.md
+PROGRESS.md
+ROADMAP.md
+TOR_CHANGELOG.md
+TOR.md
+
+# Frontend generated configs
+apps/frontend/vite.config.js
+apps/frontend/vite.config.d.ts
+apps/frontend/package-lock.json
+
+# Backend debug scripts
+apps/backend/scripts/e2e-simple.js
+apps/backend/src/game/AGENTS.md
+apps/frontend/src/components/AGENTS.md
+
+# Debug UI components
+apps/frontend/src/components/DevLogPanel.tsx
