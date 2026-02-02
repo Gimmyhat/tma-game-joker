@@ -45,3 +45,4 @@ node_modules/
 nul
 *.kilocode*
 installation_guide.md
+docs/Admin_Panel_Comparison.md

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Card as CardType, Player, Rank } from '@joker/shared';
+import { Card as CardType, Player, Rank, Suit } from '@joker/shared';
 import Card from '../Card';
 import {
   Position,
@@ -25,46 +25,92 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
   tableCardSize,
   getPlayerPosition,
 }) => {
-  let sequence = tuzovanieSequence;
+  // Generate a stable random center card once
+  const centerCard = useMemo(() => {
+    const suits = [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades];
+    // Exclude Aces to avoid confusion with the "Dealer" ace?
+    // Or include them? A random card is a random card. Let's include all standard ranks except maybe the highest/lowest if we want specific aesthetics.
+    // Let's stick to standard ranks 6-K for the center card to avoid "Is this the dealer ace?" confusion.
+    const ranks = [
+      Rank.Six,
+      Rank.Seven,
+      Rank.Eight,
+      Rank.Nine,
+      Rank.Ten,
+      Rank.Jack,
+      Rank.Queen,
+      Rank.King,
+    ];
 
-  // Fallback if sequence is missing but we have cards
-  if (!sequence && tuzovanieCards) {
-    const fallbackSeq: TuzovanieSequenceItem[] = [];
-    const maxRounds = Math.max(...tuzovanieCards.map((h) => h.length));
-    let dealIndex = 0;
-    for (let r = 0; r < maxRounds; r++) {
-      for (let i = 0; i < players.length; i++) {
-        if (tuzovanieCards[i] && tuzovanieCards[i][r]) {
-          fallbackSeq.push({
-            card: tuzovanieCards[i][r],
-            playerId: players[i].id,
-            dealIndex: dealIndex++,
-          });
+    const randomSuit = suits[Math.floor(Math.random() * suits.length)];
+    const randomRank = ranks[Math.floor(Math.random() * ranks.length)];
+
+    return {
+      id: 'center-deck-random',
+      suit: randomSuit,
+      rank: randomRank,
+      type: 'standard',
+    } as CardType;
+  }, []);
+
+  // Prepare the sequence
+  const sequence = useMemo(() => {
+    let seq: TuzovanieSequenceItem[] = [];
+
+    if (tuzovanieSequence) {
+      seq = [...tuzovanieSequence];
+    } else if (tuzovanieCards) {
+      // Fallback generation
+      const maxRounds = Math.max(...tuzovanieCards.map((h) => h.length));
+      let dealIndex = 0;
+      for (let r = 0; r < maxRounds; r++) {
+        for (let i = 0; i < players.length; i++) {
+          if (tuzovanieCards[i] && tuzovanieCards[i][r]) {
+            seq.push({
+              card: tuzovanieCards[i][r],
+              playerId: players[i].id,
+              dealIndex: dealIndex++,
+            });
+          }
         }
       }
     }
-    sequence = fallbackSeq;
-  }
+
+    if (!seq.length) return null;
+
+    // Ensure "Center Deck" is present at the start
+    if (!seq.some((item) => item.playerId === 'center-deck')) {
+      seq.unshift({
+        card: centerCard,
+        playerId: 'center-deck',
+        dealIndex: -1,
+      });
+    }
+
+    return seq;
+  }, [tuzovanieSequence, tuzovanieCards, players, centerCard]);
 
   if (!sequence) return null;
 
   return (
     <>
       {sequence.map(({ card, playerId, dealIndex }) => {
-        const animDelay = dealIndex * 0.34;
+        const isDeck = playerId === 'center-deck';
+        // If it's the deck, throw it immediately (delay 0).
+        // If it's a card, wait for deck animation to finish (approx 0.8s) + stagger based on dealIndex.
+        const animDelay = isDeck ? 0 : 0.8 + Math.max(0, dealIndex) * 0.34;
         const duration = 0.6;
 
         // Special case for the "Center Deck" card
-        if (playerId === 'center-deck') {
-          // Add messy randomness for the deck too
+        if (isDeck) {
           const hash = hashString(card.id);
           const randomAngle = (hash % 20) - 10;
 
           return (
             <motion.div
               key="tuz-center-deck"
-              initial={{ scale: 1.5, opacity: 0, y: -50, rotate: randomAngle }}
-              animate={{ scale: 1, opacity: 1, y: 0, rotate: randomAngle }}
+              initial={{ scale: 1.5, opacity: 0, x: '-50%', y: '-150%', rotate: randomAngle }}
+              animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%', rotate: randomAngle }}
               transition={{
                 delay: animDelay,
                 duration,
@@ -74,27 +120,24 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
               }}
               className="absolute z-0"
             >
-              <Card card={undefined} faceDown size={tableCardSize} className="shadow-xl" />
+              <Card card={card} size={tableCardSize} className="shadow-xl" />
             </motion.div>
           );
         }
 
         const pos = getPlayerPosition(playerId);
         const isAce = card.type === 'standard' && card.rank === Rank.Ace;
-
         const t = TUZOVANIE_POSITIONS[pos] || { x: 0, y: 0, rotate: 0 };
-
-        // Add messy randomness (+/- 10 degrees)
         const hash = hashString(card.id);
         const randomAngle = (hash % 20) - 10;
 
         return (
           <motion.div
             key={`tuz-${playerId}-${card.id}`}
-            initial={{ x: 0, y: 0, scale: 0.2, opacity: 0, rotate: 0 }}
+            initial={{ x: '-50%', y: '-50%', scale: 0.2, opacity: 0, rotate: 0 }}
             animate={{
-              x: t.x,
-              y: t.y,
+              x: `calc(${t.x}px - 50%)`,
+              y: `calc(${t.y}px - 50%)`,
               scale: 1,
               opacity: 1,
               rotate: t.rotate + randomAngle,
@@ -112,7 +155,11 @@ export const TuzovanieAnimation: React.FC<TuzovanieAnimationProps> = ({
               <Card
                 card={card}
                 size={tableCardSize}
-                className={`shadow-2xl ${isAce ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-black/50' : 'border-none'}`}
+                className={`shadow-2xl ${
+                  isAce
+                    ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-black/50'
+                    : 'border-none'
+                }`}
               />
 
               {/* Dealer Badge - Show if Ace */}
