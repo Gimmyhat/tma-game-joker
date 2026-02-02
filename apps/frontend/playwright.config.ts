@@ -25,25 +25,29 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: [
+    // Backend: In CI, reuse existing (started separately). Locally, start dev server.
+    ...(process.env.CI
+      ? []
+      : [
+          {
+            command: 'pnpm --filter @joker/backend dev',
+            port: backendPort,
+            reuseExistingServer: true,
+            cwd: repoRoot,
+            env: {
+              SKIP_AUTH: 'true',
+              E2E_TEST: 'true',
+              NODE_ENV: 'test',
+              PORT: String(backendPort),
+              FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
+            },
+          },
+        ]),
     {
-      // Revert to DEV mode (ts-node) as PROD build has issues with env/auth in test environment
-      command: 'pnpm --filter @joker/backend dev',
-      port: backendPort,
-      reuseExistingServer: !process.env.CI,
-      cwd: repoRoot,
-      env: {
-        SKIP_AUTH: 'true',
-        E2E_TEST: 'true',
-        NODE_ENV: 'test',
-        PORT: String(backendPort),
-        FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
-      },
-    },
-    {
-      // Use PREVIEW for frontend (serve static files)
+      // Frontend: serve static dist files
       command: `pnpm --filter @joker/frontend preview -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
       port: frontendPort,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       cwd: repoRoot,
       env: {
         SKIP_AUTH: 'true',

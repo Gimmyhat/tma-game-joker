@@ -136,6 +136,9 @@ jobs:
         run: pnpm --filter @joker/frontend build
 
       - name: Run frontend e2e
+        env:
+          PLAYWRIGHT_BACKEND_PORT: 3000
+          PLAYWRIGHT_SOCKET_URL: http://127.0.0.1:3000
         run: pnpm --filter @joker/frontend test:e2e
 
       - name: Upload test artifacts
