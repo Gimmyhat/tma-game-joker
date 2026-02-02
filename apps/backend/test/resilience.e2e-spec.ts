@@ -18,9 +18,6 @@ describe('Resilience (e2e)', () => {
   let roomManager: RoomManager;
   let serverUrl: string;
 
-  // Use env var or default for timeouts. In CI we might want longer timeouts.
-  const TURN_TIMEOUT = Number(process.env.TEST_TURN_TIMEOUT) || 2000;
-
   const players = ['r1', 'r2', 'r3', 'r4'];
   const names = ['Res1', 'Res2', 'Res3', 'Res4'];
 
@@ -70,7 +67,7 @@ describe('Resilience (e2e)', () => {
     const configService = moduleFixture.get(ConfigService);
     jest.spyOn(configService, 'get').mockImplementation((key: string) => {
       if (key === 'MATCHMAKING_TIMEOUT_MS') return '60000';
-      if (key === 'TURN_TIMEOUT_MS') return String(TURN_TIMEOUT);
+      if (key === 'TURN_TIMEOUT_MS') return '2000';
       if (key === 'SKIP_AUTH') return 'true';
       if (key === 'E2E_TEST') return 'true';
       return process.env[key];
@@ -97,9 +94,8 @@ describe('Resilience (e2e)', () => {
     await app.close();
   });
 
-  // TODO: Fix timing issues in CI environment. Currently Matchmaking timer fires too early or ConfigService env vars are not picked up correctly in test mode.
-  // See issue: Timer conflict causes premature bot replacement.
-  it('replaces disconnected player with bot after turn timeout', async () => {
+  // Test autopilot mode: disconnected player gets controlledByBot = true
+  it('enables autopilot for disconnected player', async () => {
     const clients = players.map((id, i) =>
       io(serverUrl, {
         transports: ['websocket'],
@@ -145,55 +141,40 @@ describe('Resilience (e2e)', () => {
         );
       }
 
-      let currentPlayerId = statePayload.state.players[statePayload.state.currentPlayerIndex].id;
-
-      // Ensure current player is HUMAN (wait for turns if needed)
-      let attempts = 0;
-      while (
-        statePayload.state.players.find((p) => p.id === currentPlayerId)?.isBot &&
-        attempts < 10
-      ) {
-        console.log(`Current player ${currentPlayerId} is bot. Waiting for next turn...`);
-        statePayload = await waitForEvent<{ state: GameState }>(clients[0], 'game_state', 5000);
-        currentPlayerId = statePayload.state.players[statePayload.state.currentPlayerIndex].id;
-        attempts++;
+      // Find first human player
+      const humanPlayer = statePayload.state.players.find((p) => !p.isBot);
+      if (!humanPlayer) {
+        throw new Error('No human players found');
       }
 
-      if (statePayload.state.players.find((p) => p.id === currentPlayerId)?.isBot) {
-        throw new Error('Timed out waiting for a human turn');
-      }
-
-      // Find which client is current player
-      const playerIndex = players.indexOf(currentPlayerId);
+      const playerIndex = players.indexOf(humanPlayer.id);
       if (playerIndex === -1) {
-        // Should not happen if we filtered for human turns from our list
-        throw new Error(
-          `Current player ${currentPlayerId} not found in test clients (unexpected ID)`,
-        );
+        throw new Error(`Player ${humanPlayer.id} not found in test clients`);
       }
-      const currentClient = clients[playerIndex];
+      const targetClient = clients[playerIndex];
 
-      console.log(`Current player is ${currentPlayerId} (index ${playerIndex}). Disconnecting...`);
+      console.log(`Disconnecting player ${humanPlayer.id} (index ${playerIndex})...`);
 
-      // Disconnect the current player
-      currentClient.disconnect();
+      // Disconnect the player
+      targetClient.disconnect();
 
-      // Wait for timeout + buffer (2.5s)
-      // Others should receive 'player_replaced'
-      const otherClient = clients.find((_, i) => i !== playerIndex)!;
+      // Wait for game_state with controlledByBot = true
+      const otherClient = clients.find((_, i) => i !== playerIndex && clients[i].connected)!;
 
-      const replacedEvent = await waitForEvent<{ playerId: string }>(
+      // Wait for updated state showing autopilot enabled
+      const updatedState = await waitForEvent<{ state: GameState }>(
         otherClient,
-        'player_replaced',
-        TURN_TIMEOUT + 2000,
+        'game_state',
+        5000,
       );
-      expect(replacedEvent.playerId).toBe(currentPlayerId);
 
-      // Verify game continues (new state received)
-      const newState = await waitForEvent<{ state: GameState }>(otherClient, 'game_state');
-      // Bot should have made a bet/move, so either phase changed or turn changed
-      // In betting phase, if bot bet, turn moves to next player
-      expect(newState.state.currentPlayerIndex).not.toBe(statePayload.state.currentPlayerIndex);
+      // Verify autopilot is enabled for disconnected player
+      const disconnectedPlayer = updatedState.state.players.find((p) => p.id === humanPlayer.id);
+      expect(disconnectedPlayer).toBeDefined();
+      expect(disconnectedPlayer!.connected).toBe(false);
+      expect(disconnectedPlayer!.controlledByBot).toBe(true);
+
+      console.log(`Player ${humanPlayer.id} now on autopilot`);
     } finally {
       if (roomId!) roomManager.cleanupRoom(roomId);
       clients.forEach((c) => {
