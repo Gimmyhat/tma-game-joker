@@ -24,7 +24,6 @@ import {
   HandwrittenScoreSheet,
 } from '../components/game';
 import { GameOverModal } from '../components/GameOverModal';
-import { DevLogPanel } from '../components/DevLogPanel';
 
 // Info Drawer Component - Compact game info panel
 const InfoDrawer: React.FC<{
@@ -579,9 +578,6 @@ export const GameScreen: React.FC = () => {
 
       {/* Legacy Game Over Modal (Fallback) */}
       <GameOverModal />
-
-      {/* Dev Logs */}
-      <DevLogPanel />
     </div>
   );
 };
