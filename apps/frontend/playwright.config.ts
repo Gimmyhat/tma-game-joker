@@ -26,6 +26,7 @@ export default defineConfig({
   },
   webServer: [
     {
+      // Revert to DEV mode (ts-node) as PROD build has issues with env/auth in test environment
       command: 'pnpm --filter @joker/backend dev',
       port: backendPort,
       reuseExistingServer: !process.env.CI,
@@ -35,10 +36,12 @@ export default defineConfig({
         E2E_TEST: 'true',
         NODE_ENV: 'test',
         PORT: String(backendPort),
+        FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
       },
     },
     {
-      command: `pnpm --filter @joker/frontend dev -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
+      // Use PREVIEW for frontend (serve static files)
+      command: `pnpm --filter @joker/frontend preview -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
       port: frontendPort,
       reuseExistingServer: !process.env.CI,
       cwd: repoRoot,

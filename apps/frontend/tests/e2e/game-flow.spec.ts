@@ -214,7 +214,7 @@ async function tryPlaceBet(page: Page): Promise<boolean> {
   }
 }
 
-test.skip('4 players can place bets and reach playing phase', async ({ browser }) => {
+test('4 players can place bets and reach playing phase', async ({ browser }) => {
   test.setTimeout(180000); // Increase timeout for CI stability (3 mins)
   const contexts = await Promise.all(players.map(() => browser.newContext()));
   const pages = await Promise.all(contexts.map((context) => context.newPage()));
@@ -223,7 +223,8 @@ test.skip('4 players can place bets and reach playing phase', async ({ browser }
     // Connect all players and click Find Game
     for (let i = 0; i < pages.length; i += 1) {
       // Add generous delay to prevent thundering herd on backend connection
-      if (i > 0) await pages[0].waitForTimeout(5000);
+      // Increased to 10s to avoid connection limits/timeouts
+      if (i > 0) await pages[0].waitForTimeout(10000);
 
       const player = players[i];
       const page = pages[i];

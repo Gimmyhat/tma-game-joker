@@ -67,6 +67,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
             );
             return null; // Stop retrying
           }
+          // LOG ERROR DETAIL
+          // this.logger.warn(`Redis connect error details: ${JSON.stringify(this.client?.status)}`);
+
           const delay = Math.min(times * 500, 3000);
           this.logger.warn(`Redis reconnecting in ${delay}ms (attempt ${times})`);
           return delay;
@@ -77,13 +80,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Connecting to Redis...');
       });
 
-      this.client.on('ready', () => {
-        this.isConnected = true;
-        this.logger.log('Redis connection ready');
-      });
-
       this.client.on('error', (err) => {
-        // Don't spam logs for connection refused during startup
+        // ADDED DEBUG LOG
+        this.logger.error(`Redis raw error: ${err.message} code=${(err as any).code}`);
+
         if (!err.message.includes('ECONNREFUSED')) {
           this.logger.error(`Redis error: ${err.message}`);
         }
@@ -153,17 +153,40 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // ==========================================
 
   /**
-   * Save game state to Redis
+   * Save game state to Redis with retry
    */
   async setGameState(roomId: string, state: GameState): Promise<void> {
-    if (!this.isAvailable()) return;
+    if (!this.isAvailable()) {
+      if (this._redisRequired && this._isProduction) {
+        throw new Error('Redis required but unavailable');
+      }
+      return;
+    }
 
-    try {
-      const key = `${KEYS.GAME}${roomId}`;
-      await this.client!.setex(key, GAME_STATE_TTL, JSON.stringify(state));
-    } catch (error) {
-      // Downgrade error to warn to reduce noise if Redis flakes
-      this.logger.warn(`Failed to save game state (Redis): ${(error as Error).message}`);
+    const key = `${KEYS.GAME}${roomId}`;
+    const data = JSON.stringify(state);
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await this.client!.setex(key, GAME_STATE_TTL, data);
+        return; // Success
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(`Failed to save game state (Attempt ${attempt}/3): ${lastError.message}`);
+        // Small wait before retry
+        await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+      }
+    }
+
+    // If we get here, all retries failed
+    this.logger.error(
+      `CRITICAL: Failed to persist game state for room ${roomId} after 3 attempts: ${lastError?.message}`,
+    );
+
+    // In strict mode, we should propagate this error
+    if (this._redisRequired) {
+      throw lastError || new Error('Failed to persist game state');
     }
   }
 

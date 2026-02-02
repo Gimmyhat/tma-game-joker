@@ -8,21 +8,23 @@ import { RedisService } from '../src/database/redis.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 // TODO: Fix resilience tests. Timing issues with Bot Fill timer in test environment cause flakiness.
+import { ConfigService } from '@nestjs/config';
+
 // Needs reliable ConfigService mocking for timeouts.
-describe.skip('Resilience (e2e)', () => {
-  jest.setTimeout(20000);
+describe('Resilience (e2e)', () => {
+  jest.setTimeout(60000); // Increased global timeout
 
   let app: INestApplication;
   let roomManager: RoomManager;
   let serverUrl: string;
 
-  // Short timeout for testing
-  const TURN_TIMEOUT = 2000;
+  // Use env var or default for timeouts. In CI we might want longer timeouts.
+  const TURN_TIMEOUT = Number(process.env.TEST_TURN_TIMEOUT) || 2000;
 
   const players = ['r1', 'r2', 'r3', 'r4'];
   const names = ['Res1', 'Res2', 'Res3', 'Res4'];
 
-  const waitForEvent = <T>(socket: Socket, event: string, timeoutMs = 5000) =>
+  const waitForEvent = <T>(socket: Socket, event: string, timeoutMs = 20000) =>
     new Promise<T>((resolve, reject) => {
       const onEvent = (payload: T) => {
         cleanup();
@@ -40,10 +42,13 @@ describe.skip('Resilience (e2e)', () => {
     });
 
   beforeAll(async () => {
-    // Set config for test
-    process.env.TURN_TIMEOUT_MS = String(TURN_TIMEOUT);
-    process.env.MATCHMAKING_TIMEOUT_MS = '60000'; // Ensure long timeout
+    // Disable Redis for local tests to avoid network issues
     process.env.E2E_TEST = 'true';
+    process.env.NODE_ENV = 'test';
+
+    // CRITICAL: Allow bypassing Telegram auth for test clients
+    process.env.SKIP_AUTH = 'true';
+    process.env.MATCHMAKING_TIMEOUT_MS = '60000'; // Set explicitly
 
     const prismaMock = {
       $connect: jest.fn(),
@@ -61,7 +66,19 @@ describe.skip('Resilience (e2e)', () => {
       .useValue(prismaMock)
       .compile();
 
-    app = moduleFixture.createNestApplication();
+    // SPY ON CONFIG SERVICE to enforce timeouts regardless of .env files
+    const configService = moduleFixture.get(ConfigService);
+    jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+      if (key === 'MATCHMAKING_TIMEOUT_MS') return '60000';
+      if (key === 'TURN_TIMEOUT_MS') return String(TURN_TIMEOUT);
+      if (key === 'SKIP_AUTH') return 'true';
+      if (key === 'E2E_TEST') return 'true';
+      return process.env[key];
+    });
+
+    app = moduleFixture.createNestApplication({
+      logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+    });
     await app.init();
     await app.listen(0);
 
@@ -82,9 +99,10 @@ describe.skip('Resilience (e2e)', () => {
 
   // TODO: Fix timing issues in CI environment. Currently Matchmaking timer fires too early or ConfigService env vars are not picked up correctly in test mode.
   // See issue: Timer conflict causes premature bot replacement.
-  it.skip('replaces disconnected player with bot after turn timeout', async () => {
+  it('replaces disconnected player with bot after turn timeout', async () => {
     const clients = players.map((id, i) =>
       io(serverUrl, {
+        transports: ['websocket'],
         query: { userId: id, userName: names[i] },
         forceNew: true,
         autoConnect: false,
@@ -95,26 +113,63 @@ describe.skip('Resilience (e2e)', () => {
 
     try {
       // Connect all
-      clients.forEach((c) => c.connect());
-      await Promise.all(clients.map((c) => waitForEvent(c, 'connect')));
+      console.log('Connecting clients...');
+      const connectPromises = clients.map((c, i) => {
+        c.connect();
+        return waitForEvent(c, 'connect').then(() => console.log(`Client ${i} connected`));
+      });
+      await Promise.all(connectPromises);
 
       // Start Game
-      clients.forEach((c) => c.emit('find_game'));
+      console.log('Starting matchmaking...');
+
+      // Emit find_game sequentially to ensure order and avoid race conditions
+      for (const c of clients) {
+        c.emit('find_game');
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
       const started = await waitForEvent<{ roomId: string }>(clients[0], 'game_started');
       roomId = started.roomId;
+      console.log(`Game started: ${roomId}`);
 
       // Wait for initial state
-      const statePayload = await waitForEvent<{ state: GameState }>(clients[0], 'game_state');
-      const currentPlayerId = statePayload.state.players[statePayload.state.currentPlayerIndex].id;
+      let statePayload = await waitForEvent<{ state: GameState }>(clients[0], 'game_state');
+
+      // If bots are present, it's fine, just log it.
+      const bots = statePayload.state.players.filter((p) => p.isBot);
+      if (bots.length > 0) {
+        console.log(
+          'Info: Game started with bots:',
+          bots.map((b) => b.name),
+        );
+      }
+
+      let currentPlayerId = statePayload.state.players[statePayload.state.currentPlayerIndex].id;
+
+      // Ensure current player is HUMAN (wait for turns if needed)
+      let attempts = 0;
+      while (
+        statePayload.state.players.find((p) => p.id === currentPlayerId)?.isBot &&
+        attempts < 10
+      ) {
+        console.log(`Current player ${currentPlayerId} is bot. Waiting for next turn...`);
+        statePayload = await waitForEvent<{ state: GameState }>(clients[0], 'game_state', 5000);
+        currentPlayerId = statePayload.state.players[statePayload.state.currentPlayerIndex].id;
+        attempts++;
+      }
+
+      if (statePayload.state.players.find((p) => p.id === currentPlayerId)?.isBot) {
+        throw new Error('Timed out waiting for a human turn');
+      }
 
       // Find which client is current player
       const playerIndex = players.indexOf(currentPlayerId);
       if (playerIndex === -1) {
-        console.error(
-          'Players in state:',
-          statePayload.state.players.map((p) => p.id),
+        // Should not happen if we filtered for human turns from our list
+        throw new Error(
+          `Current player ${currentPlayerId} not found in test clients (unexpected ID)`,
         );
-        throw new Error(`Current player ${currentPlayerId} not found in test clients`);
       }
       const currentClient = clients[playerIndex];
 
@@ -151,13 +206,18 @@ describe.skip('Resilience (e2e)', () => {
     // We reuse r1 for this test, assuming previous test cleaned up
     const playerId = 'recon-1';
     const client1 = io(serverUrl, {
+      transports: ['websocket'],
       query: { userId: playerId, userName: 'Recon' },
       forceNew: true,
     });
 
     // We need 3 others to start a game
     const others = ['o1', 'o2', 'o3'].map((id) =>
-      io(serverUrl, { query: { userId: id, userName: id }, forceNew: true }),
+      io(serverUrl, {
+        transports: ['websocket'],
+        query: { userId: id, userName: id },
+        forceNew: true,
+      }),
     );
 
     let roomId: string;
@@ -175,6 +235,7 @@ describe.skip('Resilience (e2e)', () => {
 
       // Reconnect
       const client1Reborn = io(serverUrl, {
+        transports: ['websocket'],
         query: { userId: playerId, userName: 'Recon' },
         forceNew: true,
       });

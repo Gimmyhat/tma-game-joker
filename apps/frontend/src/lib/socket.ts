@@ -18,6 +18,7 @@ import type {
   Card,
   TrumpDecision,
   GameFinishedPayload,
+  TuzovanieDeal,
 } from '@joker/shared';
 
 // Server events (received from server)
@@ -31,6 +32,7 @@ export interface ServerToClientEvents {
   // Game events
   tuzovanie_started: (data: {
     cardsDealt: Card[][];
+    dealSequence: TuzovanieDeal[];
     dealerIndex: number;
     players: { id: string; name: string }[];
   }) => void;

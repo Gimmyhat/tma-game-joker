@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { GameState, GamePhase, GameFinishedPayload } from '@joker/shared';
+import { GameState, GamePhase, GameFinishedPayload, Card, TuzovanieDeal } from '@joker/shared';
 import { getSocket, setUserInfo, type GameSocket } from '../lib/socket';
 import { getMockUser, type TelegramUser } from '../lib/telegram';
 
@@ -154,57 +154,66 @@ function setupSocketListeners(
   });
 
   // Tuzovanie event
-  socket.on('tuzovanie_started', (data: any) => {
-    console.log('[Store] Tuzovanie started:', data);
+  socket.on(
+    'tuzovanie_started',
+    (data: {
+      cardsDealt: Card[][];
+      dealSequence: TuzovanieDeal[];
+      dealerIndex: number;
+      players: { id: string; name: string }[];
+    }) => {
+      console.log('[Store] Tuzovanie started:', data);
 
-    // Create mock game state to switch to GameScreen
-    const mockPlayers = data.players.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      isBot: false, // Doesn't matter for UI
-      connected: true,
-      hand: [],
-      bet: null,
-      tricks: 0,
-      roundScores: [],
-      pulkaScores: [],
-      totalScore: 0,
-      spoiled: false,
-      hadJokerInRounds: [],
-      jokerCountPerRound: [],
-    }));
+      // Create partial game state for Tuzovanie phase
+      const mockPlayers = data.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        isBot: false, // Default for display
+        connected: true,
+        hand: [],
+        bet: null,
+        tricks: 0,
+        roundScores: [],
+        pulkaScores: [],
+        totalScore: 0,
+        spoiled: false,
+        hadJokerInRounds: [],
+        jokerCountPerRound: [],
+        tookAllInPulka: false,
+        perfectPassInPulka: false,
+      }));
 
-    const mockGameState: GameState = {
-      id: 'tuzovanie-temp',
-      players: mockPlayers,
-      dealerIndex: data.dealerIndex, // We know the result, but animation will reveal it
-      currentPlayerIndex: 0,
-      round: 1,
-      pulka: 1,
-      cardsPerPlayer: 1,
-      phase: GamePhase.Tuzovanie,
-      trump: null,
-      trumpCard: null,
-      table: [],
-      turnStartedAt: Date.now(),
-      turnTimeoutMs: 0,
-      history: [],
-      lastPulkaResults: null,
-      createdAt: Date.now(),
-      finishedAt: null,
-      winnerId: null,
-    };
+      const tempGameState: GameState = {
+        id: 'tuzovanie-temp',
+        players: mockPlayers,
+        dealerIndex: data.dealerIndex, // We know the result, but animation will reveal it
+        currentPlayerIndex: 0,
+        round: 1,
+        pulka: 1,
+        cardsPerPlayer: 1,
+        phase: GamePhase.Tuzovanie,
+        trump: null,
+        trumpCard: null,
+        table: [],
+        turnStartedAt: Date.now(),
+        turnTimeoutMs: 0,
+        history: [],
+        lastPulkaResults: null,
+        createdAt: Date.now(),
+        finishedAt: null,
+        winnerId: null,
+      };
 
-    set({
-      lobbyStatus: 'tuzovanie',
-      tuzovanieCards: data.cardsDealt,
-      tuzovanieDealerIndex: data.dealerIndex,
-      tuzovanieSequence: data.dealSequence, // Store the server sequence
-      // Set GameState immediately to trigger screen switch
-      gameState: mockGameState,
-      myHand: [],
-    });
-  });
+      set({
+        lobbyStatus: 'tuzovanie',
+        tuzovanieCards: data.cardsDealt,
+        tuzovanieDealerIndex: data.dealerIndex,
+        tuzovanieSequence: data.dealSequence,
+        gameState: tempGameState,
+        myHand: [],
+      });
+    },
+  );
 
   // Game events
   socket.on('game_started', (data) => {

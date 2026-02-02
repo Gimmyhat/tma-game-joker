@@ -108,6 +108,12 @@ export interface TableCard {
   requestedSuit?: Suit;
 }
 
+export interface TuzovanieDeal {
+  playerId: string;
+  card: Card;
+  dealIndex: number;
+}
+
 // =====================================
 // PLAYER TYPES
 // =====================================
