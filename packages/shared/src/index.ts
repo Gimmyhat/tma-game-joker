@@ -366,6 +366,7 @@ export const GAME_CONSTANTS = {
   // Timeouts
   TURN_TIMEOUT_MS: 300_000, // 5 minutes
   RECONNECT_TIMEOUT_MS: 30_000,
+  FROZEN_ROOM_TIMEOUT_MS: 60_000, // 1 minute - close room if last human disconnected
   MATCHMAKING_TIMEOUT_MS: 60_000,
   PULKA_RECAP_TIMEOUT_MS: 60_000, // 1 minute
   TRICK_RECAP_TIMEOUT_MS: 3000, // 3 seconds delay after each trick

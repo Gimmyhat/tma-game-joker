@@ -21,6 +21,7 @@ export class GameProcessService {
   private readonly logger = new Logger(GameProcessService.name);
   private server!: Server;
   private reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private frozenRoomTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private botFillTimer: NodeJS.Timeout | null = null;
   private readonly frozenRooms: Set<string> = new Set();
 
@@ -68,6 +69,7 @@ export class GameProcessService {
 
   private clearFrozenRoom(roomId: string): void {
     this.frozenRooms.delete(roomId);
+    this.clearFrozenRoomTimeout(roomId);
   }
 
   private freezeTimersIfSingleHuman(roomId: string, state: GameState): void {
@@ -75,6 +77,43 @@ export class GameProcessService {
     this.setRoomFrozen(roomId, true);
     this.roomManager.clearTurnTimeout(roomId);
     this.clearReconnectTimeouts(state);
+    this.startFrozenRoomTimeout(roomId);
+  }
+
+  /**
+   * Start timeout to close frozen room if last human doesn't reconnect
+   */
+  private startFrozenRoomTimeout(roomId: string): void {
+    this.clearFrozenRoomTimeout(roomId);
+
+    const timeoutMs =
+      Number(this.configService.get('FROZEN_ROOM_TIMEOUT_MS')) ||
+      GAME_CONSTANTS.FROZEN_ROOM_TIMEOUT_MS;
+
+    const timeout = setTimeout(async () => {
+      this.clearFrozenRoomTimeout(roomId);
+
+      const room = this.roomManager.getRoomSync(roomId);
+      if (!room) return;
+
+      // Check if still frozen (no human reconnected)
+      if (!this.frozenRooms.has(roomId)) return;
+
+      this.logger.log(`Frozen room ${roomId} timed out - closing (no human reconnected)`);
+      this.clearFrozenRoom(roomId);
+      await this.roomManager.cleanupRoom(roomId);
+    }, timeoutMs);
+
+    this.frozenRoomTimeouts.set(roomId, timeout);
+    this.logger.log(`Frozen room timeout started for ${roomId} (${timeoutMs}ms)`);
+  }
+
+  private clearFrozenRoomTimeout(roomId: string): void {
+    const timeout = this.frozenRoomTimeouts.get(roomId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.frozenRoomTimeouts.delete(roomId);
+    }
   }
 
   /**
@@ -221,6 +260,13 @@ export class GameProcessService {
 
     await this.roomManager.updateSocketId(playerId, socketId);
     this.clearReconnectTimeout(playerId);
+
+    // If room was frozen (waiting for last human to reconnect), unfreeze it
+    if (this.frozenRooms.has(room.id)) {
+      this.logger.log(`Human reconnected to frozen room ${room.id} - resuming game`);
+      this.clearFrozenRoom(room.id);
+      this.startTurnTimer(room.id);
+    }
 
     const player = room.gameState.players.find((p) => p.id === playerId);
     if (player) {
