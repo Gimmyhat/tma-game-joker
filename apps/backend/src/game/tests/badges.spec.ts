@@ -31,6 +31,7 @@ describe('Badge Logic', () => {
     id: 'test-player',
     name: 'Test Player',
     isBot: false,
+    controlledByBot: false,
     connected: true,
     hand: [],
     bet: null,

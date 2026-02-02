@@ -481,6 +481,7 @@ export class RoomManager {
       id: botId,
       name: `${player.name} (Bot)`,
       isBot: true,
+      controlledByBot: false,
       connected: true,
     };
 

@@ -65,6 +65,7 @@ export class GameEngineService {
       id,
       name: playerNames[index] || `Player ${index + 1}`,
       isBot: id.startsWith('bot-'),
+      controlledByBot: false,
       connected: !id.startsWith('bot-'),
       hand: [],
       bet: null,

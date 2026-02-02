@@ -37,12 +37,17 @@ export class GameProcessService {
     this.server = server;
   }
 
+  private countConnectedHumans(state: GameState): number {
+    return state.players.filter((player) => !player.isBot && player.connected).length;
+  }
+
   private countHumanPlayers(state: GameState): number {
     return state.players.filter((player) => !player.isBot).length;
   }
 
   private shouldFreezeTimers(state: GameState): boolean {
-    return this.countHumanPlayers(state) <= 1;
+    // Freeze only when ALL humans are disconnected
+    return this.countConnectedHumans(state) === 0;
   }
 
   private clearReconnectTimeouts(state: GameState): void {
@@ -225,7 +230,7 @@ export class GameProcessService {
   }
 
   /**
-   * Handle player disconnect
+   * Handle player disconnect - enable autopilot for this player
    */
   async handleDisconnect(playerId: string): Promise<void> {
     // Check if player was in queue BEFORE removing
@@ -244,11 +249,22 @@ export class GameProcessService {
 
     // Handle room disconnect logic
     const room = this.roomManager.getRoomByPlayerIdSync(playerId);
-    if (room && this.shouldFreezeTimers(room.gameState)) {
-      this.freezeTimersIfSingleHuman(room.id, room.gameState);
-      return;
+    if (!room) return;
+
+    const player = room.gameState.players.find((p) => p.id === playerId);
+    if (player && !player.isBot) {
+      // Enable autopilot for disconnected human
+      player.controlledByBot = true;
+      this.logger.log(`Player ${playerId} disconnected - autopilot enabled`);
+      await this.emitGameState(room.id);
     }
-    this.startReconnectTimeout(playerId);
+
+    // Check if ALL humans are now disconnected
+    const connectedHumans = room.gameState.players.filter((p) => !p.isBot && p.connected);
+    if (connectedHumans.length === 0) {
+      // No humans left - start frozen room timeout
+      this.freezeTimersIfSingleHuman(room.id, room.gameState);
+    }
   }
 
   /**
@@ -261,7 +277,7 @@ export class GameProcessService {
     await this.roomManager.updateSocketId(playerId, socketId);
     this.clearReconnectTimeout(playerId);
 
-    // If room was frozen (waiting for last human to reconnect), unfreeze it
+    // If room was frozen (all humans disconnected), unfreeze it
     if (this.frozenRooms.has(room.id)) {
       this.logger.log(`Human reconnected to frozen room ${room.id} - resuming game`);
       this.clearFrozenRoom(room.id);
@@ -271,6 +287,11 @@ export class GameProcessService {
     const player = room.gameState.players.find((p) => p.id === playerId);
     if (player) {
       player.connected = true;
+      // Disable autopilot - player takes control back
+      if (player.controlledByBot) {
+        player.controlledByBot = false;
+        this.logger.log(`Player ${playerId} reconnected - autopilot disabled`);
+      }
       await this.emitGameState(room.id);
     }
 
@@ -519,14 +540,15 @@ export class GameProcessService {
   }
 
   /**
-   * Process bot turn
+   * Process bot turn (includes players on autopilot)
    */
   async processBotTurn(roomId: string): Promise<void> {
     const room = this.roomManager.getRoomSync(roomId);
     if (!room) return;
 
     const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
-    if (!currentPlayer || !currentPlayer.isBot) return;
+    // Act for actual bots OR players on autopilot
+    if (!currentPlayer || (!currentPlayer.isBot && !currentPlayer.controlledByBot)) return;
 
     // Clear existing timeout if any
     this.roomManager.clearBotMoveTimeout(roomId);

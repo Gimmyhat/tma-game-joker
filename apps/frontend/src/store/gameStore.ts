@@ -169,6 +169,7 @@ function setupSocketListeners(
         id: p.id,
         name: p.name,
         isBot: false, // Default for display
+        controlledByBot: false,
         connected: true,
         hand: [],
         bet: null,

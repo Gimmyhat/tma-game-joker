@@ -12,6 +12,7 @@ describe('ScoringService', () => {
     id,
     name: `Player ${id}`,
     isBot: false,
+    controlledByBot: false,
     connected: true,
     hand: [],
     bet: 0,

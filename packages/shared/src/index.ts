@@ -139,6 +139,8 @@ export interface Player {
   id: string;
   name: string;
   isBot: boolean;
+  /** Temporarily controlled by bot AI (human disconnected) */
+  controlledByBot: boolean;
   socketId?: string;
   connected: boolean;
 

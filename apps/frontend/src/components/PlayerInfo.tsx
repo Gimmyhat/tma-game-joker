@@ -93,8 +93,8 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] pointer-events-none" />
         </div>
 
-        {/* Bot Icon Overlay */}
-        {player.isBot && <BotOverlayIcon />}
+        {/* Bot Icon Overlay - show for bots or autopilot */}
+        {(player.isBot || player.controlledByBot) && <BotOverlayIcon />}
 
         {/* Connection Dot */}
         <div

@@ -18,6 +18,7 @@ export const LobbyTable: React.FC = () => {
       id: myPlayerId || 'me',
       name: user?.firstName || t('lobby.playingAs') + ' Me',
       isBot: false,
+      controlledByBot: false,
       connected: true,
       hand: [],
       bet: null,
@@ -40,6 +41,7 @@ export const LobbyTable: React.FC = () => {
         id: `player-${i}`,
         name: `${t('game.opponent')} ${i + 1}`,
         isBot: false,
+        controlledByBot: false,
         connected: true,
         hand: [],
         bet: null,
@@ -63,6 +65,7 @@ export const LobbyTable: React.FC = () => {
         id: `empty-${i}`,
         name: t('game.waitingFor'),
         isBot: false,
+        controlledByBot: false,
         connected: false, // Show as disconnected/empty
         hand: [],
         bet: null,
