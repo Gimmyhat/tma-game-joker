@@ -132,6 +132,9 @@ jobs:
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
           echo "Backend started!"
 
+      - name: Build Frontend
+        run: pnpm --filter @joker/frontend build
+
       - name: Run frontend e2e
         run: pnpm --filter @joker/frontend test:e2e
 
