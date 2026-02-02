@@ -5,6 +5,7 @@ import { JokerOption, Suit } from '@joker/shared';
 interface JokerOptionModalProps {
   isOpen: boolean;
   onSelect: (option: JokerOption, requestedSuit?: Suit) => void;
+  onClose: () => void;
   leadSuit?: Suit;
   /** True if this joker is leading the trick (first card on table) */
   isLeading: boolean;
@@ -13,6 +14,7 @@ interface JokerOptionModalProps {
 export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
   isOpen,
   onSelect,
+  onClose,
   leadSuit,
   isLeading,
 }) => {
@@ -186,6 +188,16 @@ export const JokerOptionModal: React.FC<JokerOptionModalProps> = ({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Cancel button */}
+        <div className="p-3 pt-0">
+          <button
+            onClick={onClose}
+            className="w-full py-2 px-4 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-medium transition-all duration-200"
+          >
+            {t('common.cancel', 'Отмена')}
+          </button>
         </div>
       </div>
     </div>

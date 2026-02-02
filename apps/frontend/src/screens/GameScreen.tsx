@@ -553,6 +553,7 @@ export const GameScreen: React.FC = () => {
       <JokerOptionModal
         isOpen={isJokerModalOpen}
         onSelect={handleJokerSelect}
+        onClose={() => setIsJokerModalOpen(false)}
         leadSuit={leadSuit}
         isLeading={gameState.table.length === 0}
       />
