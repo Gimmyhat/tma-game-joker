@@ -58,7 +58,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     private connectionRegistry: ConnectionRegistryService,
     private gameProcess: GameProcessService,
     private telegramAuthGuard: TelegramAuthGuard,
-  ) { }
+  ) {}
 
   afterInit(server: Server) {
     this.gameProcess.setServer(server);
@@ -69,6 +69,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
    * Returns true if action should be blocked
    */
   private isRateLimited(playerId: string, client: Socket): boolean {
+    // Skip rate limiting in E2E tests to allow fast execution
+    if (process.env.E2E_TEST === 'true' || process.env.NODE_ENV === 'test') {
+      return false;
+    }
+
     const now = Date.now();
     let data = this.rateLimitData.get(playerId);
 
