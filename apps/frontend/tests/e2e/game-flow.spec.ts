@@ -261,7 +261,6 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     console.log(`[${new Date().toISOString()}] Starting betting loop. Max duration: 90s`);
 
     const betPlaced = new Set<number>();
-    const trumpSelected = { done: false };
     const start = Date.now();
     const maxDuration = 90000; // Increased to 90s to account for slow Tuzovanie
 
@@ -270,21 +269,30 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
     // Main game loop: handle trump selection, then betting
     while (betPlaced.size < pages.length && Date.now() - start < maxDuration) {
       loopCount++;
-      if (loopCount % 10 === 0) { // Log every ~2-3 seconds usually
-        console.log(`[Loop ${loopCount}] Bet Status: ${betPlaced.size}/${pages.length} placed. Time elapsed: ${Math.round((Date.now() - start) / 1000)}s`);
+      if (loopCount % 10 === 0) {
+        // Log every ~2-3 seconds usually
+        console.log(
+          `[Loop ${loopCount}] Bet Status: ${betPlaced.size}/${pages.length} placed. Time elapsed: ${Math.round((Date.now() - start) / 1000)}s`,
+        );
       }
 
-      // Phase 1: Trump Selection (only one player is the chooser)
-      if (!trumpSelected.done) {
-
-        for (const page of pages) {
-          if (await trySelectTrump(page)) {
-            trumpSelected.done = true;
-            // Wait for phase transition after trump selection
-            await page.waitForTimeout(500);
-            break;
-          }
+      // Phase 1: Trump Selection
+      // Always check for trump selection modal if we haven't placed all bets yet
+      // This allows retrying if the first click failed to trigger phase change
+      let trumpActionTaken = false;
+      for (const page of pages) {
+        if (await trySelectTrump(page)) {
+          trumpActionTaken = true;
+          console.log(`[Loop ${loopCount}] Trump selection attempted`);
+          // Wait for phase transition after trump selection
+          await page.waitForTimeout(500);
+          break; // Only one player selects trump
         }
+      }
+
+      // If we just selected trump, give it a moment before trying to bet
+      if (trumpActionTaken) {
+        await pages[0].waitForTimeout(500);
       }
 
       // Phase 2: Betting (each player takes turns)
@@ -293,6 +301,7 @@ test('4 players can place bets and reach playing phase', async ({ browser }) => 
 
         // Check if this page can place a bet
         if (await tryPlaceBet(pages[i])) {
+          console.log(`[Loop ${loopCount}] Player ${i + 1} placed bet`);
           betPlaced.add(i);
           // Wait a bit for state sync before checking other pages
           await pages[i].waitForTimeout(300);
