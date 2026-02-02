@@ -599,7 +599,8 @@ describe('App (e2e)', () => {
       }
 
       expect(currentState.round).toBe(2);
-      expect(currentState.phase).toBe(GamePhase.Betting);
+      // Round 2 may start in TrumpSelection or Betting depending on card deal
+      expect([GamePhase.Betting, GamePhase.TrumpSelection]).toContain(currentState.phase);
     } finally {
       if (roomId) {
         await roomManager.cleanupRoom(roomId);
