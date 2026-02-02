@@ -41,13 +41,21 @@ export class GameProcessService {
     return state.players.filter((player) => !player.isBot && player.connected).length;
   }
 
+  private countActiveHumans(state: GameState): number {
+    // Active = connected AND not on autopilot
+    return state.players.filter(
+      (player) => !player.isBot && player.connected && !player.controlledByBot,
+    ).length;
+  }
+
   private countHumanPlayers(state: GameState): number {
     return state.players.filter((player) => !player.isBot).length;
   }
 
   private shouldFreezeTimers(state: GameState): boolean {
-    // Freeze only when ALL humans are disconnected
-    return this.countConnectedHumans(state) === 0;
+    // Freeze when only 1 active human remains (playing alone vs bots)
+    // Don't freeze if there are 0 - that means all are on autopilot, bots should play
+    return this.countActiveHumans(state) === 1;
   }
 
   private clearReconnectTimeouts(state: GameState): void {
@@ -256,14 +264,21 @@ export class GameProcessService {
       // Enable autopilot for disconnected human
       player.controlledByBot = true;
       this.logger.log(`Player ${playerId} disconnected - autopilot enabled`);
-      await this.emitGameState(room.id);
-    }
 
-    // Check if ALL humans are now disconnected
-    const connectedHumans = room.gameState.players.filter((p) => !p.isBot && p.connected);
-    if (connectedHumans.length === 0) {
-      // No humans left - start frozen room timeout
-      this.freezeTimersIfSingleHuman(room.id, room.gameState);
+      // Check if ALL humans are now disconnected
+      const connectedHumans = room.gameState.players.filter((p) => !p.isBot && p.connected);
+      if (connectedHumans.length === 0) {
+        // No humans left watching - start room cleanup timeout
+        this.startFrozenRoomTimeout(room.id);
+      }
+
+      await this.emitGameState(room.id);
+
+      // If it's this player's turn, trigger bot to act immediately
+      const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
+      if (currentPlayer && currentPlayer.id === playerId) {
+        await this.processBotTurn(room.id);
+      }
     }
   }
 
