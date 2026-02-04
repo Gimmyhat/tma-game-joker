@@ -87,7 +87,16 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
             alt={player.name}
             className="w-full h-full object-cover transform scale-110 mt-1"
             loading="lazy"
+            onError={(e) => {
+              // Fallback to initials on error
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
           />
+          {/* Fallback initials */}
+          <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg">
+            {player.name.slice(0, 2).toUpperCase()}
+          </div>
 
           {/* Inner Shadow for depth */}
           <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] pointer-events-none" />
