@@ -10,6 +10,9 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 import { HealthController } from './health/health.controller';
+import { PrismaModule } from './prisma/prisma.module';
+import { EconomyModule } from './economy/economy.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -22,12 +25,15 @@ import { HealthController } from './health/health.controller';
       serveRoot: '/',
     }),
     ScheduleModule.forRoot(),
+    PrismaModule,
     DatabaseModule,
     GameModule,
     GatewayModule,
     BotModule,
     AuthModule,
     TelegramBotModule,
+    EconomyModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [],
