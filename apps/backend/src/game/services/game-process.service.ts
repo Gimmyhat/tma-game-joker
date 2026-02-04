@@ -699,6 +699,7 @@ export class GameProcessService {
     // Emit timer event
     this.server.to(roomId).emit('pulka_recap_started', {
       expiresAt: Date.now() + timeoutMs,
+      remainingMs: timeoutMs,
     });
 
     const timeout = setTimeout(async () => {
@@ -819,6 +820,7 @@ export class GameProcessService {
       this.server.to(roomId).emit('turn_timer_started', {
         playerId: currentPlayerId,
         expiresAt: Date.now() + timeoutMs,
+        remainingMs: timeoutMs,
       });
     }
 

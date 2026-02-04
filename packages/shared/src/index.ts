@@ -337,6 +337,8 @@ export interface ErrorPayload {
 export interface TurnTimerPayload {
   playerId: string;
   expiresAt: number;
+  /** Time remaining in milliseconds - more reliable than expiresAt for client sync */
+  remainingMs: number;
 }
 
 export interface PlayerReplacedPayload {

@@ -296,18 +296,21 @@ function setupSocketListeners(
   });
 
   // Turn timer
-  socket.on('turn_timer_started', (data) => {
-    set({
-      turnExpiresAt: data.expiresAt,
-      currentTurnPlayerId: data.playerId,
-      pulkaRecapExpiresAt: null, // Clear pulka timer when turn starts
-    });
-  });
+  socket.on(
+    'turn_timer_started',
+    (data: { playerId: string; expiresAt: number; remainingMs?: number }) => {
+      set({
+        turnExpiresAt: data.remainingMs ? Date.now() + data.remainingMs : data.expiresAt,
+        currentTurnPlayerId: data.playerId,
+        pulkaRecapExpiresAt: null, // Clear pulka timer when turn starts
+      });
+    },
+  );
 
-  socket.on('pulka_recap_started', (data) => {
+  socket.on('pulka_recap_started', (data: { expiresAt: number; remainingMs?: number }) => {
     console.log('[Store] Pulka recap started:', data);
     set({
-      pulkaRecapExpiresAt: data.expiresAt,
+      pulkaRecapExpiresAt: data.remainingMs ? Date.now() + data.remainingMs : data.expiresAt,
       turnExpiresAt: null, // Clear turn timer
       currentTurnPlayerId: null,
     });
