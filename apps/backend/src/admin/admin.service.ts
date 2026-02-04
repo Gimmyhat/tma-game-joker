@@ -33,6 +33,24 @@ export interface UserFilter {
   isBlocked?: boolean;
 }
 
+export interface UserDetailResponse {
+  user: User;
+  referrer: { id: string; username: string | null; tgId: string } | null;
+  referralsCount: number;
+  recentTransactions: Array<{
+    id: string;
+    type: string;
+    amount: string;
+    status: string;
+    createdAt: Date;
+  }>;
+  stats: {
+    totalTransactions: number;
+    totalDeposits: string;
+    totalWithdrawals: string;
+  };
+}
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -148,6 +166,132 @@ export class AdminService {
     return this.prisma.user.findUnique({
       where: { id },
     });
+  }
+
+  /**
+   * Get detailed user info for admin panel
+   */
+  async getUserDetail(id: string): Promise<UserDetailResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        referrer: {
+          select: { id: true, username: true, tgId: true },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+
+    // Get referrals count
+    const referralsCount = await this.prisma.user.count({
+      where: { referrerId: id },
+    });
+
+    // Get recent transactions (last 10)
+    const recentTransactions = await this.prisma.transaction.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    // Get transaction stats
+    const [totalTransactions, depositsAgg, withdrawalsAgg] = await Promise.all([
+      this.prisma.transaction.count({ where: { userId: id } }),
+      this.prisma.transaction.aggregate({
+        where: { userId: id, type: 'DEPOSIT', status: 'SUCCESS' },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: { userId: id, type: 'WITHDRAW', status: 'SUCCESS' },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return {
+      user,
+      referrer: user.referrer
+        ? {
+            id: user.referrer.id,
+            username: user.referrer.username,
+            tgId: user.referrer.tgId.toString(),
+          }
+        : null,
+      referralsCount,
+      recentTransactions: recentTransactions.map((tx) => ({
+        id: tx.id,
+        type: tx.type,
+        amount: tx.amount.toString(),
+        status: tx.status,
+        createdAt: tx.createdAt,
+      })),
+      stats: {
+        totalTransactions,
+        totalDeposits: depositsAgg._sum.amount?.toString() || '0',
+        totalWithdrawals: withdrawalsAgg._sum.amount?.toString() || '0',
+      },
+    };
+  }
+
+  /**
+   * Get user referrals with pagination
+   */
+  async getUserReferrals(
+    userId: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<{
+    items: Array<{
+      id: string;
+      username: string | null;
+      tgId: string;
+      status: string;
+      createdAt: Date;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { referrerId: userId },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          username: true,
+          tgId: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.user.count({ where: { referrerId: userId } }),
+    ]);
+
+    return {
+      items: items.map((u) => ({
+        id: u.id,
+        username: u.username,
+        tgId: u.tgId.toString(),
+        status: u.status,
+        createdAt: u.createdAt,
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   /**
@@ -303,5 +447,111 @@ export class AdminService {
       pendingWithdrawals,
       totalBalance: balanceAgg._sum.balanceCj?.toString() || '0',
     };
+  }
+
+  // ==================== Global Settings ====================
+
+  /**
+   * Get all global settings
+   */
+  async getAllSettings(): Promise<
+    Array<{ key: string; value: unknown; description: string | null; updatedAt: Date }>
+  > {
+    const settings = await this.prisma.globalSettings.findMany({
+      orderBy: { key: 'asc' },
+    });
+
+    return settings.map((s) => ({
+      key: s.key,
+      value: s.value,
+      description: s.description,
+      updatedAt: s.updatedAt,
+    }));
+  }
+
+  /**
+   * Get single setting by key
+   */
+  async getSetting(
+    key: string,
+  ): Promise<{ key: string; value: unknown; description: string | null } | null> {
+    const setting = await this.prisma.globalSettings.findUnique({
+      where: { key },
+    });
+
+    if (!setting) return null;
+
+    return {
+      key: setting.key,
+      value: setting.value,
+      description: setting.description,
+    };
+  }
+
+  /**
+   * Update or create setting
+   */
+  async upsertSetting(
+    key: string,
+    value: unknown,
+    description: string | null,
+    updatedById: string,
+  ): Promise<{ key: string; value: unknown; description: string | null; updatedAt: Date }> {
+    const setting = await this.prisma.globalSettings.upsert({
+      where: { key },
+      update: {
+        value: value as Prisma.InputJsonValue,
+        description,
+        updatedById,
+        updatedAt: new Date(),
+      },
+      create: {
+        key,
+        value: value as Prisma.InputJsonValue,
+        description,
+        updatedById,
+      },
+    });
+
+    this.logger.log(`Setting "${key}" updated by ${updatedById}`);
+
+    return {
+      key: setting.key,
+      value: setting.value,
+      description: setting.description,
+      updatedAt: setting.updatedAt,
+    };
+  }
+
+  /**
+   * Update multiple settings at once
+   */
+  async updateSettings(
+    settings: Array<{ key: string; value: unknown; description?: string }>,
+    updatedById: string,
+  ): Promise<Array<{ key: string; value: unknown }>> {
+    const results = await Promise.all(
+      settings.map((s) =>
+        this.prisma.globalSettings.upsert({
+          where: { key: s.key },
+          update: {
+            value: s.value as Prisma.InputJsonValue,
+            description: s.description,
+            updatedById,
+            updatedAt: new Date(),
+          },
+          create: {
+            key: s.key,
+            value: s.value as Prisma.InputJsonValue,
+            description: s.description,
+            updatedById,
+          },
+        }),
+      ),
+    );
+
+    this.logger.log(`${settings.length} settings updated by ${updatedById}`);
+
+    return results.map((s) => ({ key: s.key, value: s.value }));
   }
 }

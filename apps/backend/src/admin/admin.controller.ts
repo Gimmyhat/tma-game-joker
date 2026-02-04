@@ -1,13 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { TransactionService } from '../economy/transaction.service';
 import { EconomyService } from '../economy/economy.service';
+import { RoomManager } from '../game/services/room.manager';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
 import { CreateAdminDto, UpdatePasswordDto, UpdateRoleDto, BlockUserDto } from './dto/admin.dto';
-import { User, AdminRole } from '@prisma/client';
+import { User, AdminRole, TxType, TxStatus } from '@prisma/client';
 import { AdjustBalanceDto } from '../economy/dto';
 
 @Controller('admin')
@@ -17,6 +18,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly transactionService: TransactionService,
     private readonly economyService: EconomyService,
+    private readonly roomManager: RoomManager,
   ) {}
 
   // ===== Dashboard =====
@@ -63,6 +65,26 @@ export class AdminController {
   @Roles('OPERATOR')
   async getUser(@Param('id') id: string) {
     return this.adminService.getUserById(id);
+  }
+
+  @Get('users/:id/detail')
+  @Roles('OPERATOR')
+  async getUserDetail(@Param('id') id: string) {
+    return this.adminService.getUserDetail(id);
+  }
+
+  @Get('users/:id/referrals')
+  @Roles('OPERATOR')
+  async getUserReferrals(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.getUserReferrals(
+      id,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 
   @Post('users/:id/block')
@@ -126,8 +148,8 @@ export class AdminController {
     return this.transactionService.list(
       {
         userId,
-        type: type as any,
-        status: status as any,
+        type: type as TxType | undefined,
+        status: status as TxStatus | undefined,
       },
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
@@ -157,5 +179,60 @@ export class AdminController {
     @CurrentAdmin() admin: User,
   ) {
     return this.transactionService.rejectWithdrawal(id, admin.id, dto.reason);
+  }
+
+  // ===== Global Settings =====
+
+  @Get('settings')
+  @Roles('OPERATOR')
+  async getAllSettings() {
+    return this.adminService.getAllSettings();
+  }
+
+  @Get('settings/:key')
+  @Roles('OPERATOR')
+  async getSetting(@Param('key') key: string) {
+    return this.adminService.getSetting(key);
+  }
+
+  @Put('settings/:key')
+  @Roles('ADMIN')
+  async updateSetting(
+    @Param('key') key: string,
+    @Body() dto: { value: unknown; description?: string },
+    @CurrentAdmin() admin: User,
+  ) {
+    return this.adminService.upsertSetting(key, dto.value, dto.description ?? null, admin.id);
+  }
+
+  @Put('settings')
+  @Roles('ADMIN')
+  async updateSettings(
+    @Body() dto: { settings: Array<{ key: string; value: unknown; description?: string }> },
+    @CurrentAdmin() admin: User,
+  ) {
+    return this.adminService.updateSettings(dto.settings, admin.id);
+  }
+
+  // ===== Tables (Active Games) =====
+
+  @Get('tables')
+  @Roles('OPERATOR')
+  async listTables() {
+    return this.roomManager.getAllRooms();
+  }
+
+  @Get('tables/:id')
+  @Roles('OPERATOR')
+  async getTable(@Param('id') id: string) {
+    const room = await this.roomManager.getRoom(id);
+    if (!room) {
+      return { error: 'Room not found' };
+    }
+    return {
+      id: room.id,
+      gameState: room.gameState,
+      connectedPlayers: Array.from(room.sockets.keys()),
+    };
   }
 }

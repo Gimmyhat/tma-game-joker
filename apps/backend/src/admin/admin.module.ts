@@ -10,12 +10,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { EconomyModule } from '../economy/economy.module';
+import { GameModule } from '../game/game.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     EconomyModule,
+    GameModule,
     PassportModule.register({ defaultStrategy: 'admin-jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
