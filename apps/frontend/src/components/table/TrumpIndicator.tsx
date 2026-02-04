@@ -20,6 +20,9 @@ export const TrumpIndicator: React.FC<TrumpIndicatorProps> = ({
   // Only render if there's a trump or joker-as-trump
   if (!trump && !trumpCard && !isJokerTrump) return null;
 
+  // Check if trump was chosen after joker flip
+  const isJokerWithChosenTrump = trumpCard?.type === 'joker' && trump;
+
   return (
     <div className="absolute top-[18%] left-[10%] z-20 flex flex-col items-center pointer-events-none transform rotate-[15deg]">
       <div className="relative">
@@ -29,8 +32,19 @@ export const TrumpIndicator: React.FC<TrumpIndicatorProps> = ({
 
         {/* The Trump Card - Matches Table Card Style exactly */}
         {trumpCard ? (
-          <div className="relative transform rotate-90 origin-center shadow-xl">
-            <Card card={trumpCard} size={tableCardSize} className="border-none shadow-2xl" />
+          <div className="relative">
+            <div className="transform rotate-90 origin-center shadow-xl">
+              <Card card={trumpCard} size={tableCardSize} className="border-none shadow-2xl" />
+            </div>
+            {/* Show chosen suit badge when joker was flipped and suit was chosen */}
+            {isJokerWithChosenTrump && (
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-slate-900/90 backdrop-blur-sm rounded-full border-2 border-yellow-500 flex items-center justify-center shadow-lg">
+                <SuitIcon
+                  suit={trump}
+                  className={`w-5 h-5 ${trump === Suit.Hearts || trump === Suit.Diamonds ? 'text-red-500' : 'text-white'}`}
+                />
+              </div>
+            )}
           </div>
         ) : trump ? (
           /* Fallback Suit Icon if card not visible (9-card round) */
