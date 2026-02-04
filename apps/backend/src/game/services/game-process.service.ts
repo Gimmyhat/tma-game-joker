@@ -90,7 +90,8 @@ export class GameProcessService {
     this.setRoomFrozen(roomId, true);
     this.roomManager.clearTurnTimeout(roomId);
     this.clearReconnectTimeouts(state);
-    this.startFrozenRoomTimeout(roomId);
+    // Note: Do NOT start frozen room timeout here - that's only for when ALL humans are disconnected
+    // This method is for UX (single human doesn't need timer pressure)
   }
 
   /**
@@ -296,7 +297,8 @@ export class GameProcessService {
     if (this.frozenRooms.has(room.id)) {
       this.logger.log(`Human reconnected to frozen room ${room.id} - resuming game`);
       this.clearFrozenRoom(room.id);
-      this.startTurnTimer(room.id);
+      // Don't call startTurnTimer here - it will re-freeze for single human
+      // The game will continue when player makes their move
     }
 
     const player = room.gameState.players.find((p) => p.id === playerId);
