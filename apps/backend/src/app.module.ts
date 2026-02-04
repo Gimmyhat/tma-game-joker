@@ -13,6 +13,7 @@ import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { EconomyModule } from './economy/economy.module';
 import { AdminModule } from './admin/admin.module';
+import { EventLogModule } from './event-log/event-log.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AdminModule } from './admin/admin.module';
     TelegramBotModule,
     EconomyModule,
     AdminModule,
+    EventLogModule,
   ],
   controllers: [HealthController],
   providers: [],
