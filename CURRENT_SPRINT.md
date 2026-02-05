@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-05 12:00  
+**Last Updated:** 2026-02-05 16:30  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -33,7 +33,7 @@
 | A-2 | Notifications CRUD (AC10) | ✅ DONE | `admin/notifications/` | Создание уведомлений, отправка через бота |
 | A-3 | Withdrawal moderation UI  | ✅ DONE | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
 | A-4 | Audit Log (AC5)           | ✅ DONE | `audit.service.ts`     | Логирование всех admin-действий           |
-| A-5 | Multi-sort filters (AC12) | ⬜ TODO | `admin.controller.ts`  | Сложные фильтры AND/OR                    |
+| A-5 | Multi-sort filters (AC12) | ✅ DONE | `admin.controller.ts`  | Сложные фильтры AND/OR                    |
 
 ### Priority 3: Frontend Economy UI
 
@@ -76,6 +76,7 @@
 | A-2      | Notifications CRUD (Telegram)      | 2026-02-05 | c4c08d0          |
 | A-3      | Withdrawal moderation UI           | 2026-02-04 | 021732e          |
 | A-4      | Audit Log integration              | 2026-02-05 | (pending commit) |
+| A-5      | Multi-sort filters (AC12)          | 2026-02-05 | (pending commit) |
 
 ---
 

@@ -60,6 +60,19 @@ cd apps/admin && pnpm dev
 
 ---
 
+## [2026-02-05 16:30] - OpenCode
+
+### Выполнено
+- ✅ A-5: Multi-sort filters (AC12) — добавлен query builder для AND/OR фильтров и мульти-сортировки, обновлены admin/event-log/transaction/notification list endpoints
+- ✅ Обновлен тест `scoring-rules.spec.ts` (Player controlledByBot) для прохождения type-check
+- ✅ Backend e2e тесты пройдены
+- ✅ Frontend e2e тесты пройдены (Playwright webServer на dev)
+- ✅ Добавлены/настроены ESLint конфиги для frontend и admin/back, `pnpm lint` проходит (admin с предупреждениями)
+- ✅ Type-check пройден (backend/frontend: `tsc --noEmit`)
+
+### Следующие шаги
+- [ ] Продолжить задачи Phase 2 из CURRENT_SPRINT.md
+
 ## [2026-02-04 14:10] - Antigravity
 
 ### Выполнено
