@@ -1,4 +1,4 @@
-import { PrismaClient, AdminRole } from '@prisma/client';
+import { PrismaClient, AdminRole, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -9,22 +9,35 @@ async function main() {
   // Create test admin user
   const passwordHash = await bcrypt.hash('admin123', 10);
 
-  const admin = await prisma.user.upsert({
-    where: { tgId: BigInt(999999999) },
-    update: {
-      adminRole: AdminRole.SUPERADMIN,
-      passwordHash,
-      username: 'admin',
-    },
-    create: {
-      tgId: BigInt(999999999),
-      username: 'admin',
-      adminRole: AdminRole.SUPERADMIN,
-      passwordHash,
-    },
+  // Find existing admin by username or create new
+  const existingAdmin = await prisma.user.findFirst({
+    where: { username: 'admin' },
   });
 
-  console.log('Created admin user:', admin.username);
+  let admin: User;
+  if (existingAdmin) {
+    // Update existing admin's password and role
+    admin = await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: {
+        adminRole: AdminRole.SUPERADMIN,
+        passwordHash,
+      },
+    });
+    console.log('Updated existing admin user:', admin.username);
+  } else {
+    // Create new admin user
+    admin = await prisma.user.create({
+      data: {
+        tgId: BigInt(999999999),
+        username: 'admin',
+        adminRole: AdminRole.SUPERADMIN,
+        passwordHash,
+      },
+    });
+    console.log('Created new admin user:', admin.username);
+  }
+
   console.log('Login credentials:');
   console.log('  Username: admin');
   console.log('  Password: admin123');
