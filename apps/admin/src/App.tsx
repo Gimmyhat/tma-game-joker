@@ -36,7 +36,7 @@ function ProtectedRoute() {
 
 export default function App() {
   return (
-    <Router>
+    <Router basename="/admin">
       <ScrollToTop />
       <Routes>
         {/* Protected Dashboard Routes */}
