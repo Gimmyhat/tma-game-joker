@@ -160,13 +160,13 @@ jobs:
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
-      - name: Copy docker-compose to server
+      - name: Copy docker-compose and nginx config to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: 'docker-compose.prod.yml'
+          source: 'docker-compose.prod.yml,nginx/server-nginx.conf'
           target: '/opt/joker-game/'
 
       - name: Deploy to Server
@@ -203,3 +203,14 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
 
             docker image prune -f
+
+      - name: Update server nginx config
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Update nginx config from repo copy
+            cp /opt/joker-game/nginx/server-nginx.conf /etc/nginx/sites-available/jokergame
+            nginx -t && nginx -s reload
