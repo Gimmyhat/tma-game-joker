@@ -43,7 +43,7 @@ export default defineConfig({
           },
         },
         {
-          command: `pnpm --filter @joker/frontend preview -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
+          command: `pnpm --filter @joker/frontend dev -- --host 127.0.0.1 --port ${frontendPort} --strictPort`,
           port: frontendPort,
           reuseExistingServer: true,
           cwd: repoRoot,
