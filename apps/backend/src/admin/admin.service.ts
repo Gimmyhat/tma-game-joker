@@ -34,7 +34,7 @@ export interface UserFilter {
 }
 
 export interface UserDetailResponse {
-  user: User;
+  user: Omit<User, 'tgId'> & { tgId: string };
   referrer: { id: string; username: string | null; tgId: string } | null;
   referralsCount: number;
   recentTransactions: Array<{
