@@ -46,9 +46,9 @@ services:
   admin:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_ADMIN}:latest
     restart: always
-    # Port exposed only internally via nginx proxy (nginx inside container listens on 80)
-    expose:
-      - '80'
+    # Exposed to host for nginx proxy
+    ports:
+      - '3001:80'
     depends_on:
       - backend
 
