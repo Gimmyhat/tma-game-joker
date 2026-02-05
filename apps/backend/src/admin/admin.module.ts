@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AdminService } from './admin.service';
+import { NotificationService } from './notification.service';
 import { AdminController } from './admin.controller';
 import { AdminAuthController } from './admin-auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -11,6 +12,7 @@ import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { EconomyModule } from '../economy/economy.module';
 import { GameModule } from '../game/game.module';
+import { TelegramBotModule } from '../telegram-bot/telegram-bot.module';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { GameModule } from '../game/game.module';
     PrismaModule,
     EconomyModule,
     GameModule,
+    TelegramBotModule,
     PassportModule.register({ defaultStrategy: 'admin-jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -34,7 +37,7 @@ import { GameModule } from '../game/game.module';
     }),
   ],
   controllers: [AdminController, AdminAuthController],
-  providers: [AdminService, JwtStrategy, AdminJwtAuthGuard, RolesGuard],
+  providers: [AdminService, NotificationService, JwtStrategy, AdminJwtAuthGuard, RolesGuard],
   exports: [AdminService, AdminJwtAuthGuard, RolesGuard],
 })
 export class AdminModule {}

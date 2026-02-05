@@ -8,6 +8,7 @@ import {
   LockIcon,
   TableIcon,
   TaskIcon,
+  MailIcon,
 } from '../icons';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -37,6 +38,11 @@ const navItems: NavItem[] = [
     icon: <TaskIcon />,
     name: 'Tasks',
     path: '/tasks',
+  },
+  {
+    icon: <MailIcon />,
+    name: 'Notifications',
+    path: '/notifications',
   },
   {
     icon: <TableIcon />,

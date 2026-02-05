@@ -1,5 +1,10 @@
 import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import {
+  NotificationService,
+  CreateNotificationDto,
+  UpdateNotificationDto,
+} from './notification.service';
 import { TransactionService } from '../economy/transaction.service';
 import { EconomyService } from '../economy/economy.service';
 import { RoomManager } from '../game/services/room.manager';
@@ -8,7 +13,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
 import { CreateAdminDto, UpdatePasswordDto, UpdateRoleDto, BlockUserDto } from './dto/admin.dto';
-import { User, AdminRole, TxType, TxStatus } from '@prisma/client';
+import { User, AdminRole, TxType, TxStatus, NotificationStatus } from '@prisma/client';
 import { AdjustBalanceDto } from '../economy/dto';
 
 @Controller('admin')
@@ -16,6 +21,7 @@ import { AdjustBalanceDto } from '../economy/dto';
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
+    private readonly notificationService: NotificationService,
     private readonly transactionService: TransactionService,
     private readonly economyService: EconomyService,
     private readonly roomManager: RoomManager,
@@ -356,5 +362,68 @@ export class AdminController {
   ) {
     await this.adminService.rejectTaskCompletion(id, admin.id, dto.reason);
     return { success: true };
+  }
+
+  // ===== Notifications Management =====
+
+  @Get('notifications')
+  @Roles('OPERATOR')
+  async listNotifications(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.notificationService.listNotifications(
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+      status as NotificationStatus | undefined,
+    );
+  }
+
+  @Get('notifications/:id')
+  @Roles('OPERATOR')
+  async getNotification(@Param('id') id: string) {
+    return this.notificationService.getNotification(id);
+  }
+
+  @Post('notifications')
+  @Roles('MODERATOR')
+  async createNotification(@Body() dto: CreateNotificationDto, @CurrentAdmin() admin: User) {
+    return this.notificationService.createNotification(dto, admin.id);
+  }
+
+  @Put('notifications/:id')
+  @Roles('MODERATOR')
+  async updateNotification(@Param('id') id: string, @Body() dto: UpdateNotificationDto) {
+    return this.notificationService.updateNotification(id, dto);
+  }
+
+  @Post('notifications/:id/delete')
+  @Roles('ADMIN')
+  async deleteNotification(@Param('id') id: string) {
+    await this.notificationService.deleteNotification(id);
+    return { success: true };
+  }
+
+  @Post('notifications/:id/send')
+  @Roles('MODERATOR')
+  async sendNotification(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    return this.notificationService.sendNotification(id, admin.id);
+  }
+
+  @Get('notifications/:id/deliveries')
+  @Roles('OPERATOR')
+  async listNotificationDeliveries(
+    @Param('id') id: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.notificationService.getNotificationDeliveries(
+      id,
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+      status,
+    );
   }
 }

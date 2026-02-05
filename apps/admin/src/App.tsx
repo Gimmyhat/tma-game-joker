@@ -15,6 +15,8 @@ import TableDetailPage from './pages/Admin/TableDetailPage';
 import TasksPage from './pages/Admin/TasksPage';
 import TaskDetailPage from './pages/Admin/TaskDetailPage';
 import TaskCreatePage from './pages/Admin/TaskCreatePage';
+import NotificationsPage from './pages/Admin/NotificationsPage';
+import NotificationDetailPage from './pages/Admin/NotificationDetailPage';
 
 // Layout
 import AppLayout from './layout/AppLayout';
@@ -51,6 +53,9 @@ export default function App() {
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/tasks/new" element={<TaskCreatePage />} />
             <Route path="/tasks/:id" element={<TaskDetailPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/notifications/new" element={<NotificationDetailPage />} />
+            <Route path="/notifications/:id" element={<NotificationDetailPage />} />
           </Route>
         </Route>
 

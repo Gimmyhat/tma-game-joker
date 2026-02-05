@@ -119,4 +119,32 @@ export const adminApi = {
   approveTaskCompletion: (id: string) => api.post(`/admin/task-completions/${id}/approve`),
   rejectTaskCompletion: (id: string, reason: string) =>
     api.post(`/admin/task-completions/${id}/reject`, { reason }),
+
+  // Notifications
+  getNotifications: (params?: { status?: string; page?: number; pageSize?: number }) =>
+    api.get('/admin/notifications', { params }),
+  getNotification: (id: string) => api.get(`/admin/notifications/${id}`),
+  createNotification: (data: {
+    type: 'SYSTEM' | 'MARKETING' | 'TOURNAMENT';
+    title?: string;
+    body: string;
+    targetFilter?: { all?: boolean; userIds?: string[] };
+    scheduledAt?: string;
+  }) => api.post('/admin/notifications', data),
+  updateNotification: (
+    id: string,
+    data: {
+      type?: 'SYSTEM' | 'MARKETING' | 'TOURNAMENT';
+      title?: string;
+      body?: string;
+      targetFilter?: { all?: boolean; userIds?: string[] };
+      scheduledAt?: string;
+    },
+  ) => api.put(`/admin/notifications/${id}`, data),
+  deleteNotification: (id: string) => api.post(`/admin/notifications/${id}/delete`),
+  sendNotification: (id: string) => api.post(`/admin/notifications/${id}/send`),
+  getNotificationDeliveries: (
+    id: string,
+    params?: { status?: string; page?: number; pageSize?: number },
+  ) => api.get(`/admin/notifications/${id}/deliveries`, { params }),
 };
