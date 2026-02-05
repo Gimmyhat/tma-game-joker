@@ -196,6 +196,23 @@ VITE_SOCKET_URL=http://localhost:3000
 
 ### Следующие шаги
 - [ ] Получить ответы на Q12 (House Edge %), Q17 (RBAC), Q18 (Audit Trail) от заказчика
-- [ ] Настроить branch protection rules на GitHub
-- [ ] Создать ветку `develop` от текущего `main`
+- [x] Создать ветку `develop` от текущего `main`
+
+### [2026-02-04 15:00] - Antigravity (Phase 2 Kickoff)
+
+### Выполнено
+- ✅ Документация (TOR v1.3.1, TECH_SPEC v0.5) закоммичена в `main`
+- ✅ Ветка `develop` создана и запушена
+- ✅ `apps/backend/prisma/schema.prisma` обновлен (добавлены все модели Phase 2)
+- ✅ `AGENTS.md` обновлен (добавлен /dev workflow)
+
+### Заблокировано
+- ❌ **Database Migration**: `P1001: Can't reach database server at localhost:5432`.
+  - Docker контейнеры (postgres/redis) падают при старте или порт недоступен с хоста.
+  - Требуется вмешательство пользователя для починки локального Docker окружения.
+
+### Следующие шаги
+- [ ] Исправить Docker окружение (dev machine issue)
+- [ ] Запустить `pnpm exec prisma migrate dev --name phase2_init`
+- [ ] Начать реализацию Economy API
 - [ ] Начать Phase 2 разработку после утверждения документации
