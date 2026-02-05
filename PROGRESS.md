@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-01-26
-**Текущий статус:** 🚧 Sprint 3: Frontend (In Progress)
+**Последнее обновление:** 2026-02-05
+**Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 ---
 
@@ -9,23 +9,24 @@
 
 1. ✅ **Server**: SSH access configured for `203.31.40.28` (alias `hosting-vds`)
 2. ✅ **Security**: Password authentication disabled (key-only access)
+3. ✅ **Docker Desktop**: PostgreSQL + Redis работают локально
+   - `joker-postgres:5432` — PostgreSQL
+   - `joker-redis:6379` — Redis
 
 ---
 
 ## 🎯 Текущий фокус (Current Focus)
 
-Мы находимся на **Этапе 3 (Frontend)**.
-Backend готов и протестирован. Frontend активно разрабатывается.
+Мы находимся на **Phase 2 (Admin Panel & Economy)**.
+MVP сдан заказчику и работает в production. Разрабатываем дополнительный функционал.
 
 **Ближайшие задачи:**
 
-1.  ✅ ~~**Frontend**: Telegram WebApp SDK integration~~
-2.  ✅ ~~**Frontend**: Socket.io client + auth~~
-3.  ✅ ~~**Frontend**: Zustand store~~
-4.  ✅ ~~**Frontend**: UI компоненты (Card, Hand, Table, PlayerInfo)~~
-5.  ✅ ~~**Frontend**: Модальные окна (BetModal, TrumpSelector, JokerOptionModal)~~
-6.  🛠 **Frontend**: Интеграция компонентов в GameScreen
-7.  ✅ ~~**Frontend**: E2E тестирование с backend~~
+1. ✅ ~~**Admin Panel**: Backend (AdminController, AdminService, JWT auth)~~
+2. ✅ ~~**Admin Panel**: Frontend (все страницы реализованы)~~
+3. 🛠 **Admin Panel**: Тестирование и фиксы
+4. [ ] **Economy**: API endpoints
+5. [ ] **Telegram Bot**: Интеграция с экономикой
 
 ---
 
@@ -61,31 +62,23 @@ Backend готов и протестирован. Frontend активно раз
 - [x] S2-9: Reconnect logic (via Redis)
 - [x] S2-10: Disconnect handling (30 sec grace period)
 
-### 🚧 Sprint 3: Frontend (In Progress)
+### 🚧 Sprint 4: Phase 2 - Admin Panel & Economy (In Progress)
 
-- [x] S3-0: Init (Vite + React + TailwindCSS)
-- [x] S3-1: Telegram WebApp SDK integration
-  - `TelegramProvider` с SDKProvider
-  - `useTelegram` hook
-  - Development fallback с mock user
-- [x] S3-2: Socket.io client + auth
-  - `socket.ts` с typed events
-  - Auth через initData
-- [x] S3-3: Zustand store
-  - `gameStore.ts` с полным state management
-  - Socket event handlers
-  - Selectors
-- [x] S3-4: Card component
-- [x] S3-5: Hand component
-- [x] S3-6: Table component
-- [x] S3-7: PlayerInfo component
-- [x] S3-8: Lobby screen (в App.tsx)
-- [x] S3-9: BetModal
-- [x] S3-10: TrumpSelector
-- [x] S3-11: JokerOptionModal
-- [ ] S3-12: GameScreen (интеграция всех компонентов)
-- [ ] S3-13: Animations & polish
-- [x] S3-14: E2E тесты (backend + frontend)
+- [x] S4-1: Prisma schema Phase 2 (Admin, EventLog, GlobalSettings, etc.)
+- [x] S4-2: Database migrations applied
+- [x] S4-3: AdminModule + AdminController + AdminService
+- [x] S4-4: JWT Authentication for Admin
+- [x] S4-5: RBAC (OPERATOR/MODERATOR/ADMIN/SUPERADMIN)
+- [x] S4-6: Admin Frontend - Dashboard
+- [x] S4-7: Admin Frontend - Users list + UserDetail
+- [x] S4-8: Admin Frontend - Transactions
+- [x] S4-9: Admin Frontend - EventLog
+- [x] S4-10: Admin Frontend - Settings
+- [x] S4-11: Admin Frontend - Tables (God Mode)
+- [x] S4-12: BigInt serialization fixes
+- [ ] S4-13: Economy API endpoints
+- [ ] S4-14: Telegram Bot economy integration
+- [ ] S4-15: E2E tests for Admin Panel
 
 ---
 
@@ -216,3 +209,25 @@ VITE_SOCKET_URL=http://localhost:3000
 - [ ] Запустить `pnpm exec prisma migrate dev --name phase2_init`
 - [ ] Начать реализацию Economy API
 - [ ] Начать Phase 2 разработку после утверждения документации
+
+---
+
+## [2026-02-05 09:35] - Sisyphus
+
+### Выполнено
+- ✅ Admin Panel полностью реализован (commit 021732e):
+  - Backend: AdminController, AdminAuthController, AdminService
+  - Frontend: Dashboard, Users, UserDetail, Transactions, EventLog, Settings, Tables
+  - RBAC: OPERATOR/MODERATOR/ADMIN/SUPERADMIN roles
+  - JWT authentication
+- ✅ Docker Desktop установлен (заменил нестабильный WSL Docker)
+- ✅ PostgreSQL + Redis работают стабильно
+- ✅ BigInt serialization fixes (tgId → string для JSON):
+  - `3eda812` fix(admin): BigInt serialization and API params
+  - `8f66a9f` fix(admin): correct UserDetailResponse type
+- ✅ Session Protocol добавлен в AGENTS.md
+
+### Следующие шаги
+- [ ] Протестировать Admin Panel (http://localhost:3001, admin/admin123)
+- [ ] Economy API endpoints
+- [ ] Telegram Bot economy integration
