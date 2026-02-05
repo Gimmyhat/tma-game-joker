@@ -27,13 +27,14 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { page, limit };
+      const params: Record<string, string | number> = { page, pageSize: limit };
       if (search) params.search = search;
-      if (statusFilter !== 'all') params.status = statusFilter;
+      if (statusFilter === 'ACTIVE') params.blocked = 'false';
+      if (statusFilter === 'BLOCKED') params.blocked = 'true';
 
       const res = await adminApi.getUsers(params);
-      setUsers(res.data.users);
-      setTotal(res.data.total);
+      setUsers(res.data.items || res.data.users || []);
+      setTotal(res.data.total || 0);
     } catch (err) {
       console.error(err);
     } finally {

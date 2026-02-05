@@ -20,7 +20,7 @@ export interface AdminLoginResult {
 }
 
 export interface PaginatedUsers {
-  items: User[];
+  items: Array<Omit<User, 'tgId'> & { tgId: string }>;
   total: number;
   page: number;
   pageSize: number;
@@ -218,7 +218,10 @@ export class AdminService {
     ]);
 
     return {
-      user,
+      user: {
+        ...user,
+        tgId: user.tgId.toString(),
+      },
       referrer: user.referrer
         ? {
             id: user.referrer.id,
@@ -326,7 +329,10 @@ export class AdminService {
     ]);
 
     return {
-      items,
+      items: items.map((u) => ({
+        ...u,
+        tgId: u.tgId.toString(),
+      })),
       total,
       page,
       pageSize,
