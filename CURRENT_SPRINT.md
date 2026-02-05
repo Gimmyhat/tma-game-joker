@@ -30,7 +30,7 @@
 | ID  | Задача                    | Статус  | Файлы                  | Acceptance Criteria                       |
 | --- | ------------------------- | ------- | ---------------------- | ----------------------------------------- |
 | A-1 | Tasks CRUD (AC9)          | ✅ DONE | `admin/tasks/`         | Создание/редактирование заданий           |
-| A-2 | Notifications CRUD (AC10) | ⬜ TODO | `admin/notifications/` | Создание уведомлений, отправка через бота |
+| A-2 | Notifications CRUD (AC10) | ✅ DONE | `admin/notifications/` | Создание уведомлений, отправка через бота |
 | A-3 | Withdrawal moderation UI  | ⬜ TODO | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
 | A-4 | Audit Log (AC5)           | ⬜ TODO | `audit.service.ts`     | Логирование всех admin-действий           |
 | A-5 | Multi-sort filters (AC12) | ⬜ TODO | `admin.controller.ts`  | Сложные фильтры AND/OR                    |
@@ -73,6 +73,7 @@
 | E-1..E-8 | Economy API (full)                 | 2026-02-04 | (previous)       |
 | T-1      | Tournament schema                  | 2026-02-04 | -                |
 | A-1      | Tasks CRUD (backend + frontend)    | 2026-02-05 | a599c60          |
+| A-2      | Notifications CRUD (Telegram)      | 2026-02-05 | c4c08d0          |
 
 ---
 
@@ -116,9 +117,9 @@
 
 ```
 Economy API:     ████████████████████ 100% (8/8)
-Admin Panel:     ████████████░░░░░░░░  60% (12/20 est.)
+Admin Panel:     ██████████████░░░░░░  70% (14/20 est.)
 Frontend Econ:   ░░░░░░░░░░░░░░░░░░░░   0% (0/4)
 Tournaments:     ██░░░░░░░░░░░░░░░░░░  10% (1/10 est.)
 ─────────────────────────────────────────────
-Overall Phase 2: ████████░░░░░░░░░░░░  40%
+Overall Phase 2: ██████████░░░░░░░░░░  45%
 ```

@@ -24,7 +24,7 @@
 | Phase | Название | Статус | Прогресс |
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
-| 2 | Economy & Admin | 🔄 In Progress | ~60% |
+| 2 | Economy & Admin | 🔄 In Progress | ~65% |
 | 3 | Tournaments & Meta | ⏳ Not Started | 0% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
@@ -170,4 +170,22 @@ TOR.md / TECH_SPEC.md (при необходимости)
 ### Следующие шаги
 - [ ] A-2: Notifications CRUD (backend + frontend)
 - [ ] A-3: Withdrawal moderation UI
+- [ ] F-1: User balance display in frontend
+
+---
+
+## [2026-02-05 12:45] - Sisyphus
+
+### Выполнено
+- ✅ **A-2: Notifications CRUD (commit c4c08d0)**:
+  - Backend: NotificationService (create/read/update/delete/send/getDeliveries)
+  - Backend: 7 REST endpoints в AdminController
+  - Backend: Интеграция с TelegramBotService для отправки
+  - Frontend: NotificationsPage.tsx (list + status filter + pagination)
+  - Frontend: NotificationDetailPage.tsx (create/edit + send + deliveries)
+  - Routes и sidebar обновлены
+
+### Следующие шаги
+- [ ] A-3: Withdrawal moderation UI
+- [ ] A-4: Audit Log
 - [ ] F-1: User balance display in frontend
