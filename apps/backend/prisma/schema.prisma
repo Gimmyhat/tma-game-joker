@@ -9,6 +9,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- MVP Models (DO NOT TOUCH) ---
+
 enum GameStatus {
   IN_PROGRESS
   FINISHED
@@ -27,4 +29,457 @@ model Game {
   updatedAt   DateTime @updatedAt
 
   @@map("games")
+}
+
+// --- Phase 2 Models (Economy, Admin, Meta) ---
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  SUSPENDED
+}
+
+enum AdminRole {
+  OPERATOR
+  MODERATOR
+  ADMIN
+  SUPERADMIN
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  tgId        BigInt   @unique @map("tg_id")
+  username    String?  @db.VarChar(64)
+  role        UserRole @default(USER)
+  status      UserStatus @default(ACTIVE)
+
+  // Admin Auth
+  adminRole   AdminRole? @map("admin_role")
+  passwordHash String?   @map("password_hash") @db.VarChar(256)
+  
+  // Blocking
+  blockedAt   DateTime? @map("blocked_at") @db.Timestamptz
+  blockedById String?   @map("blocked_by") @db.Uuid
+  blockedBy   User?     @relation("BlockedBy", fields: [blockedById], references: [id])
+  blockedUsers User[]   @relation("BlockedBy")
+  blockReason String?   @map("block_reason")
+
+  // Activity
+  lastActiveAt DateTime? @map("last_active_at") @db.Timestamptz
+
+  // Economy
+  balanceCj   Decimal  @default(0) @map("balance_cj") @db.Decimal(14, 2)
+  
+  // Profile
+  avatarId    Int      @default(1) @map("avatar_id") @db.SmallInt
+  countryCode String?  @map("country_code") @db.Char(2)
+
+  // Meta
+  referrerId  String?  @map("referrer_id") @db.Uuid
+  referrer    User?    @relation("Referral", fields: [referrerId], references: [id])
+  referrals   User[]   @relation("Referral")
+  
+  referralCode String? @unique @map("referral_code") @db.VarChar(16)
+  walletAddress String? @map("wallet_address") @db.VarChar(128)
+
+  // Settings & Stats
+  settings    Json?    @default("{\"sound\": {\"music_volume\": 0.8, \"effects_volume\": 1.0}, \"language\": \"ru\", \"chat_enabled\": true}")
+  stats       Json?    @default("{\"rating\": 0, \"wins\": {\"paid_tables\": 0, \"free_tables\": 0, \"paid_tournaments\": 0, \"free_tournaments\": 0}, \"places\": {\"1st\": 0, \"2nd\": 0, \"3rd\": 0, \"4th\": 0}, \"total_games\": 0, \"total_tournaments\": 0}")
+
+  isBot       Boolean  @default(false) @map("is_bot")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  transactions          Transaction[]
+  transactionsInitiated Transaction[] @relation("AdminInitiator")
+  
+  tournamentsCreated    Tournament[]
+  tournamentParticipation TournamentParticipant[]
+  
+  tasksCreated          Task[]
+  taskCompletions       TaskCompletion[]
+  taskReviews           TaskCompletion[] @relation("TaskReviewer")
+  
+  notificationsCreated  Notification[]
+  notificationsReceived NotificationDelivery[]
+  
+  eventLogActor         EventLog[]    @relation("LogActor")
+  globalSettingsUpdated GlobalSettings[]
+  
+  @@index([tgId])
+  @@index([referrerId])
+  @@index([referralCode])
+  @@index([adminRole])
+  @@map("users")
+}
+
+enum TxType {
+  DEPOSIT
+  WITHDRAW
+  BET_HOLD
+  BET_RELEASE
+  WIN_PAYOUT
+  REFERRAL_BONUS
+  REFUND
+  TASK_REWARD
+  ADMIN_ADJUSTMENT
+}
+
+enum TxStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  user            User     @relation(fields: [userId], references: [id])
+  
+  amount          Decimal  @db.Decimal(14, 2)
+  currency        String   @default("CJ") @db.VarChar(3)
+  balanceAfter    Decimal? @map("balance_after") @db.Decimal(14, 2)
+  
+  type            TxType
+  status          TxStatus @default(PENDING)
+  
+  idempotencyKey  String?  @unique @map("idempotency_key") @db.VarChar(64)
+  
+  referenceId     String?  @map("reference_id") @db.Uuid
+  referenceType   String?  @map("reference_type") @db.VarChar(20)
+  
+  initiatedById   String?  @map("initiated_by") @db.Uuid
+  initiatedBy     User?    @relation("AdminInitiator", fields: [initiatedById], references: [id])
+  
+  comment         String?
+  rejectionReason String?  @map("rejection_reason")
+  
+  meta            Json?
+  
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz
+
+  taskCompletions TaskCompletion[] // If reward transaction
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@index([type])
+  @@map("transactions")
+}
+
+enum TableType {
+  TRAINING
+  FREE
+  PAID
+}
+
+enum TableStatus {
+  WAITING
+  PLAYING
+  FINISHED
+  CANCELLED
+}
+
+// Active/Current Tables (distinct from archived Game model)
+model Table {
+  id              String      @id @default(uuid()) @db.Uuid
+  type            TableType
+  
+  config          Json
+  status          TableStatus @default(WAITING)
+  
+  tournamentId    String?     @map("tournament_id") @db.Uuid
+  tournament      Tournament? @relation(fields: [tournamentId], references: [id])
+  tournamentStage Int?        @map("tournament_stage")
+  
+  players         Json?       // Snapshot of players
+  currentRound    Int         @default(0) @map("current_round")
+  resultSnapshot  Json?       @map("result_snapshot")
+  
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  startedAt       DateTime?   @map("started_at") @db.Timestamptz
+  finishedAt      DateTime?   @map("finished_at") @db.Timestamptz
+
+  @@index([status])
+  @@index([tournamentId])
+  @@map("tables")
+}
+
+enum TournamentStatus {
+  DRAFT
+  ANNOUNCED
+  REGISTRATION
+  STARTED
+  FINISHED
+  CANCELLED
+  ARCHIVED
+}
+
+model Tournament {
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String?  @db.VarChar(128)
+  
+  config            Json
+  status            TournamentStatus @default(DRAFT)
+  
+  registrationStart DateTime? @map("registration_start") @db.Timestamptz
+  startTime         DateTime? @map("start_time") @db.Timestamptz
+  
+  botFillConfig     Json?    @map("bot_fill_config")
+  
+  currentStage      Int      @default(0) @map("current_stage")
+  bracketState      Json?    @map("bracket_state")
+  
+  prizePoolActual   Decimal  @default(0) @map("prize_pool_actual") @db.Decimal(14, 2)
+  revenue           Decimal  @default(0) @db.Decimal(14, 2)
+  
+  createdById       String?  @map("created_by") @db.Uuid
+  createdBy         User?    @relation(fields: [createdById], references: [id])
+  
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  tables            Table[]
+  participants      TournamentParticipant[]
+
+  @@index([status])
+  @@map("tournaments")
+}
+
+model TournamentParticipant {
+  id            String    @id @default(uuid()) @db.Uuid
+  tournamentId  String    @map("tournament_id") @db.Uuid
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+  
+  userId        String    @map("user_id") @db.Uuid
+  user          User      @relation(fields: [userId], references: [id])
+  
+  status        String    @default("REGISTERED") @db.VarChar(20)
+  finalPlace    Int?      @map("final_place")
+  prizeAmount   Decimal?  @map("prize_amount") @db.Decimal(14, 2)
+  
+  registeredAt  DateTime  @default(now()) @map("registered_at") @db.Timestamptz
+  eliminatedAt  DateTime? @map("eliminated_at") @db.Timestamptz
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@map("tournament_participants")
+}
+
+enum TaskStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum TaskCompletionStatus {
+  PENDING
+  REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Task {
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String   @db.VarChar(128)
+  shortDescription  String?  @map("short_description")
+  longDescription   String?  @map("long_description")
+  
+  rewardAmount      Decimal  @map("reward_amount") @db.Decimal(14, 2)
+  rewardCurrency    String?  @default("CJ") @map("reward_currency") @db.VarChar(3)
+  
+  status            TaskStatus @default(DRAFT)
+  
+  startDate         DateTime? @map("start_date") @db.Timestamptz
+  endDate           DateTime? @map("end_date") @db.Timestamptz
+  
+  autoVerify        Boolean  @default(false) @map("auto_verify")
+  verificationType  String?  @map("verification_type") @db.VarChar(20)
+  verificationConfig Json?   @map("verification_config")
+  
+  createdById       String?  @map("created_by") @db.Uuid
+  createdBy         User?    @relation(fields: [createdById], references: [id])
+  
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  completions       TaskCompletion[]
+
+  @@index([status])
+  @@map("tasks")
+}
+
+model TaskCompletion {
+  id              String   @id @default(uuid()) @db.Uuid
+  taskId          String   @map("task_id") @db.Uuid
+  task            Task     @relation(fields: [taskId], references: [id])
+  
+  userId          String   @map("user_id") @db.Uuid
+  user            User     @relation(fields: [userId], references: [id])
+  
+  status          TaskCompletionStatus @default(PENDING)
+  proofData       Json?    @map("proof_data")
+  
+  submittedAt     DateTime @default(now()) @map("submitted_at") @db.Timestamptz
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz
+  
+  reviewedById    String?  @map("reviewed_by") @db.Uuid
+  reviewedBy      User?    @relation("TaskReviewer", fields: [reviewedById], references: [id])
+  
+  rejectionReason String?  @map("rejection_reason")
+  
+  transactionId   String?  @map("transaction_id") @db.Uuid
+  transaction     Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@unique([taskId, userId])
+  @@index([status])
+  @@map("task_completions")
+}
+
+enum NotificationType {
+  SYSTEM
+  MARKETING
+  TOURNAMENT
+}
+
+enum NotificationStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model Notification {
+  id              String   @id @default(uuid()) @db.Uuid
+  type            NotificationType
+  
+  title           String?  @db.VarChar(256)
+  body            String
+  
+  status          NotificationStatus @default(DRAFT)
+  targetFilter    Json?    @default("{\"all\": true}") @map("target_filter")
+  
+  scheduledAt     DateTime? @map("scheduled_at") @db.Timestamptz
+  sentAt          DateTime? @map("sent_at") @db.Timestamptz
+  
+  totalRecipients Int      @default(0) @map("total_recipients")
+  deliveredCount  Int      @default(0) @map("delivered_count")
+  failedCount     Int      @default(0) @map("failed_count")
+  
+  createdById     String?  @map("created_by") @db.Uuid
+  createdBy       User?    @relation(fields: [createdById], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  deliveries      NotificationDelivery[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id              String   @id @default(uuid()) @db.Uuid
+  notificationId  String   @map("notification_id") @db.Uuid
+  notification    Notification @relation(fields: [notificationId], references: [id])
+  
+  userId          String   @map("user_id") @db.Uuid
+  user            User     @relation(fields: [userId], references: [id])
+  
+  deliveryStatus  String   @default("PENDING") @map("delivery_status") @db.VarChar(20)
+  
+  deliveredAt     DateTime? @map("delivered_at") @db.Timestamptz
+  readAt          DateTime? @map("read_at") @db.Timestamptz
+  errorMessage    String?  @map("error_message")
+
+  @@unique([notificationId, userId])
+  @@map("notification_deliveries")
+}
+
+enum EventType {
+  USER_REGISTERED
+  USER_UPDATED
+  USER_BANNED
+  USER_UNBANNED
+  TABLE_CREATED
+  TABLE_STARTED
+  TABLE_FINISHED
+  TABLE_CANCELLED
+  PLAYER_JOINED
+  PLAYER_LEFT
+  PLAYER_REPLACED_BY_BOT
+  PLAYER_RECONNECTED
+  TOURNAMENT_CREATED
+  TOURNAMENT_PUBLISHED
+  TOURNAMENT_STARTED
+  TOURNAMENT_STAGE_STARTED
+  TOURNAMENT_FINISHED
+  TOURNAMENT_CANCELLED
+  TRANSACTION_CREATED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  BALANCE_ADJUSTED
+  GOD_MODE_CARD_SWAP
+  GOD_MODE_DECK_SHUFFLE
+  GOD_MODE_KILLER_ENABLED
+  SETTINGS_UPDATED
+  ADMIN_ACTION
+}
+
+enum Severity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model EventLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  eventType       EventType @map("event_type")
+  severity        Severity  @default(INFO)
+  
+  actorId         String?   @map("actor_id") @db.Uuid
+  actor           User?     @relation("LogActor", fields: [actorId], references: [id])
+  actorType       String?   @map("actor_type") @db.VarChar(20)
+  
+  targetId        String?   @map("target_id") @db.Uuid
+  targetType      String?   @map("target_type") @db.VarChar(20)
+  
+  contextTableId  String?   @map("context_table_id") @db.Uuid
+  contextTournamentId String? @map("context_tournament_id") @db.Uuid
+  
+  details         Json      @default("{}")
+  
+  ipAddress       String?   @map("ip_address") @db.Inet
+  userAgent       String?   @map("user_agent")
+  
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([eventType])
+  @@index([actorId])
+  @@index([targetId, targetType])
+  @@index([createdAt(sort: Desc)])
+  @@index([severity])
+  @@map("event_log")
+}
+
+model GlobalSettings {
+  key         String   @id @db.VarChar(64)
+  value       Json
+  description String?
+  
+  updatedById String?  @map("updated_by") @db.Uuid
+  updatedBy   User?    @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("global_settings")
 }

@@ -5,13 +5,11 @@ RUN corepack enable
 
 FROM base AS dependencies
 WORKDIR /app
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-COPY packages/shared/package.json ./packages/shared/
-COPY apps/backend/package.json ./apps/backend/
-COPY apps/frontend/package.json ./apps/frontend/
+COPY pnpm-lock.yaml ./
+COPY package.json ./
+COPY pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
 
-# Install dependencies using the root lockfile (respects overrides!)
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
@@ -20,31 +18,16 @@ COPY . .
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/apps/admin/node_modules ./apps/admin/node_modules
 
-# Generate Prisma Client for Admin
-WORKDIR /app/apps/admin
-# Use pnpm exec to ensure we use the workspace dependency
-RUN pnpm exec prisma generate
+# Build admin with base path for /admin routing
+RUN pnpm --filter @joker/admin build
 
-# Build Admin (TSC + Bundle)
-# This uses the root pnpm configuration, so tiptap overrides work
-RUN pnpm run build
+FROM nginx:alpine AS deploy
+COPY --from=build /app/apps/admin/dist /usr/share/nginx/html
+COPY apps/admin/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create a pruned production deployment
-WORKDIR /app
-RUN pnpm --filter @joker/admin deploy --prod /app/pruned
+EXPOSE 80
 
-FROM base AS deploy
-WORKDIR /app
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
-# Copy production node_modules from pruned
-COPY --from=build /app/pruned/node_modules ./node_modules
-COPY --from=build /app/pruned/package.json ./package.json
-
-# Copy built assets
-COPY --from=build /app/apps/admin/dist ./dist
-COPY --from=build /app/apps/admin/public ./public
-COPY --from=build /app/apps/admin/prisma ./prisma
-
-ENV NODE_ENV=production
-EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["nginx", "-g", "daemon off;"]
