@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AdminRole, User, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { EventLogService } from '../event-log/event-log.service';
+import { mergeWhere } from './utils/query-builder';
 
 export interface AdminTokenPayload {
   sub: string;
@@ -335,6 +336,8 @@ export class AdminService {
     userId: string,
     page = 1,
     pageSize = 20,
+    advancedWhere?: Prisma.UserWhereInput,
+    orderBy?: Prisma.UserOrderByWithRelationInput[],
   ): Promise<{
     items: Array<{
       id: string;
@@ -348,10 +351,15 @@ export class AdminService {
     pageSize: number;
     totalPages: number;
   }> {
+    const baseWhere: Prisma.UserWhereInput = { referrerId: userId };
+    const where = mergeWhere(baseWhere, advancedWhere) ?? baseWhere;
+    const order: Prisma.UserOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
-        where: { referrerId: userId },
-        orderBy: { createdAt: 'desc' },
+        where,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         select: {
@@ -362,7 +370,7 @@ export class AdminService {
           createdAt: true,
         },
       }),
-      this.prisma.user.count({ where: { referrerId: userId } }),
+      this.prisma.user.count({ where }),
     ]);
 
     return {
@@ -383,7 +391,13 @@ export class AdminService {
   /**
    * List users with pagination and filtering
    */
-  async listUsers(filter: UserFilter, page = 1, pageSize = 20): Promise<PaginatedUsers> {
+  async listUsers(
+    filter: UserFilter,
+    page = 1,
+    pageSize = 20,
+    advancedWhere?: Prisma.UserWhereInput,
+    orderBy?: Prisma.UserOrderByWithRelationInput[],
+  ): Promise<PaginatedUsers> {
     const where: Prisma.UserWhereInput = {};
 
     if (filter.search) {
@@ -401,14 +415,18 @@ export class AdminService {
       where.blockedAt = filter.isBlocked ? { not: null } : null;
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.UserOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where: finalWhere }),
     ]);
 
     return {
@@ -677,17 +695,27 @@ export class AdminService {
   /**
    * List tasks with pagination
    */
-  async listTasks(page = 1, pageSize = 20, status?: string): Promise<PaginatedTasks> {
+  async listTasks(
+    page = 1,
+    pageSize = 20,
+    status?: string,
+    advancedWhere?: Prisma.TaskWhereInput,
+    orderBy?: Prisma.TaskOrderByWithRelationInput[],
+  ): Promise<PaginatedTasks> {
     const where: Prisma.TaskWhereInput = {};
 
     if (status) {
       where.status = status as Prisma.EnumTaskStatusFilter['equals'];
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.TaskOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [tasks, total] = await Promise.all([
       this.prisma.task.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
@@ -696,7 +724,7 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.task.count({ where }),
+      this.prisma.task.count({ where: finalWhere }),
     ]);
 
     return {
@@ -883,6 +911,8 @@ export class AdminService {
     page = 1,
     pageSize = 20,
     status?: string,
+    advancedWhere?: Prisma.TaskCompletionWhereInput,
+    orderBy?: Prisma.TaskCompletionOrderByWithRelationInput[],
   ): Promise<{
     items: Array<{
       id: string;
@@ -902,17 +932,21 @@ export class AdminService {
       where.status = status as Prisma.EnumTaskCompletionStatusFilter['equals'];
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.TaskCompletionOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ submittedAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.taskCompletion.findMany({
-        where,
-        orderBy: { submittedAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
           user: { select: { id: true, username: true } },
         },
       }),
-      this.prisma.taskCompletion.count({ where }),
+      this.prisma.taskCompletion.count({ where: finalWhere }),
     ]);
 
     return {

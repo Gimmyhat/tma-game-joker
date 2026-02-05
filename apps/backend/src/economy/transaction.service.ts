@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TxType, TxStatus, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { EventLogService } from '../event-log/event-log.service';
+import { mergeWhere } from '../admin/utils/query-builder';
 
 export interface TransactionFilter {
   userId?: string;
@@ -58,7 +59,13 @@ export class TransactionService {
   /**
    * List transactions with filtering and pagination
    */
-  async list(filter: TransactionFilter, page = 1, pageSize = 20): Promise<PaginatedTransactions> {
+  async list(
+    filter: TransactionFilter,
+    page = 1,
+    pageSize = 20,
+    advancedWhere?: Prisma.TransactionWhereInput,
+    orderBy?: Prisma.TransactionOrderByWithRelationInput[],
+  ): Promise<PaginatedTransactions> {
     const where: Prisma.TransactionWhereInput = {};
 
     if (filter.userId) {
@@ -80,10 +87,14 @@ export class TransactionService {
       }
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.TransactionOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.transaction.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
@@ -92,7 +103,7 @@ export class TransactionService {
           },
         },
       }),
-      this.prisma.transaction.count({ where }),
+      this.prisma.transaction.count({ where: finalWhere }),
     ]);
 
     return {
@@ -107,7 +118,12 @@ export class TransactionService {
   /**
    * Get pending withdrawals
    */
-  async getPendingWithdrawals(page = 1, pageSize = 20): Promise<PaginatedTransactions> {
+  async getPendingWithdrawals(
+    page = 1,
+    pageSize = 20,
+    advancedWhere?: Prisma.TransactionWhereInput,
+    orderBy?: Prisma.TransactionOrderByWithRelationInput[],
+  ): Promise<PaginatedTransactions> {
     return this.list(
       {
         type: 'WITHDRAW',
@@ -115,6 +131,8 @@ export class TransactionService {
       },
       page,
       pageSize,
+      advancedWhere,
+      orderBy,
     );
   }
 

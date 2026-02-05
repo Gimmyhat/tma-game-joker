@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   NotificationService,
@@ -13,8 +23,98 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
 import { CreateAdminDto, UpdatePasswordDto, UpdateRoleDto, BlockUserDto } from './dto/admin.dto';
+import {
+  buildOrderBy,
+  buildWhereFromFilter,
+  FieldSchema,
+  parseFiltersParam,
+  parseSortParam,
+} from './utils/query-builder';
 import { User, AdminRole, TxType, TxStatus, NotificationStatus } from '@prisma/client';
 import { AdjustBalanceDto } from '../economy/dto';
+
+const userFilterSchema: FieldSchema = {
+  username: { type: 'string' },
+  tgId: {
+    type: 'id',
+    map: (condition) => {
+      const toBigInt = (value: unknown) => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        if (Number.isNaN(parsed)) {
+          throw new BadRequestException('tgId must be numeric');
+        }
+        return BigInt(parsed);
+      };
+
+      if (condition.op === 'in') {
+        const values = Array.isArray(condition.value) ? condition.value : [];
+        return { tgId: { in: values.map(toBigInt) } };
+      }
+
+      return { tgId: toBigInt(condition.value) };
+    },
+  },
+  adminRole: { type: 'enum' },
+  status: { type: 'enum' },
+  createdAt: { type: 'date' },
+  blockedAt: { type: 'date' },
+  blocked: {
+    type: 'boolean',
+    map: (condition) => {
+      if (typeof condition.value !== 'boolean') {
+        throw new BadRequestException('blocked must be boolean');
+      }
+      return { blockedAt: condition.value ? { not: null } : null };
+    },
+  },
+};
+
+const taskFilterSchema: FieldSchema = {
+  title: { type: 'string' },
+  status: { type: 'enum' },
+  rewardAmount: { type: 'number' },
+  rewardCurrency: { type: 'enum' },
+  startDate: { type: 'date' },
+  endDate: { type: 'date' },
+  createdAt: { type: 'date' },
+};
+
+const taskCompletionFilterSchema: FieldSchema = {
+  userId: { type: 'id' },
+  status: { type: 'enum' },
+  submittedAt: { type: 'date' },
+  reviewedAt: { type: 'date' },
+};
+
+const referralFilterSchema: FieldSchema = {
+  username: { type: 'string' },
+  status: { type: 'enum' },
+  createdAt: { type: 'date' },
+};
+
+const transactionFilterSchema: FieldSchema = {
+  userId: { type: 'id' },
+  type: { type: 'enum' },
+  status: { type: 'enum' },
+  amount: { type: 'number' },
+  createdAt: { type: 'date' },
+  processedAt: { type: 'date' },
+};
+
+const notificationFilterSchema: FieldSchema = {
+  type: { type: 'enum' },
+  status: { type: 'enum' },
+  scheduledAt: { type: 'date' },
+  sentAt: { type: 'date' },
+  createdAt: { type: 'date' },
+};
+
+const notificationDeliveryFilterSchema: FieldSchema = {
+  userId: { type: 'id' },
+  deliveryStatus: { type: 'enum' },
+  deliveredAt: { type: 'date' },
+  readAt: { type: 'date' },
+};
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -55,7 +155,11 @@ export class AdminController {
     @Query('blocked') blocked?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), userFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), userFilterSchema);
     return this.adminService.listUsers(
       {
         search,
@@ -64,6 +168,8 @@ export class AdminController {
       },
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -85,11 +191,17 @@ export class AdminController {
     @Param('id') id: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), referralFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), referralFilterSchema);
     return this.adminService.getUserReferrals(
       id,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -154,7 +266,11 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), transactionFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), transactionFilterSchema);
     return this.transactionService.list(
       {
         userId,
@@ -163,15 +279,26 @@ export class AdminController {
       },
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
+      advancedWhere,
+      orderBy,
     );
   }
 
   @Get('transactions/pending-withdrawals')
   @Roles('MODERATOR')
-  async getPendingWithdrawals(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+  async getPendingWithdrawals(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), transactionFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), transactionFilterSchema);
     return this.transactionService.getPendingWithdrawals(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -254,11 +381,17 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), taskFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), taskFilterSchema);
     return this.adminService.listTasks(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
       status,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -350,12 +483,21 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(
+      parseFiltersParam(filters),
+      taskCompletionFilterSchema,
+    );
+    const orderBy = buildOrderBy(parseSortParam(sort), taskCompletionFilterSchema);
     return this.adminService.listTaskCompletions(
       id,
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
       status,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -385,11 +527,20 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(
+      parseFiltersParam(filters),
+      notificationFilterSchema,
+    );
+    const orderBy = buildOrderBy(parseSortParam(sort), notificationFilterSchema);
     return this.notificationService.listNotifications(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
       status as NotificationStatus | undefined,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -435,12 +586,21 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(
+      parseFiltersParam(filters),
+      notificationDeliveryFilterSchema,
+    );
+    const orderBy = buildOrderBy(parseSortParam(sort), notificationDeliveryFilterSchema);
     return this.notificationService.getNotificationDeliveries(
       id,
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
       status,
+      advancedWhere,
+      orderBy,
     );
   }
 }

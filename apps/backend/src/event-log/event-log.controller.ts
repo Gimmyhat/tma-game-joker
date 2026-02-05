@@ -4,6 +4,25 @@ import { AdminJwtAuthGuard } from '../admin/guards/admin-jwt-auth.guard';
 import { RolesGuard } from '../admin/guards/roles.guard';
 import { Roles } from '../admin/decorators/roles.decorator';
 import { EventType, Severity } from '@prisma/client';
+import {
+  buildOrderBy,
+  buildWhereFromFilter,
+  FieldSchema,
+  parseFiltersParam,
+  parseSortParam,
+} from '../admin/utils/query-builder';
+
+const eventLogFilterSchema: FieldSchema = {
+  eventType: { type: 'enum' },
+  severity: { type: 'enum' },
+  actorId: { type: 'id' },
+  actorType: { type: 'enum' },
+  targetId: { type: 'id' },
+  targetType: { type: 'enum' },
+  createdAt: { type: 'date' },
+  contextTableId: { type: 'id' },
+  contextTournamentId: { type: 'id' },
+};
 
 @Controller('admin/event-log')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -22,6 +41,8 @@ export class EventLogController {
     @Query('toDate') toDate?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
     const filter: EventLogFilter = {
       eventType,
@@ -33,19 +54,33 @@ export class EventLogController {
       toDate: toDate ? new Date(toDate) : undefined,
     };
 
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), eventLogFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), eventLogFilterSchema);
+
     return this.eventLogService.list(
       filter,
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 50,
+      advancedWhere,
+      orderBy,
     );
   }
 
   @Get('security')
   @Roles('ADMIN')
-  async getSecurityEvents(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+  async getSecurityEvents(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), eventLogFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), eventLogFilterSchema);
     return this.eventLogService.getSecurityEvents(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 50,
+      advancedWhere,
+      orderBy,
     );
   }
 
@@ -61,11 +96,17 @@ export class EventLogController {
     @Param('adminId') adminId: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
   ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), eventLogFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), eventLogFilterSchema);
     return this.eventLogService.getAdminAuditTrail(
       adminId,
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 50,
+      advancedWhere,
+      orderBy,
     );
   }
 

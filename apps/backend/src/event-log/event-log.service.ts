@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventLog, EventType, Severity, Prisma } from '@prisma/client';
+import { mergeWhere } from '../admin/utils/query-builder';
 
 export interface LogEventParams {
   eventType: EventType;
@@ -104,7 +105,13 @@ export class EventLogService {
   /**
    * List event logs with filtering and pagination
    */
-  async list(filter: EventLogFilter, page = 1, pageSize = 50): Promise<PaginatedEventLogs> {
+  async list(
+    filter: EventLogFilter,
+    page = 1,
+    pageSize = 50,
+    advancedWhere?: Prisma.EventLogWhereInput,
+    orderBy?: Prisma.EventLogOrderByWithRelationInput[],
+  ): Promise<PaginatedEventLogs> {
     const where: Prisma.EventLogWhereInput = {};
 
     if (filter.eventType) {
@@ -132,10 +139,14 @@ export class EventLogService {
       }
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.EventLogOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.eventLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
@@ -144,7 +155,7 @@ export class EventLogService {
           },
         },
       }),
-      this.prisma.eventLog.count({ where }),
+      this.prisma.eventLog.count({ where: finalWhere }),
     ]);
 
     return {
@@ -172,7 +183,13 @@ export class EventLogService {
   /**
    * Get admin audit trail
    */
-  async getAdminAuditTrail(adminId: string, page = 1, pageSize = 50): Promise<PaginatedEventLogs> {
+  async getAdminAuditTrail(
+    adminId: string,
+    page = 1,
+    pageSize = 50,
+    advancedWhere?: Prisma.EventLogWhereInput,
+    orderBy?: Prisma.EventLogOrderByWithRelationInput[],
+  ): Promise<PaginatedEventLogs> {
     return this.list(
       {
         actorId: adminId,
@@ -180,13 +197,20 @@ export class EventLogService {
       },
       page,
       pageSize,
+      advancedWhere,
+      orderBy,
     );
   }
 
   /**
    * Get security events (login attempts, blocks, god mode, etc.)
    */
-  async getSecurityEvents(page = 1, pageSize = 50): Promise<PaginatedEventLogs> {
+  async getSecurityEvents(
+    page = 1,
+    pageSize = 50,
+    advancedWhere?: Prisma.EventLogWhereInput,
+    orderBy?: Prisma.EventLogOrderByWithRelationInput[],
+  ): Promise<PaginatedEventLogs> {
     const where: Prisma.EventLogWhereInput = {
       eventType: {
         in: [
@@ -200,10 +224,14 @@ export class EventLogService {
       },
     };
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.EventLogOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.eventLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
@@ -212,7 +240,7 @@ export class EventLogService {
           },
         },
       }),
-      this.prisma.eventLog.count({ where }),
+      this.prisma.eventLog.count({ where: finalWhere }),
     ]);
 
     return {

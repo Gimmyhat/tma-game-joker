@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { EconomyService } from './economy.service';
 import { TransactionService } from './transaction.service';
 import { TxType, TxStatus } from '@prisma/client';

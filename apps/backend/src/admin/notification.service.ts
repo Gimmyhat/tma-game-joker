@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TelegramBotService } from '../telegram-bot/telegram-bot.service';
 import { EventLogService } from '../event-log/event-log.service';
 import { NotificationType, NotificationStatus, Prisma } from '@prisma/client';
+import { mergeWhere } from './utils/query-builder';
 
 export interface CreateNotificationDto {
   type: NotificationType;
@@ -91,6 +92,8 @@ export class NotificationService {
     page = 1,
     pageSize = 20,
     status?: NotificationStatus,
+    advancedWhere?: Prisma.NotificationWhereInput,
+    orderBy?: Prisma.NotificationOrderByWithRelationInput[],
   ): Promise<PaginatedNotifications> {
     const where: Prisma.NotificationWhereInput = {};
 
@@ -98,14 +101,18 @@ export class NotificationService {
       where.status = status;
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.NotificationOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.notification.count({ where }),
+      this.prisma.notification.count({ where: finalWhere }),
     ]);
 
     return {
@@ -421,6 +428,8 @@ export class NotificationService {
     page = 1,
     pageSize = 20,
     status?: string,
+    advancedWhere?: Prisma.NotificationDeliveryWhereInput,
+    orderBy?: Prisma.NotificationDeliveryOrderByWithRelationInput[],
   ): Promise<PaginatedDeliveries> {
     const where: Prisma.NotificationDeliveryWhereInput = { notificationId };
 
@@ -428,17 +437,21 @@ export class NotificationService {
       where.deliveryStatus = status;
     }
 
+    const finalWhere = mergeWhere(where, advancedWhere) ?? where;
+    const order: Prisma.NotificationDeliveryOrderByWithRelationInput[] =
+      orderBy && orderBy.length > 0 ? orderBy : [{ deliveredAt: Prisma.SortOrder.desc }];
+
     const [items, total] = await Promise.all([
       this.prisma.notificationDelivery.findMany({
-        where,
-        orderBy: { deliveredAt: 'desc' },
+        where: finalWhere,
+        orderBy: order,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {
           user: { select: { id: true, username: true, tgId: true } },
         },
       }),
-      this.prisma.notificationDelivery.count({ where }),
+      this.prisma.notificationDelivery.count({ where: finalWhere }),
     ]);
 
     return {
