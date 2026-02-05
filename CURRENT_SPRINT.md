@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-05 11:00  
+**Last Updated:** 2026-02-05 12:00  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -29,7 +29,7 @@
 
 | ID  | Задача                    | Статус  | Файлы                  | Acceptance Criteria                       |
 | --- | ------------------------- | ------- | ---------------------- | ----------------------------------------- |
-| A-1 | Tasks CRUD (AC9)          | ⬜ TODO | `admin/tasks/`         | Создание/редактирование заданий           |
+| A-1 | Tasks CRUD (AC9)          | ✅ DONE | `admin/tasks/`         | Создание/редактирование заданий           |
 | A-2 | Notifications CRUD (AC10) | ⬜ TODO | `admin/notifications/` | Создание уведомлений, отправка через бота |
 | A-3 | Withdrawal moderation UI  | ⬜ TODO | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
 | A-4 | Audit Log (AC5)           | ⬜ TODO | `audit.service.ts`     | Логирование всех admin-действий           |
@@ -69,9 +69,10 @@
 | S4-10    | Settings page                      | 2026-02-04 | 021732e          |
 | S4-11    | Tables (God Mode)                  | 2026-02-04 | 021732e          |
 | S4-12    | BigInt serialization fixes         | 2026-02-05 | 3eda812, 8f66a9f |
-| S4-13    | Session handoff mechanism          | 2026-02-05 | (this session)   |
+| S4-13    | Session handoff mechanism          | 2026-02-05 | bf1d7ed          |
 | E-1..E-8 | Economy API (full)                 | 2026-02-04 | (previous)       |
 | T-1      | Tournament schema                  | 2026-02-04 | -                |
+| A-1      | Tasks CRUD (backend + frontend)    | 2026-02-05 | a599c60          |
 
 ---
 

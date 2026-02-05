@@ -150,5 +150,24 @@ TOR.md / TECH_SPEC.md (при необходимости)
 ```
 
 ### Следующие шаги
-- [ ] E-1: EconomyModule + EconomyService scaffold
-- [ ] E-2: Ledger model + migrations
+- [x] E-1: EconomyModule + EconomyService scaffold
+- [x] E-2: Ledger model + migrations
+
+---
+
+## [2026-02-05 12:00] - Sisyphus
+
+### Выполнено
+- ✅ Проверил Economy API — уже полностью реализован ранее
+- ✅ **A-1: Tasks CRUD (commit a599c60)**:
+  - Backend: listTasks, getTask, createTask, updateTask, deleteTask
+  - Backend: listTaskCompletions, approveTaskCompletion, rejectTaskCompletion
+  - Frontend: TasksPage.tsx (list + filters + pagination)
+  - Frontend: TaskDetailPage.tsx (edit form + completions table)
+  - Frontend: TaskCreatePage.tsx (create form)
+  - Routes и sidebar обновлены
+
+### Следующие шаги
+- [ ] A-2: Notifications CRUD (backend + frontend)
+- [ ] A-3: Withdrawal moderation UI
+- [ ] F-1: User balance display in frontend
