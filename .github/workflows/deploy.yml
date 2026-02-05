@@ -202,6 +202,9 @@ jobs:
             # Run migrations inside the running backend container
             docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
 
+            # Seed database (creates admin user if not exists)
+            docker compose -f docker-compose.prod.yml exec -T backend npx prisma db seed || echo "Seed may have already been applied"
+
             docker image prune -f
 
       - name: Update server nginx config
