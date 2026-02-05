@@ -3,157 +3,53 @@
 **Последнее обновление:** 2026-02-05
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
+> **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
+
 ---
 
 ## 🏗️ Инфраструктура (Infrastructure)
 
-1. ✅ **Server**: SSH access configured for `203.31.40.28` (alias `hosting-vds`)
-2. ✅ **Security**: Password authentication disabled (key-only access)
-3. ✅ **Docker Desktop**: PostgreSQL + Redis работают локально
-   - `joker-postgres:5432` — PostgreSQL
-   - `joker-redis:6379` — Redis
+| Компонент | Статус | Детали |
+|-----------|--------|--------|
+| Server | ✅ | SSH `203.31.40.28` (alias `hosting-vds`) |
+| Docker Desktop | ✅ | PostgreSQL:5432, Redis:6379 |
+| Backend | ✅ | NestJS, работает на :3000 |
+| Frontend | ✅ | React/Vite, работает на :5173 |
+| Admin Panel | ✅ | React/Vite, работает на :3001 |
 
 ---
 
-## 🎯 Текущий фокус (Current Focus)
+## 📈 Phase Progress
 
-Мы находимся на **Phase 2 (Admin Panel & Economy)**.
-MVP сдан заказчику и работает в production. Разрабатываем дополнительный функционал.
-
-**Ближайшие задачи:**
-
-1. ✅ ~~**Admin Panel**: Backend (AdminController, AdminService, JWT auth)~~
-2. ✅ ~~**Admin Panel**: Frontend (все страницы реализованы)~~
-3. 🛠 **Admin Panel**: Тестирование и фиксы
-4. [ ] **Economy**: API endpoints
-5. [ ] **Telegram Bot**: Интеграция с экономикой
+| Phase | Название | Статус | Прогресс |
+|-------|----------|--------|----------|
+| 1 | Core & Network | ✅ Done | 100% |
+| 2 | Economy & Admin | 🔄 In Progress | ~60% |
+| 3 | Tournaments & Meta | ⏳ Not Started | 0% |
+| 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
-
-## 📊 Статус по Спринтам
-
-### ✅ Sprint 0: Инициализация (Completed)
-
-- [x] S0-1: Monorepo structure (`apps/backend`, `apps/frontend`, `packages/shared`)
-- [x] S0-2: NestJS init
-- [x] S0-3: Vite + React init
-- [x] S0-4: Shared package (Types, Enums in `@joker/shared`)
-- [x] S0-5: Docker Compose (Basic)
-
-### ✅ Sprint 1: Game Core (Completed)
-
-- [x] S1-1..S1-4: Models & Enums (moved to `packages/shared`)
-- [x] S1-5: `DeckService` (shuffling, dealing)
-- [x] S1-6: `MoveValidator` (joker rules, suit following)
-- [x] S1-7: `BetValidator` (forced bet rule)
-- [x] S1-9: `StateMachine` (phases)
-- [x] S1-10: `ScoringService` (scores, shtanga)
-- [x] S1-12: `GameEngineService` (orchestrator)
-
-### ✅ Sprint 2: Network Layer (Completed)
-
-- [x] S2-1: `GameGateway` setup (Socket.io)
-- [x] S2-2: `TelegramAuthGuard` (HMAC validation)
-- [x] S2-3: `RoomManager` (queue, rooms, Redis-backed)
-- [x] S2-11: `BotService` (Random Valid Move Strategy)
-- [x] S2-13: `RedisService` + `DatabaseModule` (hot state persistence, TTL 2h)
-- [x] S2-4..S2-7: Event handlers (implemented in Gateway)
-- [x] S2-8: Turn Timer (30 sec)
-- [x] S2-9: Reconnect logic (via Redis)
-- [x] S2-10: Disconnect handling (30 sec grace period)
-
-### 🚧 Sprint 4: Phase 2 - Admin Panel & Economy (In Progress)
-
-- [x] S4-1: Prisma schema Phase 2 (Admin, EventLog, GlobalSettings, etc.)
-- [x] S4-2: Database migrations applied
-- [x] S4-3: AdminModule + AdminController + AdminService
-- [x] S4-4: JWT Authentication for Admin
-- [x] S4-5: RBAC (OPERATOR/MODERATOR/ADMIN/SUPERADMIN)
-- [x] S4-6: Admin Frontend - Dashboard
-- [x] S4-7: Admin Frontend - Users list + UserDetail
-- [x] S4-8: Admin Frontend - Transactions
-- [x] S4-9: Admin Frontend - EventLog
-- [x] S4-10: Admin Frontend - Settings
-- [x] S4-11: Admin Frontend - Tables (God Mode)
-- [x] S4-12: BigInt serialization fixes
-- [ ] S4-13: Economy API endpoints
-- [ ] S4-14: Telegram Bot economy integration
-- [ ] S4-15: E2E tests for Admin Panel
-
----
-
-## 📝 Контекст для разработчика (Context)
-
-- **Архитектура**: Monorepo. Shared types in `packages/shared`.
-- **Backend**: NestJS. Game logic separated from Gateway.
-- **Frontend**: React + Vite + TailwindCSS + Zustand
-- **Redis**: Используется для персистентности игрового состояния (TTL 2 часа).
-  - `docker-compose up redis` для запуска
-  - Fallback на in-memory если Redis недоступен
-
-### Frontend Structure
-
-```
-apps/frontend/src/
-├── components/          # UI компоненты
-│   ├── Card.tsx
-│   ├── Hand.tsx
-│   ├── Table.tsx
-│   ├── PlayerInfo.tsx
-│   ├── BetModal.tsx
-│   ├── TrumpSelector.tsx
-│   ├── JokerOptionModal.tsx
-│   └── index.ts
-├── lib/                 # Утилиты
-│   ├── telegram.ts      # TG SDK helpers
-│   ├── socket.ts        # Socket.io client
-│   └── index.ts
-├── providers/           # React providers
-│   ├── TelegramProvider.tsx
-│   └── index.ts
-├── store/               # Zustand stores
-│   ├── gameStore.ts
-│   └── index.ts
-└── App.tsx              # Root component
-```
-
-## 🛠 Технические заметки
-
-- Типы вынесены в `@joker/shared` и используются и бэком и фронтом.
-- `GameEngineService` — точка входа в логику.
-- `RoomManager` использует Redis как primary storage с in-memory cache.
-- `RedisService` gracefully деградирует до memory-only если Redis недоступен.
-- Frontend использует `SKIP_AUTH=true` в dev mode для тестирования без Telegram.
 
 ## 🚀 Быстрый старт
 
 ```bash
-# Запуск Redis (опционально)
-docker-compose up -d redis
+# Инфраструктура
+docker compose up -d  # PostgreSQL + Redis
 
-# Запуск backend (dev)
+# Backend
 cd apps/backend && pnpm dev
 
-# Запуск frontend (dev)
+# Frontend (player)
 cd apps/frontend && pnpm dev
+
+# Admin Panel
+cd apps/admin && pnpm dev
 ```
 
-## 🔧 Environment Variables
-
-### Backend (`apps/backend/.env`)
-
-```
-PORT=3000
-TELEGRAM_BOT_TOKEN=your_bot_token
-SKIP_AUTH=true  # для dev режима
-# REDIS_URL=redis://localhost:6379  # раскомментировать для Redis
-```
-
-### Frontend (`apps/frontend/.env`)
-
-```
-VITE_SOCKET_URL=http://localhost:3000
-```
+**URLs:**
+- Backend: http://localhost:3000
+- Frontend: http://localhost:5173
+- Admin: http://localhost:3001 (login: admin / admin123)
 
 ---
 
@@ -231,3 +127,28 @@ VITE_SOCKET_URL=http://localhost:3000
 - [ ] Протестировать Admin Panel (http://localhost:3001, admin/admin123)
 - [ ] Economy API endpoints
 - [ ] Telegram Bot economy integration
+
+---
+
+## [2026-02-05 10:30] - Sisyphus
+
+### Выполнено
+- ✅ Создан `CURRENT_SPRINT.md` — детальный план Phase 2 с 19 задачами
+- ✅ Обновлён `AGENTS.md` — Session Protocol теперь ссылается на CURRENT_SPRINT.md
+- ✅ Упрощён `PROGRESS.md` — убрано дублирование, добавлена ссылка на CURRENT_SPRINT.md
+- ✅ Проанализирован TOR.md — определён текущий этап (Phase 2, ~60%)
+
+### Архитектура передачи контекста между сессиями:
+```
+AGENTS.md (первичный, читается OpenCode автоматически)
+    ↓
+CURRENT_SPRINT.md (текущие задачи, статусы)
+    ↓
+PROGRESS.md (Session Log, история)
+    ↓
+TOR.md / TECH_SPEC.md (при необходимости)
+```
+
+### Следующие шаги
+- [ ] E-1: EconomyModule + EconomyService scaffold
+- [ ] E-2: Ledger model + migrations
