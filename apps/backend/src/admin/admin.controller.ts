@@ -235,4 +235,126 @@ export class AdminController {
       connectedPlayers: Array.from(room.sockets.keys()),
     };
   }
+
+  // ===== Tasks Management =====
+
+  @Get('tasks')
+  @Roles('OPERATOR')
+  async listTasks(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.adminService.listTasks(
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+      status,
+    );
+  }
+
+  @Get('tasks/:id')
+  @Roles('OPERATOR')
+  async getTask(@Param('id') id: string) {
+    return this.adminService.getTask(id);
+  }
+
+  @Post('tasks')
+  @Roles('MODERATOR')
+  async createTask(
+    @Body()
+    dto: {
+      title: string;
+      shortDescription?: string;
+      longDescription?: string;
+      rewardAmount?: number;
+      rewardCurrency?: string;
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      autoVerify?: boolean;
+    },
+  ) {
+    return this.adminService.createTask({
+      title: dto.title,
+      shortDescription: dto.shortDescription,
+      longDescription: dto.longDescription,
+      rewardAmount: dto.rewardAmount,
+      rewardCurrency: dto.rewardCurrency,
+      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      status: dto.status,
+      autoVerify: dto.autoVerify,
+    });
+  }
+
+  @Put('tasks/:id')
+  @Roles('MODERATOR')
+  async updateTask(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      title?: string;
+      shortDescription?: string;
+      longDescription?: string;
+      rewardAmount?: number;
+      rewardCurrency?: string;
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      autoVerify?: boolean;
+    },
+  ) {
+    return this.adminService.updateTask(id, {
+      title: dto.title,
+      shortDescription: dto.shortDescription,
+      longDescription: dto.longDescription,
+      rewardAmount: dto.rewardAmount,
+      rewardCurrency: dto.rewardCurrency,
+      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      status: dto.status,
+      autoVerify: dto.autoVerify,
+    });
+  }
+
+  @Post('tasks/:id/delete')
+  @Roles('ADMIN')
+  async deleteTask(@Param('id') id: string) {
+    await this.adminService.deleteTask(id);
+    return { success: true };
+  }
+
+  @Get('tasks/:id/completions')
+  @Roles('OPERATOR')
+  async listTaskCompletions(
+    @Param('id') id: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.adminService.listTaskCompletions(
+      id,
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+      status,
+    );
+  }
+
+  @Post('task-completions/:id/approve')
+  @Roles('MODERATOR')
+  async approveTaskCompletion(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    await this.adminService.approveTaskCompletion(id, admin.id);
+    return { success: true };
+  }
+
+  @Post('task-completions/:id/reject')
+  @Roles('MODERATOR')
+  async rejectTaskCompletion(
+    @Param('id') id: string,
+    @Body() dto: { reason: string },
+    @CurrentAdmin() admin: User,
+  ) {
+    await this.adminService.rejectTaskCompletion(id, admin.id, dto.reason);
+    return { success: true };
+  }
 }

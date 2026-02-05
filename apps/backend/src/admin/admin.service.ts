@@ -33,6 +33,64 @@ export interface UserFilter {
   isBlocked?: boolean;
 }
 
+export interface PaginatedTasks {
+  items: Array<{
+    id: string;
+    title: string;
+    shortDescription: string | null;
+    rewardAmount: string;
+    rewardCurrency: string | null;
+    status: string;
+    startDate: Date | null;
+    endDate: Date | null;
+    completionsCount: number;
+    createdAt: Date;
+  }>;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface TaskDetailResponse {
+  id: string;
+  title: string;
+  shortDescription: string | null;
+  longDescription: string | null;
+  rewardAmount: string;
+  rewardCurrency: string | null;
+  status: string;
+  autoVerify: boolean;
+  startDate: Date | null;
+  endDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTaskDto {
+  title: string;
+  shortDescription?: string;
+  longDescription?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  startDate?: Date;
+  endDate?: Date;
+  status?: string;
+  autoVerify?: boolean;
+}
+
+export interface UpdateTaskDto {
+  title?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  rewardAmount?: number;
+  rewardCurrency?: string;
+  startDate?: Date;
+  endDate?: Date;
+  status?: string;
+  autoVerify?: boolean;
+}
+
 export interface UserDetailResponse {
   user: Omit<User, 'tgId'> & { tgId: string };
   referrer: { id: string; username: string | null; tgId: string } | null;
@@ -559,5 +617,313 @@ export class AdminService {
     this.logger.log(`${settings.length} settings updated by ${updatedById}`);
 
     return results.map((s) => ({ key: s.key, value: s.value }));
+  }
+
+  // ==================== Tasks ====================
+
+  /**
+   * List tasks with pagination
+   */
+  async listTasks(page = 1, pageSize = 20, status?: string): Promise<PaginatedTasks> {
+    const where: Prisma.TaskWhereInput = {};
+
+    if (status) {
+      where.status = status as Prisma.EnumTaskStatusFilter['equals'];
+    }
+
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          _count: {
+            select: { completions: true },
+          },
+        },
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    return {
+      items: tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        shortDescription: t.shortDescription,
+        rewardAmount: t.rewardAmount.toString(),
+        rewardCurrency: t.rewardCurrency,
+        status: t.status,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        completionsCount: t._count.completions,
+        createdAt: t.createdAt,
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * Get task by ID
+   */
+  async getTask(id: string): Promise<TaskDetailResponse> {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task ${id} not found`);
+    }
+
+    return {
+      id: task.id,
+      title: task.title,
+      shortDescription: task.shortDescription,
+      longDescription: task.longDescription,
+      rewardAmount: task.rewardAmount.toString(),
+      rewardCurrency: task.rewardCurrency,
+      status: task.status,
+      autoVerify: task.autoVerify,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    };
+  }
+
+  /**
+   * Create task
+   */
+  async createTask(dto: CreateTaskDto): Promise<TaskDetailResponse> {
+    const task = await this.prisma.task.create({
+      data: {
+        title: dto.title,
+        shortDescription: dto.shortDescription,
+        longDescription: dto.longDescription,
+        rewardAmount: dto.rewardAmount ?? 0,
+        rewardCurrency: dto.rewardCurrency ?? 'CJ',
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        status: (dto.status as Prisma.EnumTaskStatusFilter['equals']) ?? 'DRAFT',
+        autoVerify: dto.autoVerify ?? false,
+      },
+    });
+
+    this.logger.log(`Task "${task.title}" created (id: ${task.id})`);
+
+    return {
+      id: task.id,
+      title: task.title,
+      shortDescription: task.shortDescription,
+      longDescription: task.longDescription,
+      rewardAmount: task.rewardAmount.toString(),
+      rewardCurrency: task.rewardCurrency,
+      status: task.status,
+      autoVerify: task.autoVerify,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    };
+  }
+
+  /**
+   * Update task
+   */
+  async updateTask(id: string, dto: UpdateTaskDto): Promise<TaskDetailResponse> {
+    const existing = await this.prisma.task.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Task ${id} not found`);
+    }
+
+    const task = await this.prisma.task.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        shortDescription: dto.shortDescription,
+        longDescription: dto.longDescription,
+        rewardAmount: dto.rewardAmount,
+        rewardCurrency: dto.rewardCurrency,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        status: dto.status as Prisma.EnumTaskStatusFilter['equals'],
+        autoVerify: dto.autoVerify,
+      },
+    });
+
+    this.logger.log(`Task "${task.title}" updated (id: ${task.id})`);
+
+    return {
+      id: task.id,
+      title: task.title,
+      shortDescription: task.shortDescription,
+      longDescription: task.longDescription,
+      rewardAmount: task.rewardAmount.toString(),
+      rewardCurrency: task.rewardCurrency,
+      status: task.status,
+      autoVerify: task.autoVerify,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    };
+  }
+
+  /**
+   * Delete task
+   */
+  async deleteTask(id: string): Promise<void> {
+    const existing = await this.prisma.task.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Task ${id} not found`);
+    }
+
+    // Delete completions first
+    await this.prisma.taskCompletion.deleteMany({ where: { taskId: id } });
+    await this.prisma.task.delete({ where: { id } });
+
+    this.logger.log(`Task ${id} deleted`);
+  }
+
+  /**
+   * List task completions
+   */
+  async listTaskCompletions(
+    taskId: string,
+    page = 1,
+    pageSize = 20,
+    status?: string,
+  ): Promise<{
+    items: Array<{
+      id: string;
+      userId: string;
+      username: string | null;
+      status: string;
+      submittedAt: Date;
+      reviewedAt: Date | null;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    const where: Prisma.TaskCompletionWhereInput = { taskId };
+    if (status) {
+      where.status = status as Prisma.EnumTaskCompletionStatusFilter['equals'];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.taskCompletion.findMany({
+        where,
+        orderBy: { submittedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: { select: { id: true, username: true } },
+        },
+      }),
+      this.prisma.taskCompletion.count({ where }),
+    ]);
+
+    return {
+      items: items.map((c) => ({
+        id: c.id,
+        userId: c.user.id,
+        username: c.user.username,
+        status: c.status,
+        submittedAt: c.submittedAt,
+        reviewedAt: c.reviewedAt,
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * Approve task completion
+   */
+  async approveTaskCompletion(completionId: string, adminId: string): Promise<void> {
+    const completion = await this.prisma.taskCompletion.findUnique({
+      where: { id: completionId },
+      include: { task: true },
+    });
+
+    if (!completion) {
+      throw new NotFoundException(`Completion ${completionId} not found`);
+    }
+
+    if (completion.status !== 'PENDING') {
+      throw new Error(`Completion already ${completion.status}`);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Update completion status
+      await tx.taskCompletion.update({
+        where: { id: completionId },
+        data: {
+          status: 'APPROVED',
+          reviewedAt: new Date(),
+          reviewedById: adminId,
+        },
+      });
+
+      // Credit reward to user
+      const rewardAmount = Number(completion.task.rewardAmount);
+      if (rewardAmount > 0) {
+        await tx.user.update({
+          where: { id: completion.userId },
+          data: {
+            balanceCj: { increment: rewardAmount },
+          },
+        });
+
+        // Create transaction record
+        await tx.transaction.create({
+          data: {
+            userId: completion.userId,
+            type: 'TASK_REWARD',
+            amount: rewardAmount,
+            status: 'SUCCESS',
+            meta: { taskId: completion.taskId, completionId },
+          },
+        });
+      }
+    });
+
+    this.logger.log(`Task completion ${completionId} approved by ${adminId}`);
+  }
+
+  /**
+   * Reject task completion
+   */
+  async rejectTaskCompletion(completionId: string, adminId: string, reason: string): Promise<void> {
+    const completion = await this.prisma.taskCompletion.findUnique({
+      where: { id: completionId },
+    });
+
+    if (!completion) {
+      throw new NotFoundException(`Completion ${completionId} not found`);
+    }
+
+    if (completion.status !== 'PENDING') {
+      throw new Error(`Completion already ${completion.status}`);
+    }
+
+    await this.prisma.taskCompletion.update({
+      where: { id: completionId },
+      data: {
+        status: 'REJECTED',
+        reviewedAt: new Date(),
+        reviewedById: adminId,
+        rejectionReason: reason,
+      },
+    });
+
+    this.logger.log(`Task completion ${completionId} rejected by ${adminId}. Reason: ${reason}`);
   }
 }

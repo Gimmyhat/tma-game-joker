@@ -12,6 +12,9 @@ import EventLogPage from './pages/Admin/EventLogPage';
 import SettingsPage from './pages/Admin/SettingsPage';
 import TablesPage from './pages/Admin/TablesPage';
 import TableDetailPage from './pages/Admin/TableDetailPage';
+import TasksPage from './pages/Admin/TasksPage';
+import TaskDetailPage from './pages/Admin/TaskDetailPage';
+import TaskCreatePage from './pages/Admin/TaskCreatePage';
 
 // Layout
 import AppLayout from './layout/AppLayout';
@@ -45,6 +48,9 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/tables" element={<TablesPage />} />
             <Route path="/tables/:id" element={<TableDetailPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/tasks/new" element={<TaskCreatePage />} />
+            <Route path="/tasks/:id" element={<TaskDetailPage />} />
           </Route>
         </Route>
 

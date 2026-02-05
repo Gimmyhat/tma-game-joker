@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { GridIcon, UserCircleIcon, DollarLineIcon, ListIcon, LockIcon } from '../icons';
+import {
+  GridIcon,
+  UserCircleIcon,
+  DollarLineIcon,
+  ListIcon,
+  LockIcon,
+  TableIcon,
+  TaskIcon,
+} from '../icons';
 import { useSidebar } from '../context/SidebarContext';
 
 type NavItem = {
@@ -24,6 +32,16 @@ const navItems: NavItem[] = [
     icon: <DollarLineIcon />,
     name: 'Transactions',
     path: '/transactions',
+  },
+  {
+    icon: <TaskIcon />,
+    name: 'Tasks',
+    path: '/tasks',
+  },
+  {
+    icon: <TableIcon />,
+    name: 'Tables',
+    path: '/tables',
   },
   {
     icon: <ListIcon />,

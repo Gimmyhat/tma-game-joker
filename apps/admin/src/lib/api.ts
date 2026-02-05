@@ -81,4 +81,42 @@ export const adminApi = {
   // Tables (Active Games)
   getTables: () => api.get('/admin/tables'),
   getTable: (id: string) => api.get(`/admin/tables/${id}`),
+
+  // Tasks
+  getTasks: (params?: { status?: string; page?: number; pageSize?: number }) =>
+    api.get('/admin/tasks', { params }),
+  getTask: (id: string) => api.get(`/admin/tasks/${id}`),
+  createTask: (data: {
+    title: string;
+    shortDescription?: string;
+    longDescription?: string;
+    rewardAmount?: number;
+    rewardCurrency?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    autoVerify?: boolean;
+  }) => api.post('/admin/tasks', data),
+  updateTask: (
+    id: string,
+    data: {
+      title?: string;
+      shortDescription?: string;
+      longDescription?: string;
+      rewardAmount?: number;
+      rewardCurrency?: string;
+      startDate?: string;
+      endDate?: string;
+      status?: string;
+      autoVerify?: boolean;
+    },
+  ) => api.put(`/admin/tasks/${id}`, data),
+  deleteTask: (id: string) => api.post(`/admin/tasks/${id}/delete`),
+  getTaskCompletions: (
+    taskId: string,
+    params?: { status?: string; page?: number; pageSize?: number },
+  ) => api.get(`/admin/tasks/${taskId}/completions`, { params }),
+  approveTaskCompletion: (id: string) => api.post(`/admin/task-completions/${id}/approve`),
+  rejectTaskCompletion: (id: string, reason: string) =>
+    api.post(`/admin/task-completions/${id}/reject`, { reason }),
 };
