@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -55,7 +55,21 @@ export default function NotificationDetailPage() {
   const [deliveryTotal, setDeliveryTotal] = useState(0);
   const deliveryLimit = 10;
 
-  const fetchNotification = async () => {
+  const fetchDeliveries = useCallback(async () => {
+    if (isNew || !id) return;
+    try {
+      const res = await adminApi.getNotificationDeliveries(id, {
+        page: deliveryPage,
+        pageSize: deliveryLimit,
+      });
+      setDeliveries(res.data.items || []);
+      setDeliveryTotal(res.data.total || 0);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [deliveryLimit, deliveryPage, id, isNew]);
+
+  const fetchNotification = useCallback(async () => {
     if (isNew) return;
     setLoading(true);
     try {
@@ -79,31 +93,17 @@ export default function NotificationDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchDeliveries = async () => {
-    if (isNew || !id) return;
-    try {
-      const res = await adminApi.getNotificationDeliveries(id, {
-        page: deliveryPage,
-        pageSize: deliveryLimit,
-      });
-      setDeliveries(res.data.items || []);
-      setDeliveryTotal(res.data.total || 0);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  }, [fetchDeliveries, id, isNew]);
 
   useEffect(() => {
     fetchNotification();
-  }, [id]);
+  }, [fetchNotification]);
 
   useEffect(() => {
     if (!isNew && notification && notification.status !== 'DRAFT') {
       fetchDeliveries();
     }
-  }, [deliveryPage]);
+  }, [fetchDeliveries, isNew, notification]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

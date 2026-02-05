@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -24,7 +24,7 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, pageSize: limit };
@@ -40,11 +40,11 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, page, search, statusFilter]);
 
   useEffect(() => {
     fetchUsers();
-  }, [page, statusFilter]);
+  }, [fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

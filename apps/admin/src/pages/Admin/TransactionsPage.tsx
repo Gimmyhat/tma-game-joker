@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { adminApi } from '../../lib/api';
@@ -23,7 +23,7 @@ export default function TransactionsPage() {
   const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, limit };
@@ -38,21 +38,21 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, page, statusFilter, typeFilter]);
 
-  const fetchPending = async () => {
+  const fetchPending = useCallback(async () => {
     try {
       const res = await adminApi.getPendingWithdrawals();
       setPendingWithdrawals(res.data || []);
     } catch (e) {
       console.error('Failed to fetch pending', e);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchTransactions();
     fetchPending();
-  }, [page, typeFilter, statusFilter]);
+  }, [fetchPending, fetchTransactions]);
 
   const handleApprove = async (id: string) => {
     try {

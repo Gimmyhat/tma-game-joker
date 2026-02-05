@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -102,7 +102,7 @@ export default function TableDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const fetchTable = async () => {
+  const fetchTable = useCallback(async () => {
     if (!id) return;
     try {
       const res = await adminApi.getTable(id);
@@ -119,17 +119,17 @@ export default function TableDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchTable();
-  }, [id]);
+  }, [fetchTable]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(fetchTable, 2000);
     return () => clearInterval(interval);
-  }, [id, autoRefresh]);
+  }, [autoRefresh, fetchTable]);
 
   if (loading) {
     return (

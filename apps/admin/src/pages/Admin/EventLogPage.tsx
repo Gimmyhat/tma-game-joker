@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { adminApi } from '../../lib/api';
@@ -20,7 +20,7 @@ export default function EventLogPage() {
   const [total, setTotal] = useState(0);
   const limit = 20;
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, limit };
@@ -34,11 +34,11 @@ export default function EventLogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter, limit, page]);
 
   useEffect(() => {
     fetchEvents();
-  }, [page, actionFilter]);
+  }, [fetchEvents]);
 
   const totalPages = Math.ceil(total / limit);
 

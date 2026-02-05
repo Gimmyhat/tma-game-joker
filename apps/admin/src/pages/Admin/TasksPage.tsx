@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -25,7 +25,7 @@ export default function TasksPage() {
   const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, pageSize: limit };
@@ -39,11 +39,11 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, page, statusFilter]);
 
   useEffect(() => {
     fetchTasks();
-  }, [page, statusFilter]);
+  }, [fetchTasks]);
 
   const handleDelete = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -48,7 +48,7 @@ export default function TaskDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const fetchTask = async () => {
+  const fetchTask = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -74,11 +74,11 @@ export default function TaskDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchTask();
-  }, [id]);
+  }, [fetchTask]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

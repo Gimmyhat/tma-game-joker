@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -63,7 +63,7 @@ export default function UserDetailPage() {
   const [refTotal, setRefTotal] = useState(0);
   const refLimit = 10;
 
-  const fetchUserDetail = async () => {
+  const fetchUserDetail = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
@@ -76,9 +76,9 @@ export default function UserDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!id) return;
     try {
       const res = await adminApi.getUserTransactions(id, { page: txPage, limit: txLimit });
@@ -87,9 +87,9 @@ export default function UserDetailPage() {
     } catch {
       // Keep existing transactions on error
     }
-  };
+  }, [id, txLimit, txPage]);
 
-  const fetchReferrals = async () => {
+  const fetchReferrals = useCallback(async () => {
     if (!id) return;
     try {
       const res = await adminApi.getUserReferrals(id, { page: refPage, limit: refLimit });
@@ -98,23 +98,23 @@ export default function UserDetailPage() {
     } catch {
       // Keep existing referrals on error
     }
-  };
+  }, [id, refLimit, refPage]);
 
   useEffect(() => {
     fetchUserDetail();
-  }, [id]);
+  }, [fetchUserDetail]);
 
   useEffect(() => {
     if (activeTab === 'transactions') {
       fetchTransactions();
     }
-  }, [txPage, activeTab, id]);
+  }, [activeTab, fetchTransactions]);
 
   useEffect(() => {
     if (activeTab === 'referrals') {
       fetchReferrals();
     }
-  }, [refPage, activeTab, id]);
+  }, [activeTab, fetchReferrals]);
 
   const handleBlock = async () => {
     if (!id || !data) return;

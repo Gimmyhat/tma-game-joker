@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
@@ -26,7 +26,7 @@ export default function NotificationsPage() {
   const [total, setTotal] = useState(0);
   const limit = 10;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, pageSize: limit };
@@ -40,11 +40,11 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, page, statusFilter]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [page, statusFilter]);
+  }, [fetchNotifications]);
 
   const handleDelete = async (notificationId: string) => {
     if (!confirm('Are you sure you want to delete this notification?')) return;
