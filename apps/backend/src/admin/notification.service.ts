@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramBotService } from '../telegram-bot/telegram-bot.service';
+import { EventLogService } from '../event-log/event-log.service';
 import { NotificationType, NotificationStatus, Prisma } from '@prisma/client';
 
 export interface CreateNotificationDto {
@@ -80,6 +81,7 @@ export class NotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telegramBotService: TelegramBotService,
+    private readonly eventLog: EventLogService,
   ) {}
 
   /**
@@ -177,6 +179,20 @@ export class NotificationService {
 
     this.logger.log(`Notification created (id: ${notification.id}) by ${createdById}`);
 
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: createdById,
+      actorType: 'ADMIN',
+      targetId: notification.id,
+      targetType: 'NOTIFICATION',
+      details: {
+        action: 'NOTIFICATION_CREATED',
+        type: notification.type,
+        title: notification.title,
+      },
+    });
+
     return this.getNotification(notification.id);
   }
 
@@ -186,6 +202,7 @@ export class NotificationService {
   async updateNotification(
     id: string,
     dto: UpdateNotificationDto,
+    updatedById?: string,
   ): Promise<NotificationDetailResponse> {
     const existing = await this.prisma.notification.findUnique({ where: { id } });
 
@@ -210,13 +227,25 @@ export class NotificationService {
 
     this.logger.log(`Notification ${id} updated`);
 
+    // Audit log
+    if (updatedById) {
+      this.eventLog.log({
+        eventType: 'ADMIN_ACTION',
+        actorId: updatedById,
+        actorType: 'ADMIN',
+        targetId: id,
+        targetType: 'NOTIFICATION',
+        details: { action: 'NOTIFICATION_UPDATED' },
+      });
+    }
+
     return this.getNotification(id);
   }
 
   /**
    * Delete notification
    */
-  async deleteNotification(id: string): Promise<void> {
+  async deleteNotification(id: string, deletedById?: string): Promise<void> {
     const existing = await this.prisma.notification.findUnique({ where: { id } });
 
     if (!existing) {
@@ -231,6 +260,18 @@ export class NotificationService {
     await this.prisma.notification.delete({ where: { id } });
 
     this.logger.log(`Notification ${id} deleted`);
+
+    // Audit log
+    if (deletedById) {
+      this.eventLog.log({
+        eventType: 'ADMIN_ACTION',
+        actorId: deletedById,
+        actorType: 'ADMIN',
+        targetId: id,
+        targetType: 'NOTIFICATION',
+        details: { action: 'NOTIFICATION_DELETED', title: existing.title },
+      });
+    }
   }
 
   /**
@@ -338,6 +379,21 @@ export class NotificationService {
       this.logger.log(
         `Notification ${id} sent by ${adminId}: ${deliveredCount}/${totalRecipients} delivered, ${failedCount} failed`,
       );
+
+      // Audit log
+      this.eventLog.log({
+        eventType: 'ADMIN_ACTION',
+        actorId: adminId,
+        actorType: 'ADMIN',
+        targetId: id,
+        targetType: 'NOTIFICATION',
+        details: {
+          action: 'NOTIFICATION_SENT',
+          totalRecipients,
+          deliveredCount,
+          failedCount,
+        },
+      });
 
       return {
         success: true,

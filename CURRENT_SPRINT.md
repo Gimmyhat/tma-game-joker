@@ -31,8 +31,8 @@
 | --- | ------------------------- | ------- | ---------------------- | ----------------------------------------- |
 | A-1 | Tasks CRUD (AC9)          | ✅ DONE | `admin/tasks/`         | Создание/редактирование заданий           |
 | A-2 | Notifications CRUD (AC10) | ✅ DONE | `admin/notifications/` | Создание уведомлений, отправка через бота |
-| A-3 | Withdrawal moderation UI  | ⬜ TODO | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
-| A-4 | Audit Log (AC5)           | ⬜ TODO | `audit.service.ts`     | Логирование всех admin-действий           |
+| A-3 | Withdrawal moderation UI  | ✅ DONE | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
+| A-4 | Audit Log (AC5)           | ✅ DONE | `audit.service.ts`     | Логирование всех admin-действий           |
 | A-5 | Multi-sort filters (AC12) | ⬜ TODO | `admin.controller.ts`  | Сложные фильтры AND/OR                    |
 
 ### Priority 3: Frontend Economy UI
@@ -74,6 +74,8 @@
 | T-1      | Tournament schema                  | 2026-02-04 | -                |
 | A-1      | Tasks CRUD (backend + frontend)    | 2026-02-05 | a599c60          |
 | A-2      | Notifications CRUD (Telegram)      | 2026-02-05 | c4c08d0          |
+| A-3      | Withdrawal moderation UI           | 2026-02-04 | 021732e          |
+| A-4      | Audit Log integration              | 2026-02-05 | (pending commit) |
 
 ---
 
@@ -117,7 +119,7 @@
 
 ```
 Economy API:     ████████████████████ 100% (8/8)
-Admin Panel:     ██████████████░░░░░░  70% (14/20 est.)
+Admin Panel:     ████████████████░░░░  75% (15/20 est.)
 Frontend Econ:   ░░░░░░░░░░░░░░░░░░░░   0% (0/4)
 Tournaments:     ██░░░░░░░░░░░░░░░░░░  10% (1/10 est.)
 ─────────────────────────────────────────────

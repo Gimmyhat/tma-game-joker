@@ -189,3 +189,20 @@ TOR.md / TECH_SPEC.md (при необходимости)
 - [ ] A-3: Withdrawal moderation UI
 - [ ] A-4: Audit Log
 - [ ] F-1: User balance display in frontend
+
+---
+
+## [2026-02-05 13:30] - Antigravity
+
+### Выполнено
+- ✅ **A-4: Audit Log — интеграция EventLogService**:
+  - AdminService: логирование login, createAdmin, updatePassword, blockUser, unblockUser, updateUserRole, upsertSetting, updateSettings, createTask, updateTask, deleteTask, approveTaskCompletion, rejectTaskCompletion
+  - TransactionService: логирование approveWithdrawal, rejectWithdrawal
+  - EconomyService: логирование adjustBalance
+  - NotificationService: логирование createNotification, updateNotification, deleteNotification, sendNotification
+  - AdminController: обновлены сигнатуры методов для передачи admin.id
+  - Всего 17 admin-действий теперь логируются в БД (event_log table)
+
+### Следующие шаги
+- [ ] A-5: Multi-sort filters (AND/OR)
+- [ ] F-1: User balance display in frontend

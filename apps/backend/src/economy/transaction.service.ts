@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TxType, TxStatus, Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
+import { EventLogService } from '../event-log/event-log.service';
 
 export interface TransactionFilter {
   userId?: string;
@@ -23,7 +24,10 @@ export interface PaginatedTransactions {
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventLog: EventLogService,
+  ) {}
 
   /**
    * Get transaction by ID
@@ -211,6 +215,15 @@ export class TransactionService {
     });
 
     this.logger.log(`Withdrawal ${transactionId} approved by admin ${adminId}`);
+
+    // Audit log
+    this.eventLog.logWithdrawalApproved(
+      adminId,
+      transactionId,
+      tx.userId,
+      Math.abs(Number(tx.amount)),
+    );
+
     return updated;
   }
 
@@ -287,6 +300,10 @@ export class TransactionService {
     });
 
     this.logger.log(`Withdrawal ${transactionId} rejected by admin ${adminId}. Reason: ${reason}`);
+
+    // Audit log
+    this.eventLog.logWithdrawalRejected(adminId, transactionId, tx.userId, reason);
+
     return result;
   }
 

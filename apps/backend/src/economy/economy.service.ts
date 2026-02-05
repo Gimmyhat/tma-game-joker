@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import Decimal from 'decimal.js';
+import { EventLogService } from '../event-log/event-log.service';
 
 export interface BalanceResult {
   userId: string;
@@ -19,7 +20,10 @@ export interface HoldResult {
 export class EconomyService {
   private readonly logger = new Logger(EconomyService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventLog: EventLogService,
+  ) {}
 
   /**
    * Get user balance
@@ -330,6 +334,9 @@ export class EconomyService {
     this.logger.log(
       `Admin ${initiatedById} adjusted balance for ${userId} by ${amount} CJ. Comment: ${comment}`,
     );
+
+    // Audit log
+    this.eventLog.logBalanceAdjustment(initiatedById, userId, amount, comment);
 
     return {
       userId,

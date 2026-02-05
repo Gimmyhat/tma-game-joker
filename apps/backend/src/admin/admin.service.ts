@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { AdminRole, User, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { EventLogService } from '../event-log/event-log.service';
 
 export interface AdminTokenPayload {
   sub: string;
@@ -117,6 +118,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly eventLog: EventLogService,
   ) {}
 
   /**
@@ -152,6 +154,9 @@ export class AdminService {
     const accessToken = this.jwtService.sign(payload);
 
     this.logger.log(`Admin ${username} logged in successfully`);
+
+    // Audit log
+    this.eventLog.logAdminLogin(user.id);
 
     return {
       accessToken,
@@ -200,13 +205,23 @@ export class AdminService {
 
     this.logger.log(`Admin ${username} created with role ${role} by ${createdById || 'system'}`);
 
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: createdById,
+      actorType: 'ADMIN',
+      targetId: user.id,
+      targetType: 'USER',
+      details: { action: 'CREATE_ADMIN', username, role },
+    });
+
     return user;
   }
 
   /**
    * Update admin password
    */
-  async updatePassword(userId: string, newPassword: string): Promise<void> {
+  async updatePassword(userId: string, newPassword: string, updatedById?: string): Promise<void> {
     const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
 
     await this.prisma.user.update({
@@ -215,6 +230,16 @@ export class AdminService {
     });
 
     this.logger.log(`Password updated for user ${userId}`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: updatedById,
+      actorType: 'ADMIN',
+      targetId: userId,
+      targetType: 'USER',
+      details: { action: 'PASSWORD_CHANGED' },
+    });
   }
 
   /**
@@ -421,6 +446,9 @@ export class AdminService {
 
     this.logger.log(`User ${userId} blocked by ${blockedById}. Reason: ${reason}`);
 
+    // Audit log
+    this.eventLog.logUserBlocked(blockedById, userId, reason);
+
     return updated;
   }
 
@@ -447,6 +475,9 @@ export class AdminService {
 
     this.logger.log(`User ${userId} unblocked by ${unblockedById}`);
 
+    // Audit log
+    this.eventLog.logUserUnblocked(unblockedById, userId);
+
     return updated;
   }
 
@@ -468,6 +499,16 @@ export class AdminService {
     });
 
     this.logger.log(`User ${userId} role updated to ${role} by ${updatedById}`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: updatedById,
+      actorType: 'ADMIN',
+      targetId: userId,
+      targetType: 'USER',
+      details: { action: 'ROLE_CHANGED', oldRole: user.adminRole, newRole: role },
+    });
 
     return updated;
   }
@@ -561,6 +602,10 @@ export class AdminService {
     description: string | null,
     updatedById: string,
   ): Promise<{ key: string; value: unknown; description: string | null; updatedAt: Date }> {
+    // Get old value for audit log
+    const oldSetting = await this.prisma.globalSettings.findUnique({ where: { key } });
+    const oldValue = oldSetting?.value;
+
     const setting = await this.prisma.globalSettings.upsert({
       where: { key },
       update: {
@@ -578,6 +623,9 @@ export class AdminService {
     });
 
     this.logger.log(`Setting "${key}" updated by ${updatedById}`);
+
+    // Audit log
+    this.eventLog.logSettingsChanged(updatedById, key, oldValue, value);
 
     return {
       key: setting.key,
@@ -615,6 +663,11 @@ export class AdminService {
     );
 
     this.logger.log(`${settings.length} settings updated by ${updatedById}`);
+
+    // Audit log for each setting
+    for (const result of results) {
+      this.eventLog.logSettingsChanged(updatedById, result.key, undefined, result.value);
+    }
 
     return results.map((s) => ({ key: s.key, value: s.value }));
   }
@@ -697,7 +750,7 @@ export class AdminService {
   /**
    * Create task
    */
-  async createTask(dto: CreateTaskDto): Promise<TaskDetailResponse> {
+  async createTask(dto: CreateTaskDto, createdById?: string): Promise<TaskDetailResponse> {
     const task = await this.prisma.task.create({
       data: {
         title: dto.title,
@@ -713,6 +766,16 @@ export class AdminService {
     });
 
     this.logger.log(`Task "${task.title}" created (id: ${task.id})`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: createdById,
+      actorType: 'ADMIN',
+      targetId: task.id,
+      targetType: 'TASK',
+      details: { action: 'TASK_CREATED', title: task.title },
+    });
 
     return {
       id: task.id,
@@ -733,7 +796,11 @@ export class AdminService {
   /**
    * Update task
    */
-  async updateTask(id: string, dto: UpdateTaskDto): Promise<TaskDetailResponse> {
+  async updateTask(
+    id: string,
+    dto: UpdateTaskDto,
+    updatedById?: string,
+  ): Promise<TaskDetailResponse> {
     const existing = await this.prisma.task.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`Task ${id} not found`);
@@ -756,6 +823,16 @@ export class AdminService {
 
     this.logger.log(`Task "${task.title}" updated (id: ${task.id})`);
 
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: updatedById,
+      actorType: 'ADMIN',
+      targetId: task.id,
+      targetType: 'TASK',
+      details: { action: 'TASK_UPDATED', title: task.title },
+    });
+
     return {
       id: task.id,
       title: task.title,
@@ -775,7 +852,7 @@ export class AdminService {
   /**
    * Delete task
    */
-  async deleteTask(id: string): Promise<void> {
+  async deleteTask(id: string, deletedById?: string): Promise<void> {
     const existing = await this.prisma.task.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`Task ${id} not found`);
@@ -786,6 +863,16 @@ export class AdminService {
     await this.prisma.task.delete({ where: { id } });
 
     this.logger.log(`Task ${id} deleted`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: deletedById,
+      actorType: 'ADMIN',
+      targetId: id,
+      targetType: 'TASK',
+      details: { action: 'TASK_DELETED', title: existing.title },
+    });
   }
 
   /**
@@ -896,6 +983,21 @@ export class AdminService {
     });
 
     this.logger.log(`Task completion ${completionId} approved by ${adminId}`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: adminId,
+      actorType: 'ADMIN',
+      targetId: completionId,
+      targetType: 'TASK_COMPLETION',
+      details: {
+        action: 'TASK_COMPLETION_APPROVED',
+        userId: completion.userId,
+        taskId: completion.taskId,
+        rewardAmount: Number(completion.task.rewardAmount),
+      },
+    });
   }
 
   /**
@@ -925,5 +1027,20 @@ export class AdminService {
     });
 
     this.logger.log(`Task completion ${completionId} rejected by ${adminId}. Reason: ${reason}`);
+
+    // Audit log
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: adminId,
+      actorType: 'ADMIN',
+      targetId: completionId,
+      targetType: 'TASK_COMPLETION',
+      details: {
+        action: 'TASK_COMPLETION_REJECTED',
+        userId: completion.userId,
+        taskId: completion.taskId,
+        reason,
+      },
+    });
   }
 }

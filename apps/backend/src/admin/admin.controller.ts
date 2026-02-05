@@ -135,8 +135,12 @@ export class AdminController {
 
   @Put('admins/:id/password')
   @Roles('SUPERADMIN')
-  async updateAdminPassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto) {
-    await this.adminService.updatePassword(id, dto.newPassword);
+  async updateAdminPassword(
+    @Param('id') id: string,
+    @Body() dto: UpdatePasswordDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    await this.adminService.updatePassword(id, dto.newPassword, admin.id);
     return { success: true };
   }
 
@@ -279,18 +283,22 @@ export class AdminController {
       status?: string;
       autoVerify?: boolean;
     },
+    @CurrentAdmin() admin: User,
   ) {
-    return this.adminService.createTask({
-      title: dto.title,
-      shortDescription: dto.shortDescription,
-      longDescription: dto.longDescription,
-      rewardAmount: dto.rewardAmount,
-      rewardCurrency: dto.rewardCurrency,
-      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      status: dto.status,
-      autoVerify: dto.autoVerify,
-    });
+    return this.adminService.createTask(
+      {
+        title: dto.title,
+        shortDescription: dto.shortDescription,
+        longDescription: dto.longDescription,
+        rewardAmount: dto.rewardAmount,
+        rewardCurrency: dto.rewardCurrency,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        status: dto.status,
+        autoVerify: dto.autoVerify,
+      },
+      admin.id,
+    );
   }
 
   @Put('tasks/:id')
@@ -309,24 +317,29 @@ export class AdminController {
       status?: string;
       autoVerify?: boolean;
     },
+    @CurrentAdmin() admin: User,
   ) {
-    return this.adminService.updateTask(id, {
-      title: dto.title,
-      shortDescription: dto.shortDescription,
-      longDescription: dto.longDescription,
-      rewardAmount: dto.rewardAmount,
-      rewardCurrency: dto.rewardCurrency,
-      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      status: dto.status,
-      autoVerify: dto.autoVerify,
-    });
+    return this.adminService.updateTask(
+      id,
+      {
+        title: dto.title,
+        shortDescription: dto.shortDescription,
+        longDescription: dto.longDescription,
+        rewardAmount: dto.rewardAmount,
+        rewardCurrency: dto.rewardCurrency,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        status: dto.status,
+        autoVerify: dto.autoVerify,
+      },
+      admin.id,
+    );
   }
 
   @Post('tasks/:id/delete')
   @Roles('ADMIN')
-  async deleteTask(@Param('id') id: string) {
-    await this.adminService.deleteTask(id);
+  async deleteTask(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    await this.adminService.deleteTask(id, admin.id);
     return { success: true };
   }
 
@@ -394,14 +407,18 @@ export class AdminController {
 
   @Put('notifications/:id')
   @Roles('MODERATOR')
-  async updateNotification(@Param('id') id: string, @Body() dto: UpdateNotificationDto) {
-    return this.notificationService.updateNotification(id, dto);
+  async updateNotification(
+    @Param('id') id: string,
+    @Body() dto: UpdateNotificationDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    return this.notificationService.updateNotification(id, dto, admin.id);
   }
 
   @Post('notifications/:id/delete')
   @Roles('ADMIN')
-  async deleteNotification(@Param('id') id: string) {
-    await this.notificationService.deleteNotification(id);
+  async deleteNotification(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    await this.notificationService.deleteNotification(id, admin.id);
     return { success: true };
   }
 
