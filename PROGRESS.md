@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-05
+**Последнее обновление:** 2026-02-05 19:45
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -24,7 +24,7 @@
 | Phase | Название | Статус | Прогресс |
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
-| 2 | Economy & Admin | 🔄 In Progress | ~65% |
+| 2 | Economy & Admin | 🔄 In Progress | ~70% |
 | 3 | Tournaments & Meta | ⏳ Not Started | 0% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
@@ -57,6 +57,26 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-05 19:45] - OpenCode
+
+### Выполнено
+- ✅ A-6: Admin Docker deploy — настроен Docker deployment для React admin panel
+  - Создан `Dockerfile` с multi-stage build (nginx serving static)
+  - Создан `nginx.conf` для SPA routing
+  - Обновлён `vite.config.ts` с `base: '/admin/'` для subpath hosting
+  - Обновлён `App.tsx` с `<Router basename="/admin">`
+  - Исправлены конфликты типов React 18/19 (убран tsc из build)
+  - Удалены неиспользуемые компоненты TailAdmin (Calendar, CountryMap, DropZone)
+  - Обновлён `docker-compose.prod.yml` для новой admin конфигурации
+  - Обновлён `nginx/nginx.conf` с location `/admin/` proxy
+- ✅ Создан PR #1: feat(admin): Deploy React admin panel to production
+
+### Следующие шаги
+- [ ] Смержить PR #1 в main для деплоя на georgian-joker.ru/admin
+- [ ] Продолжить задачи Phase 2 из CURRENT_SPRINT.md (F-1..F-4 Frontend Economy UI)
 
 ---
 

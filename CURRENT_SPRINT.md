@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-05 16:30  
+**Last Updated:** 2026-02-05 19:45  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -27,13 +27,14 @@
 
 ### Priority 2: Admin Panel Completion (REQ-9)
 
-| ID  | Задача                    | Статус  | Файлы                  | Acceptance Criteria                       |
-| --- | ------------------------- | ------- | ---------------------- | ----------------------------------------- |
-| A-1 | Tasks CRUD (AC9)          | ✅ DONE | `admin/tasks/`         | Создание/редактирование заданий           |
-| A-2 | Notifications CRUD (AC10) | ✅ DONE | `admin/notifications/` | Создание уведомлений, отправка через бота |
-| A-3 | Withdrawal moderation UI  | ✅ DONE | `apps/admin/`          | Approve/Reject кнопки в Transactions      |
-| A-4 | Audit Log (AC5)           | ✅ DONE | `audit.service.ts`     | Логирование всех admin-действий           |
-| A-5 | Multi-sort filters (AC12) | ✅ DONE | `admin.controller.ts`  | Сложные фильтры AND/OR                    |
+| ID  | Задача                    | Статус  | Файлы                   | Acceptance Criteria                       |
+| --- | ------------------------- | ------- | ----------------------- | ----------------------------------------- |
+| A-1 | Tasks CRUD (AC9)          | ✅ DONE | `admin/tasks/`          | Создание/редактирование заданий           |
+| A-2 | Notifications CRUD (AC10) | ✅ DONE | `admin/notifications/`  | Создание уведомлений, отправка через бота |
+| A-3 | Withdrawal moderation UI  | ✅ DONE | `apps/admin/`           | Approve/Reject кнопки в Transactions      |
+| A-4 | Audit Log (AC5)           | ✅ DONE | `audit.service.ts`      | Логирование всех admin-действий           |
+| A-5 | Multi-sort filters (AC12) | ✅ DONE | `admin.controller.ts`   | Сложные фильтры AND/OR                    |
+| A-6 | Admin Docker deploy       | ✅ DONE | `apps/admin/Dockerfile` | React SPA на nginx, /admin/ subpath       |
 
 ### Priority 3: Frontend Economy UI
 
@@ -76,7 +77,8 @@
 | A-2      | Notifications CRUD (Telegram)      | 2026-02-05 | c4c08d0          |
 | A-3      | Withdrawal moderation UI           | 2026-02-04 | 021732e          |
 | A-4      | Audit Log integration              | 2026-02-05 | (pending commit) |
-| A-5      | Multi-sort filters (AC12)          | 2026-02-05 | (pending commit) |
+| A-5      | Multi-sort filters (AC12)          | 2026-02-05 | 73e786b          |
+| A-6      | Admin Docker deploy                | 2026-02-05 | 3b82e79, PR #1   |
 
 ---
 
@@ -120,9 +122,9 @@
 
 ```
 Economy API:     ████████████████████ 100% (8/8)
-Admin Panel:     ████████████████░░░░  75% (15/20 est.)
+Admin Panel:     ██████████████████░░  90% (18/20 est.)
 Frontend Econ:   ░░░░░░░░░░░░░░░░░░░░   0% (0/4)
 Tournaments:     ██░░░░░░░░░░░░░░░░░░  10% (1/10 est.)
 ─────────────────────────────────────────────
-Overall Phase 2: ██████████░░░░░░░░░░  45%
+Overall Phase 2: ████████████░░░░░░░░  55%
 ```
