@@ -6,7 +6,6 @@ import Decimal from 'decimal.js';
 
 describe('EconomyService', () => {
   let service: EconomyService;
-  let prisma: PrismaService;
 
   const mockUser = {
     id: '123e4567-e89b-12d3-a456-426614174000',
@@ -40,8 +39,6 @@ describe('EconomyService', () => {
     }).compile();
 
     service = module.get<EconomyService>(EconomyService);
-    prisma = module.get<PrismaService>(PrismaService);
-
     // Reset mocks
     jest.clearAllMocks();
   });
