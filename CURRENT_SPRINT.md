@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-06 14:15  
+**Last Updated:** 2026-02-06 15:31  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -80,6 +80,7 @@
 | A-5      | Multi-sort filters (AC12)          | 2026-02-05 | 73e786b          |
 | A-6      | Admin Docker deploy                | 2026-02-05 | 3b82e79, PR #1   |
 | OPS-1    | Admin redirect + Telegram-only UI  | 2026-02-06 | 8cb3e4b, fb0f6ff |
+| OPS-2    | CI: add tsx for prisma seed        | 2026-02-06 | d17e4f2          |
 
 ---
 
