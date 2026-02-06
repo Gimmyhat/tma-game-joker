@@ -471,6 +471,29 @@ function DevFallback({ children }: { children: ReactNode }) {
   );
 }
 
+function TelegramOnlyScreen() {
+  const appUrl = import.meta.env.VITE_TELEGRAM_APP_URL || 'https://t.me';
+
+  return (
+    <div className="min-h-screen bg-emerald-950 text-amber-100 flex items-center justify-center p-6">
+      <div className="max-w-md w-full text-center space-y-4">
+        <div className="text-3xl font-semibold text-amber-300">Joker</div>
+        <div className="text-base text-amber-100/80">
+          This game is available only inside Telegram.
+        </div>
+        <a
+          href={appUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center rounded-full bg-amber-400 text-emerald-950 px-5 py-2 text-sm font-semibold hover:bg-amber-300 transition"
+        >
+          Open in Telegram
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // Initialize SDK globally (before any React rendering)
 let sdkInitialized = false;
 
@@ -497,6 +520,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   initSDK();
 
   const isTelegram = isInTelegram();
+
+  if (!isTelegram && !import.meta.env.DEV) {
+    return <TelegramOnlyScreen />;
+  }
 
   if (!isTelegram) {
     return <DevFallback>{children}</DevFallback>;
