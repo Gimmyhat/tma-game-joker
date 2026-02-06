@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-06 19:44  
+**Last Updated:** 2026-02-06 20:30  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -73,6 +73,7 @@
 | S4-16    | Stabilize admin users/event-log e2e and map guards  | 2026-02-06 | -                |
 | S4-17    | Add /admin/profile alias to settings route          | 2026-02-06 | -                |
 | S4-18    | Split profile dropdown links by settings anchors    | 2026-02-06 | -                |
+| S4-19    | Distinguish settings anchors via dynamic page title | 2026-02-06 | -                |
 | S4-11    | Tables (God Mode)                                   | 2026-02-04 | 021732e          |
 | S4-12    | BigInt serialization fixes                          | 2026-02-05 | 3eda812, 8f66a9f |
 | S4-13    | Session handoff mechanism                           | 2026-02-05 | bf1d7ed          |

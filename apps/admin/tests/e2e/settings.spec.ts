@@ -87,4 +87,21 @@ test.describe('Settings', () => {
       await toggle.click();
     }
   });
+
+  test('should navigate to hash anchors for profile menu links', async ({ page }) => {
+    const anchors = [
+      { id: 'profile', title: 'Edit Profile' },
+      { id: 'account-settings', title: 'Account Settings' },
+      { id: 'support', title: 'Support' },
+    ];
+
+    for (const anchor of anchors) {
+      await page.goto(`/admin/settings#${anchor.id}`);
+      await expect(page).toHaveURL(new RegExp(`#${anchor.id}$`));
+
+      const section = page.locator(`#${anchor.id}`);
+      await expect(section).toBeVisible();
+      await expect(page.getByRole('heading', { name: anchor.title }).first()).toBeVisible();
+    }
+  });
 });
