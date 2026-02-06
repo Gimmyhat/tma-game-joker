@@ -16,6 +16,20 @@
 3. **Если нужен контекст** — см. TOR.md, TECH_SPEC.md
 4. **Общение** - всегда отвечай на русском языке
 
+### OpenCode tooling rules (ОБЯЗАТЕЛЬНО)
+
+- **Единый источник правил**: AGENTS.md. Внешние docs — только информационные.
+- **@plannotator/opencode**: использовать только когда требуется Plan-First (3+ файла, @joker/shared, Socket.io events, Prisma).
+- **opencode-mem**: хранить только пользовательские предпочтения и метаданные workflow; не фиксировать техрешения/архитектуру.
+- **micode**: запускать только по явному запросу или при повторяемом рефакторе.
+- **@tarquinen/opencode-dcp**: не использовать без явного запроса.
+- **opencode-pty**:
+  - Разрешено по умолчанию: `pnpm dev*`, `pnpm lint`, `pnpm type-check`, `pnpm test*`, `docker compose logs -f`.
+  - Только по явному запросу: `docker compose up -d`/`docker compose down`, Prisma migrate/seed, `docker compose -f docker-compose.prod.yml ...`, SSH.
+  - Запрещено без запроса: разрушительные команды (`rm -rf`, `git reset --hard`, `docker compose down -v`).
+  - Именование: `pty:<scope>:<task>` (пример: `pty:dev:frontend`).
+  - Закрывать PTY после задачи; держать только активные dev-серверы.
+
 ### При завершении сессии ОБЯЗАТЕЛЬНО:
 
 1. **Обнови `CURRENT_SPRINT.md`**:
