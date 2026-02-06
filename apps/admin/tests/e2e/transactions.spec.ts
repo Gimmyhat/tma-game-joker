@@ -6,58 +6,56 @@ test.describe('Transactions Management', () => {
   });
 
   test('should display transactions list', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Transactions' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'User' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
-    await page
-      .getByText('Loading...')
-      .count()
-      .catch(() => 0);
-    await page
-      .getByText('No transactions found')
-      .count()
-      .catch(() => 0);
+    await expect(page.getByTestId('transactions-page-header')).toBeVisible();
+    await expect(page.getByTestId('transactions-filters')).toBeVisible();
+    await expect(page.getByTestId('transactions-table')).toBeVisible();
+    const columns = [
+      'transactions-column-user',
+      'transactions-column-type',
+      'transactions-column-amount',
+      'transactions-column-status',
+      'transactions-column-date',
+    ];
+    for (const testId of columns) {
+      await expect(page.getByTestId(testId)).toBeVisible();
+    }
   });
 
   test('should display pending withdrawals warning', async ({ page }) => {
-    const pendingAlert = page.getByText(/Pending Withdrawal/);
+    const pendingAlert = page.getByTestId('pending-withdrawals-alert');
     await pendingAlert.count().catch(() => 0);
   });
 
   test('should have type filter', async ({ page }) => {
-    const typeFilter = page.locator('select:has-text("All Types")').first();
+    const typeFilter = page.getByTestId('transactions-type-filter');
     await expect(typeFilter).toBeVisible();
   });
 
   test('should have status filter', async ({ page }) => {
-    const statusFilter = page.locator('select:has-text("All Statuses")').first();
+    const statusFilter = page.getByTestId('transactions-status-filter');
     await expect(statusFilter).toBeVisible();
   });
 
   test('should display transaction details in table', async ({ page }) => {
-    await expect(page.getByRole('columnheader', { name: 'User' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
+    const rows = page.getByTestId('transactions-table').locator('tbody tr');
+    await expect(rows.first()).toBeVisible();
   });
 
   test('should have approve/reject buttons for pending withdrawals', async ({ page }) => {
-    const approveButton = page.getByRole('button', { name: 'Approve' });
-    const rejectButton = page.getByRole('button', { name: 'Reject' });
+    const approveButton = page.locator('[data-testid="pending-withdrawal-approve"]');
+    const rejectButton = page.locator('[data-testid="pending-withdrawal-reject"]');
     await approveButton.count().catch(() => 0);
     await rejectButton.count().catch(() => 0);
   });
 
   test('should support pagination', async ({ page }) => {
-    const pagination = page.locator('button:has-text("Previous"), button:has-text("Next")').first();
-    await pagination.count().catch(() => 0);
+    const prevButton = page.getByTestId('transactions-pagination-prev');
+    const nextButton = page.getByTestId('transactions-pagination-next');
+    await prevButton.count().catch(() => 0);
+    await nextButton.count().catch(() => 0);
   });
 
   test('should filter by date range', async ({ page }) => {
-    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
+    await expect(page.getByTestId('transactions-column-date')).toBeVisible();
   });
 });

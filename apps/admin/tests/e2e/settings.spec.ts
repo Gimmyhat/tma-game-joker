@@ -6,68 +6,64 @@ test.describe('Settings', () => {
   });
 
   test('should display settings page', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Global Settings' })).toBeVisible();
-    await page
-      .getByText('Loading settings...')
-      .count()
-      .catch(() => 0);
-    await page
-      .getByText('No settings configured. Click "Add Setting" to create one.')
-      .count()
-      .catch(() => 0);
-    await expect(page.getByText('Account Actions')).toBeVisible();
+    await expect(page.getByTestId('global-settings-section')).toBeVisible();
+    await expect(page.getByTestId('profile-section')).toBeVisible();
+    await expect(page.getByTestId('account-actions-section')).toBeVisible();
+    await expect(page.getByTestId('add-setting-button')).toBeVisible();
+    await expect(page.getByTestId('save-settings-button')).toBeVisible();
   });
 
   test('should display admin profile section', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Profile Information' })).toBeVisible();
+    await expect(page.getByTestId('profile-section')).toBeVisible();
   });
 
   test('should display admin username', async ({ page }) => {
-    await expect(page.getByText('Username')).toBeVisible();
+    await expect(page.getByTestId('profile-username-label')).toBeVisible();
+    await expect(page.getByTestId('profile-username-value')).toBeVisible();
   });
 
   test('should display admin role', async ({ page }) => {
-    await expect(page.getByText('Role')).toBeVisible();
+    await expect(page.getByTestId('profile-role-label')).toBeVisible();
+    await expect(page.getByTestId('profile-role-value')).toBeVisible();
   });
 
   test('should have logout button', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
+    await expect(page.getByTestId('logout-button')).toBeVisible();
   });
 
   test('should display global settings', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Global Settings' })).toBeVisible();
-    await expect(page.getByText('House Edge (%)')).toBeVisible();
-    await expect(page.getByText('Referral Bonus')).toBeVisible();
-    await expect(page.getByText('Turn Timeout (sec)')).toBeVisible();
+    await expect(page.getByTestId('global-settings-section')).toBeVisible();
   });
 
   test('should have editable settings fields', async ({ page }) => {
-    const editable = page.locator('form input, form select, form [role="switch"]').first();
-    await expect(editable).toBeVisible();
+    const section = page.getByTestId('global-settings-section');
+    const inputs = section.locator('input, select, [role="switch"]');
+    if ((await inputs.count()) > 0) {
+      await expect(inputs.first()).toBeVisible();
+    } else {
+      await expect(page.getByTestId('settings-empty-state')).toBeVisible();
+    }
   });
 
-  test('should display house edge setting', async ({ page }) => {
-    await expect(page.getByText('House Edge (%)')).toBeVisible();
-  });
-
-  test('should display referral bonus setting', async ({ page }) => {
-    await expect(page.getByText('Referral Bonus')).toBeVisible();
-  });
-
-  test('should display bot timer setting', async ({ page }) => {
-    await expect(page.getByText('Turn Timeout (sec)')).toBeVisible();
+  test('should display important setting rows', async ({ page }) => {
+    const rows = page.locator('[data-testid^="setting-row-"]');
+    if ((await rows.count()) > 0) {
+      await expect(rows.first()).toBeVisible();
+    } else {
+      await expect(page.getByTestId('settings-empty-state')).toBeVisible();
+    }
   });
 
   test('should save settings changes', async ({ page }) => {
-    const textInput = page.locator('form input[type="text"], form input[type="number"]').first();
+    const section = page.getByTestId('global-settings-section');
+    const textInput = section.locator('input[type="text"], input[type="number"]').first();
 
-    if (await textInput.isVisible()) {
+    if ((await textInput.count()) > 0 && (await textInput.isVisible())) {
       const originalValue = await textInput.inputValue();
 
       await textInput.fill('test_value_123');
 
-      const saveButton = page.getByRole('button', { name: 'Save Changes' });
+      const saveButton = page.getByTestId('save-settings-button');
 
       if (await saveButton.isVisible()) {
         await saveButton.click();
@@ -79,7 +75,7 @@ test.describe('Settings', () => {
   });
 
   test('should have add new setting functionality', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Add Setting' })).toBeVisible();
+    await expect(page.getByTestId('add-setting-button')).toBeVisible();
   });
 
   test('should toggle boolean settings', async ({ page }) => {

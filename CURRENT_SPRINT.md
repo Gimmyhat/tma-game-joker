@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-06 21:20  
+**Last Updated:** 2026-02-06 18:13  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -56,39 +56,41 @@
 
 ## ✅ Completed This Sprint
 
-| ID       | Задача                                  | Дата       | Commit           |
-| -------- | --------------------------------------- | ---------- | ---------------- |
-| S4-1     | Prisma schema Phase 2                   | 2026-02-04 | -                |
-| S4-2     | Database migrations                     | 2026-02-04 | -                |
-| S4-3     | AdminModule + Controller + Service      | 2026-02-04 | 021732e          |
-| S4-4     | JWT Authentication                      | 2026-02-04 | 021732e          |
-| S4-5     | RBAC roles                              | 2026-02-04 | 021732e          |
-| S4-6     | Dashboard page                          | 2026-02-04 | 021732e          |
-| S4-7     | Users list + detail                     | 2026-02-04 | 021732e          |
-| S4-8     | Transactions page                       | 2026-02-04 | 021732e          |
-| S4-9     | EventLog page                           | 2026-02-04 | 021732e          |
-| S4-10    | Settings page                           | 2026-02-04 | 021732e          |
-| S4-11    | Tables (God Mode)                       | 2026-02-04 | 021732e          |
-| S4-12    | BigInt serialization fixes              | 2026-02-05 | 3eda812, 8f66a9f |
-| S4-13    | Session handoff mechanism               | 2026-02-05 | bf1d7ed          |
-| E-1..E-8 | Economy API (full)                      | 2026-02-04 | (previous)       |
-| T-1      | Tournament schema                       | 2026-02-04 | -                |
-| A-1      | Tasks CRUD (backend + frontend)         | 2026-02-05 | a599c60          |
-| A-2      | Notifications CRUD (Telegram)           | 2026-02-05 | c4c08d0          |
-| A-3      | Withdrawal moderation UI                | 2026-02-04 | 021732e          |
-| A-4      | Audit Log integration                   | 2026-02-05 | (pending commit) |
-| A-5      | Multi-sort filters (AC12)               | 2026-02-05 | 73e786b          |
-| A-6      | Admin Docker deploy                     | 2026-02-05 | 3b82e79, PR #1   |
-| OPS-1    | Admin redirect + Telegram-only UI       | 2026-02-06 | 8cb3e4b, fb0f6ff |
-| OPS-2    | CI: add tsx for prisma seed             | 2026-02-06 | d17e4f2          |
-| OPS-3    | PTY guardrails (opencode-pty)           | 2026-02-06 | -                |
-| F-1      | User balance display                    | 2026-02-06 | (pending commit) |
-| F-2      | Wallet mock UI                          | 2026-02-06 | (pending commit) |
-| F-3      | Transaction history page                | 2026-02-06 | (pending commit) |
-| FIX-1    | Economy userId UUID/TGID resolving      | 2026-02-06 | (pending commit) |
-| F-4      | Deposit/Withdraw modals                 | 2026-02-06 | (pending commit) |
-| T-2      | Tournament admin CRUD                   | 2026-02-06 | (pending commit) |
-| FIX-2    | Admin event-log crash + avatar fallback | 2026-02-06 | (pending commit) |
+| ID       | Задача                                              | Дата       | Commit           |
+| -------- | --------------------------------------------------- | ---------- | ---------------- |
+| S4-1     | Prisma schema Phase 2                               | 2026-02-04 | -                |
+| S4-2     | Database migrations                                 | 2026-02-04 | -                |
+| S4-3     | AdminModule + Controller + Service                  | 2026-02-04 | 021732e          |
+| S4-4     | JWT Authentication                                  | 2026-02-04 | 021732e          |
+| S4-5     | RBAC roles                                          | 2026-02-04 | 021732e          |
+| S4-6     | Dashboard page                                      | 2026-02-04 | 021732e          |
+| S4-7     | Users list + detail                                 | 2026-02-04 | 021732e          |
+| S4-8     | Transactions page                                   | 2026-02-04 | 021732e          |
+| S4-9     | EventLog page                                       | 2026-02-04 | 021732e          |
+| S4-10    | Settings page                                       | 2026-02-04 | 021732e          |
+| S4-15    | Stabilize admin settings/transactions e2e selectors | 2026-02-06 | -                |
+| S4-14    | Stabilize admin notifications/tables e2e selectors  | 2026-02-06 | -                |
+| S4-11    | Tables (God Mode)                                   | 2026-02-04 | 021732e          |
+| S4-12    | BigInt serialization fixes                          | 2026-02-05 | 3eda812, 8f66a9f |
+| S4-13    | Session handoff mechanism                           | 2026-02-05 | bf1d7ed          |
+| E-1..E-8 | Economy API (full)                                  | 2026-02-04 | (previous)       |
+| T-1      | Tournament schema                                   | 2026-02-04 | -                |
+| A-1      | Tasks CRUD (backend + frontend)                     | 2026-02-05 | a599c60          |
+| A-2      | Notifications CRUD (Telegram)                       | 2026-02-05 | c4c08d0          |
+| A-3      | Withdrawal moderation UI                            | 2026-02-04 | 021732e          |
+| A-4      | Audit Log integration                               | 2026-02-05 | (pending commit) |
+| A-5      | Multi-sort filters (AC12)                           | 2026-02-05 | 73e786b          |
+| A-6      | Admin Docker deploy                                 | 2026-02-05 | 3b82e79, PR #1   |
+| OPS-1    | Admin redirect + Telegram-only UI                   | 2026-02-06 | 8cb3e4b, fb0f6ff |
+| OPS-2    | CI: add tsx for prisma seed                         | 2026-02-06 | d17e4f2          |
+| OPS-3    | PTY guardrails (opencode-pty)                       | 2026-02-06 | -                |
+| F-1      | User balance display                                | 2026-02-06 | (pending commit) |
+| F-2      | Wallet mock UI                                      | 2026-02-06 | (pending commit) |
+| F-3      | Transaction history page                            | 2026-02-06 | (pending commit) |
+| FIX-1    | Economy userId UUID/TGID resolving                  | 2026-02-06 | (pending commit) |
+| F-4      | Deposit/Withdraw modals                             | 2026-02-06 | (pending commit) |
+| T-2      | Tournament admin CRUD                               | 2026-02-06 | (pending commit) |
+| FIX-2    | Admin event-log crash + avatar fallback             | 2026-02-06 | (pending commit) |
 
 ---
 

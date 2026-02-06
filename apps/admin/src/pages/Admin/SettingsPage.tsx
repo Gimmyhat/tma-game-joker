@@ -187,13 +187,19 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* Global Settings */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="global-settings-section"
+          aria-label="Global settings"
+        >
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Global Settings</h2>
             <div className="flex gap-2">
               <button
                 onClick={handleAddSetting}
                 className="rounded bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600"
+                data-testid="add-setting-button"
+                aria-label="Add setting"
               >
                 Add Setting
               </button>
@@ -201,6 +207,8 @@ export default function SettingsPage() {
                 onClick={handleSave}
                 disabled={saving}
                 className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
+                data-testid="save-settings-button"
+                aria-label="Save settings"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -208,21 +216,32 @@ export default function SettingsPage() {
           </div>
 
           {error && (
-            <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-800/20 dark:text-red-400">
+            <div
+              className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-800/20 dark:text-red-400"
+              data-testid="settings-error"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {success && (
-            <div className="mb-4 rounded bg-green-100 p-3 text-sm text-green-700 dark:bg-green-800/20 dark:text-green-400">
+            <div
+              className="mb-4 rounded bg-green-100 p-3 text-sm text-green-700 dark:bg-green-800/20 dark:text-green-400"
+              data-testid="settings-success"
+              role="status"
+              aria-live="polite"
+            >
               {success}
             </div>
           )}
 
           {loading ? (
-            <div className="py-8 text-center text-gray-500">Loading settings...</div>
+            <div className="py-8 text-center text-gray-500" data-testid="settings-loading">
+              Loading settings...
+            </div>
           ) : settings.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">
+            <div className="py-8 text-center text-gray-500" data-testid="settings-empty-state">
               No settings configured. Click "Add Setting" to create one.
             </div>
           ) : (
@@ -233,6 +252,7 @@ export default function SettingsPage() {
                   <div
                     key={setting.key}
                     className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700"
+                    data-testid={`setting-row-${setting.key}`}
                   >
                     <div>
                       <div className="font-medium text-gray-800 dark:text-white">
@@ -256,22 +276,36 @@ export default function SettingsPage() {
         </div>
 
         {/* Profile Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="profile-section"
+          aria-label="Profile information"
+        >
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
             Profile Information
           </h2>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
-              <span className="text-gray-500">Username</span>
-              <span className="font-medium text-gray-800 dark:text-white">
+              <span className="text-gray-500" data-testid="profile-username-label">
+                Username
+              </span>
+              <span
+                className="font-medium text-gray-800 dark:text-white"
+                data-testid="profile-username-value"
+              >
                 {admin?.username || '-'}
               </span>
             </div>
 
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
-              <span className="text-gray-500">Role</span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-800/20 dark:text-blue-400">
+              <span className="text-gray-500" data-testid="profile-role-label">
+                Role
+              </span>
+              <span
+                className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-800/20 dark:text-blue-400"
+                data-testid="profile-role-value"
+              >
                 {admin?.role || '-'}
               </span>
             </div>
@@ -286,7 +320,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Actions */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="account-actions-section"
+          aria-label="Account actions"
+        >
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
             Account Actions
           </h2>
@@ -294,6 +332,8 @@ export default function SettingsPage() {
           <button
             onClick={handleLogout}
             className="rounded-lg bg-red-500 px-6 py-2 text-white transition hover:bg-red-600"
+            data-testid="logout-button"
+            aria-label="Logout"
           >
             Logout
           </button>
