@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-06 19:23
+**Последнее обновление:** 2026-02-06 19:44
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -59,6 +59,20 @@ cd apps/admin && pnpm dev
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-06 19:44] - OpenCode
+
+### Выполнено
+- ✅ Разведены пункты профиля в dropdown: `Edit profile` -> `/settings#profile`, `Account settings` -> `/settings#account-settings`, `Support` -> `/settings#support` (`apps/admin/src/components/header/UserDropdown.tsx`).
+- ✅ На `SettingsPage` добавлены якоря секций `id="profile"`, `id="account-settings"`, `id="support"` и новый блок Support, чтобы три пункта открывали разные части страницы (`apps/admin/src/pages/Admin/SettingsPage.tsx`).
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/settings.spec.ts` — успешно (17 passed).
+
+### В процессе
+- 🔄 Подготовка коммита/пуша для hotfix навигации dropdown.
+
+### Следующие шаги
+- [ ] Закоммитить и запушить hotfix в рабочую ветку.
+- [ ] Смёржить в `main` для запуска `Deploy`.
 
 ## [2026-02-06 19:23] - OpenCode
 
