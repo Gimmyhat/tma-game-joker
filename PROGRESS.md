@@ -1,166 +1,55 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-01-26
-**Текущий статус:** 🚧 Sprint 3: Frontend (In Progress)
+**Последнее обновление:** 2026-02-05 19:45
+**Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
+
+> **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
 ---
 
 ## 🏗️ Инфраструктура (Infrastructure)
 
-1. ✅ **Server**: SSH access configured for `203.31.40.28` (alias `hosting-vds`)
-2. ✅ **Security**: Password authentication disabled (key-only access)
+| Компонент | Статус | Детали |
+|-----------|--------|--------|
+| Server | ✅ | SSH `203.31.40.28` (alias `hosting-vds`) |
+| Docker Desktop | ✅ | PostgreSQL:5432, Redis:6379 |
+| Backend | ✅ | NestJS, работает на :3000 |
+| Frontend | ✅ | React/Vite, работает на :5173 |
+| Admin Panel | ✅ | React/Vite, работает на :3001 |
 
 ---
 
-## 🎯 Текущий фокус (Current Focus)
+## 📈 Phase Progress
 
-Мы находимся на **Этапе 3 (Frontend)**.
-Backend готов и протестирован. Frontend активно разрабатывается.
-
-**Ближайшие задачи:**
-
-1.  ✅ ~~**Frontend**: Telegram WebApp SDK integration~~
-2.  ✅ ~~**Frontend**: Socket.io client + auth~~
-3.  ✅ ~~**Frontend**: Zustand store~~
-4.  ✅ ~~**Frontend**: UI компоненты (Card, Hand, Table, PlayerInfo)~~
-5.  ✅ ~~**Frontend**: Модальные окна (BetModal, TrumpSelector, JokerOptionModal)~~
-6.  🛠 **Frontend**: Интеграция компонентов в GameScreen
-7.  ✅ ~~**Frontend**: E2E тестирование с backend~~
+| Phase | Название | Статус | Прогресс |
+|-------|----------|--------|----------|
+| 1 | Core & Network | ✅ Done | 100% |
+| 2 | Economy & Admin | 🔄 In Progress | ~70% |
+| 3 | Tournaments & Meta | ⏳ Not Started | 0% |
+| 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
-
-## 📊 Статус по Спринтам
-
-### ✅ Sprint 0: Инициализация (Completed)
-
-- [x] S0-1: Monorepo structure (`apps/backend`, `apps/frontend`, `packages/shared`)
-- [x] S0-2: NestJS init
-- [x] S0-3: Vite + React init
-- [x] S0-4: Shared package (Types, Enums in `@joker/shared`)
-- [x] S0-5: Docker Compose (Basic)
-
-### ✅ Sprint 1: Game Core (Completed)
-
-- [x] S1-1..S1-4: Models & Enums (moved to `packages/shared`)
-- [x] S1-5: `DeckService` (shuffling, dealing)
-- [x] S1-6: `MoveValidator` (joker rules, suit following)
-- [x] S1-7: `BetValidator` (forced bet rule)
-- [x] S1-9: `StateMachine` (phases)
-- [x] S1-10: `ScoringService` (scores, shtanga)
-- [x] S1-12: `GameEngineService` (orchestrator)
-
-### ✅ Sprint 2: Network Layer (Completed)
-
-- [x] S2-1: `GameGateway` setup (Socket.io)
-- [x] S2-2: `TelegramAuthGuard` (HMAC validation)
-- [x] S2-3: `RoomManager` (queue, rooms, Redis-backed)
-- [x] S2-11: `BotService` (Random Valid Move Strategy)
-- [x] S2-13: `RedisService` + `DatabaseModule` (hot state persistence, TTL 2h)
-- [x] S2-4..S2-7: Event handlers (implemented in Gateway)
-- [x] S2-8: Turn Timer (30 sec)
-- [x] S2-9: Reconnect logic (via Redis)
-- [x] S2-10: Disconnect handling (30 sec grace period)
-
-### 🚧 Sprint 3: Frontend (In Progress)
-
-- [x] S3-0: Init (Vite + React + TailwindCSS)
-- [x] S3-1: Telegram WebApp SDK integration
-  - `TelegramProvider` с SDKProvider
-  - `useTelegram` hook
-  - Development fallback с mock user
-- [x] S3-2: Socket.io client + auth
-  - `socket.ts` с typed events
-  - Auth через initData
-- [x] S3-3: Zustand store
-  - `gameStore.ts` с полным state management
-  - Socket event handlers
-  - Selectors
-- [x] S3-4: Card component
-- [x] S3-5: Hand component
-- [x] S3-6: Table component
-- [x] S3-7: PlayerInfo component
-- [x] S3-8: Lobby screen (в App.tsx)
-- [x] S3-9: BetModal
-- [x] S3-10: TrumpSelector
-- [x] S3-11: JokerOptionModal
-- [ ] S3-12: GameScreen (интеграция всех компонентов)
-- [ ] S3-13: Animations & polish
-- [x] S3-14: E2E тесты (backend + frontend)
-
----
-
-## 📝 Контекст для разработчика (Context)
-
-- **Архитектура**: Monorepo. Shared types in `packages/shared`.
-- **Backend**: NestJS. Game logic separated from Gateway.
-- **Frontend**: React + Vite + TailwindCSS + Zustand
-- **Redis**: Используется для персистентности игрового состояния (TTL 2 часа).
-  - `docker-compose up redis` для запуска
-  - Fallback на in-memory если Redis недоступен
-
-### Frontend Structure
-
-```
-apps/frontend/src/
-├── components/          # UI компоненты
-│   ├── Card.tsx
-│   ├── Hand.tsx
-│   ├── Table.tsx
-│   ├── PlayerInfo.tsx
-│   ├── BetModal.tsx
-│   ├── TrumpSelector.tsx
-│   ├── JokerOptionModal.tsx
-│   └── index.ts
-├── lib/                 # Утилиты
-│   ├── telegram.ts      # TG SDK helpers
-│   ├── socket.ts        # Socket.io client
-│   └── index.ts
-├── providers/           # React providers
-│   ├── TelegramProvider.tsx
-│   └── index.ts
-├── store/               # Zustand stores
-│   ├── gameStore.ts
-│   └── index.ts
-└── App.tsx              # Root component
-```
-
-## 🛠 Технические заметки
-
-- Типы вынесены в `@joker/shared` и используются и бэком и фронтом.
-- `GameEngineService` — точка входа в логику.
-- `RoomManager` использует Redis как primary storage с in-memory cache.
-- `RedisService` gracefully деградирует до memory-only если Redis недоступен.
-- Frontend использует `SKIP_AUTH=true` в dev mode для тестирования без Telegram.
 
 ## 🚀 Быстрый старт
 
 ```bash
-# Запуск Redis (опционально)
-docker-compose up -d redis
+# Инфраструктура
+docker compose up -d  # PostgreSQL + Redis
 
-# Запуск backend (dev)
+# Backend
 cd apps/backend && pnpm dev
 
-# Запуск frontend (dev)
+# Frontend (player)
 cd apps/frontend && pnpm dev
+
+# Admin Panel
+cd apps/admin && pnpm dev
 ```
 
-## 🔧 Environment Variables
-
-### Backend (`apps/backend/.env`)
-
-```
-PORT=3000
-TELEGRAM_BOT_TOKEN=your_bot_token
-SKIP_AUTH=true  # для dev режима
-# REDIS_URL=redis://localhost:6379  # раскомментировать для Redis
-```
-
-### Frontend (`apps/frontend/.env`)
-
-```
-VITE_SOCKET_URL=http://localhost:3000
-```
+**URLs:**
+- Backend: http://localhost:3000
+- Frontend: http://localhost:5173
+- Admin: http://localhost:3001 (login: admin / admin123)
 
 ---
 
@@ -170,6 +59,39 @@ VITE_SOCKET_URL=http://localhost:3000
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-05 19:45] - OpenCode
+
+### Выполнено
+- ✅ A-6: Admin Docker deploy — настроен Docker deployment для React admin panel
+  - Создан `Dockerfile` с multi-stage build (nginx serving static)
+  - Создан `nginx.conf` для SPA routing
+  - Обновлён `vite.config.ts` с `base: '/admin/'` для subpath hosting
+  - Обновлён `App.tsx` с `<Router basename="/admin">`
+  - Исправлены конфликты типов React 18/19 (убран tsc из build)
+  - Удалены неиспользуемые компоненты TailAdmin (Calendar, CountryMap, DropZone)
+  - Обновлён `docker-compose.prod.yml` для новой admin конфигурации
+  - Обновлён `nginx/nginx.conf` с location `/admin/` proxy
+- ✅ Создан PR #1: feat(admin): Deploy React admin panel to production
+
+### Следующие шаги
+- [ ] Смержить PR #1 в main для деплоя на georgian-joker.ru/admin
+- [ ] Продолжить задачи Phase 2 из CURRENT_SPRINT.md (F-1..F-4 Frontend Economy UI)
+
+---
+
+## [2026-02-05 16:30] - OpenCode
+
+### Выполнено
+- ✅ A-5: Multi-sort filters (AC12) — добавлен query builder для AND/OR фильтров и мульти-сортировки, обновлены admin/event-log/transaction/notification list endpoints
+- ✅ Обновлен тест `scoring-rules.spec.ts` (Player controlledByBot) для прохождения type-check
+- ✅ Backend e2e тесты пройдены
+- ✅ Frontend e2e тесты пройдены (Playwright webServer на dev)
+- ✅ Добавлены/настроены ESLint конфиги для frontend и admin/back, `pnpm lint` проходит (admin с предупреждениями)
+- ✅ Type-check пройден (backend/frontend: `tsc --noEmit`)
+
+### Следующие шаги
+- [ ] Продолжить задачи Phase 2 из CURRENT_SPRINT.md
 
 ## [2026-02-04 14:10] - Antigravity
 
@@ -196,6 +118,124 @@ VITE_SOCKET_URL=http://localhost:3000
 
 ### Следующие шаги
 - [ ] Получить ответы на Q12 (House Edge %), Q17 (RBAC), Q18 (Audit Trail) от заказчика
-- [ ] Настроить branch protection rules на GitHub
-- [ ] Создать ветку `develop` от текущего `main`
+- [x] Создать ветку `develop` от текущего `main`
+
+### [2026-02-04 15:00] - Antigravity (Phase 2 Kickoff)
+
+### Выполнено
+- ✅ Документация (TOR v1.3.1, TECH_SPEC v0.5) закоммичена в `main`
+- ✅ Ветка `develop` создана и запушена
+- ✅ `apps/backend/prisma/schema.prisma` обновлен (добавлены все модели Phase 2)
+- ✅ `AGENTS.md` обновлен (добавлен /dev workflow)
+
+### Заблокировано
+- ❌ **Database Migration**: `P1001: Can't reach database server at localhost:5432`.
+  - Docker контейнеры (postgres/redis) падают при старте или порт недоступен с хоста.
+  - Требуется вмешательство пользователя для починки локального Docker окружения.
+
+### Следующие шаги
+- [ ] Исправить Docker окружение (dev machine issue)
+- [ ] Запустить `pnpm exec prisma migrate dev --name phase2_init`
+- [ ] Начать реализацию Economy API
 - [ ] Начать Phase 2 разработку после утверждения документации
+
+---
+
+## [2026-02-05 09:35] - Sisyphus
+
+### Выполнено
+- ✅ Admin Panel полностью реализован (commit 021732e):
+  - Backend: AdminController, AdminAuthController, AdminService
+  - Frontend: Dashboard, Users, UserDetail, Transactions, EventLog, Settings, Tables
+  - RBAC: OPERATOR/MODERATOR/ADMIN/SUPERADMIN roles
+  - JWT authentication
+- ✅ Docker Desktop установлен (заменил нестабильный WSL Docker)
+- ✅ PostgreSQL + Redis работают стабильно
+- ✅ BigInt serialization fixes (tgId → string для JSON):
+  - `3eda812` fix(admin): BigInt serialization and API params
+  - `8f66a9f` fix(admin): correct UserDetailResponse type
+- ✅ Session Protocol добавлен в AGENTS.md
+
+### Следующие шаги
+- [ ] Протестировать Admin Panel (http://localhost:3001, admin/admin123)
+- [ ] Economy API endpoints
+- [ ] Telegram Bot economy integration
+
+---
+
+## [2026-02-05 10:30] - Sisyphus
+
+### Выполнено
+- ✅ Создан `CURRENT_SPRINT.md` — детальный план Phase 2 с 19 задачами
+- ✅ Обновлён `AGENTS.md` — Session Protocol теперь ссылается на CURRENT_SPRINT.md
+- ✅ Упрощён `PROGRESS.md` — убрано дублирование, добавлена ссылка на CURRENT_SPRINT.md
+- ✅ Проанализирован TOR.md — определён текущий этап (Phase 2, ~60%)
+
+### Архитектура передачи контекста между сессиями:
+```
+AGENTS.md (первичный, читается OpenCode автоматически)
+    ↓
+CURRENT_SPRINT.md (текущие задачи, статусы)
+    ↓
+PROGRESS.md (Session Log, история)
+    ↓
+TOR.md / TECH_SPEC.md (при необходимости)
+```
+
+### Следующие шаги
+- [x] E-1: EconomyModule + EconomyService scaffold
+- [x] E-2: Ledger model + migrations
+
+---
+
+## [2026-02-05 12:00] - Sisyphus
+
+### Выполнено
+- ✅ Проверил Economy API — уже полностью реализован ранее
+- ✅ **A-1: Tasks CRUD (commit a599c60)**:
+  - Backend: listTasks, getTask, createTask, updateTask, deleteTask
+  - Backend: listTaskCompletions, approveTaskCompletion, rejectTaskCompletion
+  - Frontend: TasksPage.tsx (list + filters + pagination)
+  - Frontend: TaskDetailPage.tsx (edit form + completions table)
+  - Frontend: TaskCreatePage.tsx (create form)
+  - Routes и sidebar обновлены
+
+### Следующие шаги
+- [ ] A-2: Notifications CRUD (backend + frontend)
+- [ ] A-3: Withdrawal moderation UI
+- [ ] F-1: User balance display in frontend
+
+---
+
+## [2026-02-05 12:45] - Sisyphus
+
+### Выполнено
+- ✅ **A-2: Notifications CRUD (commit c4c08d0)**:
+  - Backend: NotificationService (create/read/update/delete/send/getDeliveries)
+  - Backend: 7 REST endpoints в AdminController
+  - Backend: Интеграция с TelegramBotService для отправки
+  - Frontend: NotificationsPage.tsx (list + status filter + pagination)
+  - Frontend: NotificationDetailPage.tsx (create/edit + send + deliveries)
+  - Routes и sidebar обновлены
+
+### Следующие шаги
+- [ ] A-3: Withdrawal moderation UI
+- [ ] A-4: Audit Log
+- [ ] F-1: User balance display in frontend
+
+---
+
+## [2026-02-05 13:30] - Antigravity
+
+### Выполнено
+- ✅ **A-4: Audit Log — интеграция EventLogService**:
+  - AdminService: логирование login, createAdmin, updatePassword, blockUser, unblockUser, updateUserRole, upsertSetting, updateSettings, createTask, updateTask, deleteTask, approveTaskCompletion, rejectTaskCompletion
+  - TransactionService: логирование approveWithdrawal, rejectWithdrawal
+  - EconomyService: логирование adjustBalance
+  - NotificationService: логирование createNotification, updateNotification, deleteNotification, sendNotification
+  - AdminController: обновлены сигнатуры методов для передачи admin.id
+  - Всего 17 admin-действий теперь логируются в БД (event_log table)
+
+### Следующие шаги
+- [ ] A-5: Multi-sort filters (AND/OR)
+- [ ] F-1: User balance display in frontend

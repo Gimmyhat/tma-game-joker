@@ -46,17 +46,11 @@ services:
   admin:
     image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_ADMIN}:latest
     restart: always
-    env_file: .env
-    environment:
-      - NODE_ENV=production
-      - ADMIN_PORT=3001
-      - ADMIN_JS_SKIP_BUNDLE=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    # Port exposed only internally via nginx proxy
-    expose:
-      - '3001'
+    # Exposed to host for nginx proxy
+    ports:
+      - '3001:80'
     depends_on:
-      - postgres
+      - backend
 
 volumes:
   redis_data:

@@ -316,6 +316,42 @@ export class RoomManager {
   // ==========================================
 
   /**
+   * Get all active rooms (for admin panel)
+   */
+  getAllRooms(): Array<{
+    id: string;
+    players: Array<{ id: string; name: string; isBot: boolean; connected: boolean }>;
+    phase: string;
+    round: number;
+    pulka: number;
+  }> {
+    const result: Array<{
+      id: string;
+      players: Array<{ id: string; name: string; isBot: boolean; connected: boolean }>;
+      phase: string;
+      round: number;
+      pulka: number;
+    }> = [];
+
+    for (const [roomId, room] of this.rooms) {
+      result.push({
+        id: roomId,
+        players: room.gameState.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          isBot: p.isBot,
+          connected: p.connected,
+        })),
+        phase: room.gameState.phase,
+        round: room.gameState.round,
+        pulka: room.gameState.pulka,
+      });
+    }
+
+    return result;
+  }
+
+  /**
    * Get room by ID (memory first, then Redis)
    */
   async getRoom(roomId: string): Promise<GameRoom | undefined> {
