@@ -187,20 +187,29 @@ export default function UserDetailPage() {
   const { user, referrer, referralsCount, stats } = data;
   const txTotalPages = Math.ceil(txTotal / txLimit);
   const refTotalPages = Math.ceil(refTotal / refLimit);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safeReferrals = Array.isArray(referrals) ? referrals : [];
 
   return (
     <>
       <PageMeta title={`${user.username || 'User'} | Joker Admin`} description="User details" />
       <PageBreadcrumb pageTitle="User Detail" />
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="user-detail-page">
         {/* Back Link */}
-        <Link to="/users" className="inline-flex items-center text-blue-500 hover:underline">
+        <Link
+          to="/users"
+          className="inline-flex items-center text-blue-500 hover:underline"
+          data-testid="users-back-link"
+        >
           &larr; Back to Users
         </Link>
 
         {/* Header */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="overflow-hidden rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="user-profile"
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               {/* Avatar placeholder */}
@@ -235,6 +244,7 @@ export default function UserDetailPage() {
                 <button
                   onClick={handleBlock}
                   className="rounded bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600"
+                  data-testid="user-block-button"
                 >
                   Block User
                 </button>
@@ -242,6 +252,7 @@ export default function UserDetailPage() {
                 <button
                   onClick={handleUnblock}
                   className="rounded bg-green-500 px-4 py-2 text-sm text-white hover:bg-green-600"
+                  data-testid="user-unblock-button"
                 >
                   Unblock User
                 </button>
@@ -249,6 +260,7 @@ export default function UserDetailPage() {
               <button
                 onClick={handleAdjustBalance}
                 className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
+                data-testid="user-adjust-balance-button"
               >
                 Adjust Balance
               </button>
@@ -262,7 +274,10 @@ export default function UserDetailPage() {
         {/* Info Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Balance Card */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="user-balance"
+          >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Balance</h3>
             <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
               ${user.balanceCj}
@@ -325,6 +340,7 @@ export default function UserDetailPage() {
           <nav className="-mb-px flex gap-4">
             <button
               onClick={() => setActiveTab('transactions')}
+              data-testid="transactions-tab"
               className={`border-b-2 px-4 py-2 text-sm font-medium ${
                 activeTab === 'transactions'
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -335,6 +351,7 @@ export default function UserDetailPage() {
             </button>
             <button
               onClick={() => setActiveTab('referrals')}
+              data-testid="referrals-tab"
               className={`border-b-2 px-4 py-2 text-sm font-medium ${
                 activeTab === 'referrals'
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -348,7 +365,10 @@ export default function UserDetailPage() {
 
         {/* Tab Content */}
         {activeTab === 'transactions' && (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="user-transactions-table"
+          >
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
@@ -368,14 +388,14 @@ export default function UserDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {transactions.length === 0 ? (
+                  {safeTransactions.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                         No transactions found
                       </td>
                     </tr>
                   ) : (
-                    transactions.map((tx) => (
+                    safeTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900 dark:text-white">
                           {tx.type}
@@ -432,7 +452,10 @@ export default function UserDetailPage() {
         )}
 
         {activeTab === 'referrals' && (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="user-referrals-table"
+          >
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
@@ -452,14 +475,14 @@ export default function UserDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {referrals.length === 0 ? (
+                  {safeReferrals.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                         No referrals found
                       </td>
                     </tr>
                   ) : (
-                    referrals.map((ref) => (
+                    safeReferrals.map((ref) => (
                       <tr key={ref.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="whitespace-nowrap px-6 py-4">
                           <Link

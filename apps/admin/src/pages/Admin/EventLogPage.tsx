@@ -61,7 +61,7 @@ export default function EventLogPage() {
       if (actionFilter !== 'all') params.action = actionFilter;
 
       const res = await adminApi.getEventLog(params);
-      const payload = res.data as {
+      const payload = (res.data ?? {}) as {
         items?: EventLogItem[];
         events?: EventLogItem[];
         total?: number;
@@ -74,7 +74,7 @@ export default function EventLogPage() {
         : [];
 
       setEvents(normalizedEvents);
-      setTotal(typeof payload.total === 'number' ? payload.total : 0);
+      setTotal(typeof payload.total === 'number' ? payload.total : normalizedEvents.length);
     } catch (err) {
       console.error(err);
       setEvents([]);
@@ -89,6 +89,7 @@ export default function EventLogPage() {
   }, [fetchEvents]);
 
   const totalPages = Math.ceil(total / limit);
+  const displayEvents = Array.isArray(events) ? events : [];
 
   const getActionColor = (action: string) => {
     if (action.includes('block')) return 'bg-red-100 text-red-800';
@@ -150,14 +151,14 @@ export default function EventLogPage() {
                       Loading...
                     </td>
                   </tr>
-                ) : events.length === 0 ? (
+                ) : displayEvents.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       No events found
                     </td>
                   </tr>
                 ) : (
-                  events.map((event) => (
+                  displayEvents.map((event) => (
                     <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {new Date(event.createdAt).toLocaleString()}

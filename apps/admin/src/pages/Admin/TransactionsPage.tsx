@@ -54,7 +54,9 @@ export default function TransactionsPage() {
         ? res.data
         : Array.isArray(res.data?.transactions)
           ? res.data.transactions
-          : [];
+          : Array.isArray(res.data?.items)
+            ? res.data.items
+            : [];
       setPendingWithdrawals(pendingData);
     } catch (e) {
       console.error('Failed to fetch pending', e);
@@ -89,6 +91,8 @@ export default function TransactionsPage() {
   };
 
   const totalPages = Math.ceil(total / limit);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safePendingWithdrawals = Array.isArray(pendingWithdrawals) ? pendingWithdrawals : [];
 
   return (
     <>
@@ -99,7 +103,7 @@ export default function TransactionsPage() {
 
       <div className="space-y-6" data-testid="transactions-page" aria-label="Transactions content">
         {/* Pending Withdrawals Alert */}
-        {pendingWithdrawals.length > 0 && (
+        {safePendingWithdrawals.length > 0 && (
           <div
             className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20"
             data-testid="pending-withdrawals-alert"
@@ -107,10 +111,10 @@ export default function TransactionsPage() {
             aria-live="polite"
           >
             <h3 className="mb-3 font-semibold text-orange-800 dark:text-orange-400">
-              {pendingWithdrawals.length} Pending Withdrawal(s)
+              {safePendingWithdrawals.length} Pending Withdrawal(s)
             </h3>
             <div className="space-y-2">
-              {pendingWithdrawals.slice(0, 5).map((tx) => (
+              {safePendingWithdrawals.slice(0, 5).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between rounded bg-white p-2 dark:bg-gray-800"
@@ -226,14 +230,14 @@ export default function TransactionsPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : transactions.length === 0 ? (
+              ) : safeTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                     No transactions found
                   </td>
                 </tr>
               ) : (
-                transactions.map((tx) => (
+                safeTransactions.map((tx) => (
                   <tr key={tx.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-white">
                       {tx.user?.username || tx.userId.slice(0, 8)}

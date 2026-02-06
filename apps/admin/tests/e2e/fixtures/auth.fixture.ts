@@ -59,6 +59,19 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
+ * Ensure the current test context has an authenticated admin session.
+ * Navigates to `/admin` and logs in only if the router still points to signin.
+ */
+export async function ensureAdminSession(page: Page): Promise<void> {
+  await page.goto('/admin');
+  await waitForAppReady(page);
+
+  if (page.url().includes('/signin')) {
+    await loginAsAdmin(page);
+  }
+}
+
+/**
  * Logout from admin panel
  */
 export async function logout(page: Page): Promise<void> {

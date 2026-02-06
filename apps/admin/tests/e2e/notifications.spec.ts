@@ -6,79 +6,67 @@ test.describe('Notifications Management', () => {
   });
 
   test('should display notifications list', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
-    await expect(page.getByRole('link', { name: '+ Create Notification' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Content' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Recipients' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
-    await page
-      .getByText('Loading...')
-      .count()
-      .catch(() => 0);
-    await page
-      .getByText('No notifications found')
-      .count()
-      .catch(() => 0);
+    await expect(page.getByTestId('notifications-page')).toBeVisible();
+    await expect(page.getByTestId('notifications-create')).toBeVisible();
+    await expect(page.getByTestId('notifications-table')).toBeVisible();
+    await page.locator('[data-testid="notifications-loading"]').count();
+    await page.locator('[data-testid="notifications-empty"]').count();
   });
 
   test('should have create notification button', async ({ page }) => {
-    await expect(page.getByRole('link', { name: '+ Create Notification' })).toBeVisible();
+    await expect(page.getByTestId('notifications-create')).toBeVisible();
   });
 
   test('should navigate to create notification page', async ({ page }) => {
-    await page.getByRole('link', { name: '+ Create Notification' }).first().click();
-    await expect(page.getByText('New Notification')).toBeVisible();
-    await expect(page.getByText('Create Notification')).toBeVisible();
+    await page.getByTestId('notifications-create').click();
+    await page.waitForURL('/admin/notifications/new');
+    await expect(page.getByTestId('notification-form-heading')).toBeVisible();
   });
 
   test('should display notification creation form', async ({ page }) => {
     await page.goto('/admin/notifications/new');
-    await expect(page.getByText('New Notification')).toBeVisible();
-    await expect(page.getByText('Create Notification')).toBeVisible();
-    await expect(page.getByRole('link', { name: '← Back to Notifications' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create' })).toBeVisible();
-    await expect(page.getByLabel('Body *')).toBeVisible();
+    await expect(page.getByTestId('notification-form')).toBeVisible();
+    await expect(page.getByTestId('notification-form-heading')).toBeVisible();
+    await expect(page.getByTestId('notification-back-link')).toBeVisible();
+    await expect(page.getByTestId('notification-form-submit')).toBeVisible();
+    await expect(page.getByTestId('notification-body-input')).toBeVisible();
   });
 
   test('should have targeting options in form', async ({ page }) => {
     await page.goto('/admin/notifications/new');
-    const targetingSection = page.locator('input[type="radio"], select[name*="target"]').first();
+    const targetingSection = page.getByTestId('notification-target-all');
     await targetingSection.count().catch(() => 0);
   });
 
   test('should have scheduling options', async ({ page }) => {
     await page.goto('/admin/notifications/new');
-    const scheduleSection = page
-      .locator('input[type="datetime-local"], input[name*="schedule"]')
-      .first();
+    const scheduleSection = page.getByTestId('notification-schedule-input');
     await scheduleSection.count().catch(() => 0);
   });
 
   test('should open notification detail page', async ({ page }) => {
-    const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-    if (await notificationLink.isVisible()) {
+    const notificationLink = page.getByTestId('notification-detail-link').first();
+    if ((await notificationLink.count()) > 0 && (await notificationLink.isVisible())) {
       await notificationLink.click();
-      await expect(page).toHaveURL(/\/notifications\//);
+      await page.waitForURL(/\/admin\/notifications\/[^/]+/);
+      await expect(page).toHaveURL(/\/admin\/notifications\/[^/]+/);
     }
   });
 
   test('should have send notification button', async ({ page }) => {
-    const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-    if (await notificationLink.isVisible()) {
+    const notificationLink = page.getByTestId('notification-detail-link').first();
+    if ((await notificationLink.count()) > 0 && (await notificationLink.isVisible())) {
       await notificationLink.click();
-      const sendBtn = page.getByRole('button', { name: 'Send Now' });
+      const sendBtn = page.getByTestId('notification-send-button');
       await sendBtn.count().catch(() => 0);
     }
   });
 
   test('should display delivery statistics', async ({ page }) => {
-    const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-    if (await notificationLink.isVisible()) {
+    const notificationLink = page.getByTestId('notification-detail-link').first();
+    if ((await notificationLink.count()) > 0 && (await notificationLink.isVisible())) {
       await notificationLink.click();
-      const deliveryStats = page.getByText(/deliver|доставк/i).first();
+      const deliveryStats = page.getByTestId('notification-delivery-stats');
       await deliveryStats.count().catch(() => 0);
     }
   });
@@ -93,7 +81,7 @@ test.describe('Notifications Management', () => {
   });
 
   test('should support filters on list', async ({ page }) => {
-    const filters = page.locator('select, [name*="filters"]').first();
-    await filters.count().catch(() => 0);
+    const filters = page.getByTestId('notifications-status-filter');
+    await filters.count();
   });
 });

@@ -219,16 +219,26 @@ export default function NotificationDetailPage() {
       />
       <PageBreadcrumb pageTitle={isNew ? 'New Notification' : 'Edit Notification'} />
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="notification-detail-page">
         {/* Back link */}
-        <Link to="/notifications" className="text-blue-500 hover:underline">
+        <Link
+          to="/notifications"
+          className="text-blue-500 hover:underline"
+          data-testid="notification-back-link"
+        >
           ← Back to Notifications
         </Link>
 
         {/* Edit Form */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="notification-form"
+        >
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2
+              className="text-lg font-semibold text-gray-900 dark:text-white"
+              data-testid="notification-form-heading"
+            >
               {isNew ? 'Create Notification' : canEdit ? 'Edit Notification' : 'View Notification'}
             </h2>
             {notification && (
@@ -293,6 +303,7 @@ export default function NotificationDetailPage() {
                 rows={4}
                 placeholder="Notification message..."
                 className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800"
+                data-testid="notification-body-input"
               />
             </div>
 
@@ -308,6 +319,7 @@ export default function NotificationDetailPage() {
                     onChange={() => setTargetAll(true)}
                     disabled={!canEdit}
                     className="h-4 w-4"
+                    data-testid="notification-target-all"
                   />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">All users</span>
                 </label>
@@ -318,6 +330,7 @@ export default function NotificationDetailPage() {
                     onChange={() => setTargetAll(false)}
                     disabled={!canEdit}
                     className="h-4 w-4"
+                    data-testid="notification-target-specific"
                   />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     Specific users
@@ -346,6 +359,7 @@ export default function NotificationDetailPage() {
                 onChange={(e) => setScheduledAt(e.target.value)}
                 disabled={!canEdit}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800"
+                data-testid="notification-schedule-input"
               />
               <p className="mt-1 text-xs text-gray-500">
                 Leave empty to send immediately when clicking "Send Now"
@@ -358,6 +372,7 @@ export default function NotificationDetailPage() {
                   type="submit"
                   disabled={saving}
                   className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+                  data-testid="notification-form-submit"
                 >
                   {saving ? 'Saving...' : isNew ? 'Create' : 'Save'}
                 </button>
@@ -368,6 +383,7 @@ export default function NotificationDetailPage() {
                   onClick={handleSend}
                   disabled={sending}
                   className="rounded-lg bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+                  data-testid="notification-send-button"
                 >
                   {sending ? 'Sending...' : 'Send Now'}
                 </button>
@@ -384,7 +400,7 @@ export default function NotificationDetailPage() {
 
         {/* Stats (for sent notifications) */}
         {notification && notification.status !== 'DRAFT' && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4" data-testid="notification-delivery-stats">
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {notification.totalRecipients}
@@ -404,7 +420,10 @@ export default function NotificationDetailPage() {
 
         {/* Deliveries Table */}
         {notification && notification.status !== 'DRAFT' && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="notification-deliveries-table"
+          >
             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Deliveries ({deliveryTotal})
             </h2>

@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-06 18:13  
+**Last Updated:** 2026-02-06 18:55  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -70,6 +70,7 @@
 | S4-10    | Settings page                                       | 2026-02-04 | 021732e          |
 | S4-15    | Stabilize admin settings/transactions e2e selectors | 2026-02-06 | -                |
 | S4-14    | Stabilize admin notifications/tables e2e selectors  | 2026-02-06 | -                |
+| S4-16    | Stabilize admin users/event-log e2e and map guards  | 2026-02-06 | -                |
 | S4-11    | Tables (God Mode)                                   | 2026-02-04 | 021732e          |
 | S4-12    | BigInt serialization fixes                          | 2026-02-05 | 3eda812, 8f66a9f |
 | S4-13    | Session handoff mechanism                           | 2026-02-05 | bf1d7ed          |
