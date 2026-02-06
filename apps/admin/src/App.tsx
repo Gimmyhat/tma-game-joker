@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from './lib/auth';
+import { useAuthStore, selectIsAuthenticated } from './lib/auth';
 
 // Pages
 import SignIn from './pages/AuthPages/SignIn';
@@ -24,10 +24,15 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 
 // Protected Route wrapper
 function ProtectedRoute() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const token = useAuthStore((state) => state.token);
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
 
-  if (!isAuthenticated && !token) {
+  // Wait for hydration to complete before making auth decision
+  if (!isHydrated) {
+    return null; // or a loading spinner
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/signin" replace />;
   }
 
