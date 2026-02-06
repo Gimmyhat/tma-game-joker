@@ -280,6 +280,8 @@ export default function SettingsPage() {
           className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           data-testid="profile-section"
           aria-label="Profile information"
+          id="profile"
+          style={{ scrollMarginTop: '96px' }}
         >
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
             Profile Information
@@ -324,6 +326,8 @@ export default function SettingsPage() {
           className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           data-testid="account-actions-section"
           aria-label="Account actions"
+          id="account-settings"
+          style={{ scrollMarginTop: '96px' }}
         >
           <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
             Account Actions
@@ -337,6 +341,19 @@ export default function SettingsPage() {
           >
             Logout
           </button>
+        </div>
+
+        <div
+          className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="support-section"
+          aria-label="Support information"
+          id="support"
+          style={{ scrollMarginTop: '96px' }}
+        >
+          <h2 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">Support</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            For admin assistance, contact platform support via your internal support channel.
+          </p>
         </div>
       </div>
     </>
