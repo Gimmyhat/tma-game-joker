@@ -65,9 +65,9 @@ COPY --from=build /app/pruned/node_modules ./node_modules
 # Copy Prisma schema for client generation
 COPY --from=build /app/apps/backend/prisma ./prisma
 
-# Install prisma CLI globally for generate and migrations
-# Keep it installed for runtime migrations (prisma migrate deploy)
-RUN npm install -g prisma@6.19.2 && \
+# Install prisma CLI and tsx globally for migrations and seeding
+# Keep installed for runtime migrations (prisma migrate deploy) and db seed
+RUN npm install -g prisma@6.19.2 tsx && \
     prisma generate
 
 # Copy built backend app

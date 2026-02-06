@@ -10,9 +10,10 @@ interface Admin {
 interface AuthState {
   token: string | null;
   admin: Admin | null;
-  isAuthenticated: boolean;
+  isHydrated: boolean;
   setAuth: (token: string, admin: Admin) => void;
   logout: () => void;
+  setHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -20,23 +21,28 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       admin: null,
-      isAuthenticated: false,
+      isHydrated: false,
       setAuth: (token, admin) =>
         set({
           token,
           admin,
-          isAuthenticated: true,
         }),
       logout: () =>
         set({
           token: null,
           admin: null,
-          isAuthenticated: false,
         }),
+      setHydrated: () => set({ isHydrated: true }),
     }),
     {
       name: 'admin-auth',
       partialize: (state) => ({ token: state.token, admin: state.admin }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHydrated();
+      },
     },
   ),
 );
+
+// Computed selector - isAuthenticated derived from token
+export const selectIsAuthenticated = (state: AuthState) => !!state.token;
