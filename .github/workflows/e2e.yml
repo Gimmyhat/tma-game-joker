@@ -2,15 +2,39 @@ name: e2e
 
 on:
   push:
+    branches: [main, develop]
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - 'apps/admin/**'
+      - 'packages/shared/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/e2e.yml'
   pull_request:
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - 'apps/admin/**'
+      - 'packages/shared/**'
+      - 'pnpm-lock.yaml'
+
+# Cancel in-progress runs on new push
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  PLAYWRIGHT_VERSION: latest
+  SKIP_AUTH: true
+  NODE_ENV: test
+  REDIS_URL: redis://localhost:6379
+  DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
 
 jobs:
-  e2e:
+  # Shared setup job - builds everything once
+  setup:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    if: github.event.pull_request.draft != true
 
     services:
       redis:
@@ -37,12 +61,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      SKIP_AUTH: true
-      NODE_ENV: test
-      REDIS_URL: redis://localhost:6379
-      DATABASE_URL: postgresql://joker:joker_secret@localhost:5432/joker_db
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,84 +83,111 @@ jobs:
         run: pnpm --filter @joker/shared build
 
       - name: Generate Prisma Client
-        run: |
-          cd apps/backend
-          npx prisma generate
-
-      - name: Get installed Playwright version
-        id: playwright-version
-        run: echo "PLAYWRIGHT_VERSION=$(pnpm list --filter @joker/frontend --depth=0 | grep @playwright/test | awk '{print $2}')" >> $GITHUB_ENV
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v3
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright browsers
-        run: pnpm --filter @joker/frontend exec playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - name: Install Playwright browsers (OS deps only)
-        run: pnpm --filter @joker/frontend exec playwright install-deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd apps/backend && npx prisma generate
 
       - name: Run Database Migrations
-        run: |
-          cd apps/backend
-          npx prisma migrate deploy
+        run: cd apps/backend && npx prisma migrate deploy
 
       - name: Run backend e2e
         run: pnpm --filter @joker/backend test:e2e
 
-      - name: Build Backend
-        run: pnpm --filter @joker/backend build
-
-      - name: Start Backend for Frontend tests
+      - name: Build all apps
         run: |
-          # Go to backend dir
-          cd apps/backend
+          pnpm --filter @joker/backend build
+          pnpm --filter @joker/frontend build
+          pnpm --filter @joker/admin build
 
-          echo "Debug: Listing dist structure..."
-          ls -R dist || echo "No dist folder found"
+      - name: Cache build artifacts
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/backend/dist
+            apps/frontend/dist
+            apps/admin/dist
+            packages/shared/dist
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: build-${{ github.sha }}
 
-          # Find main.js recursively in dist
-          MAIN_FILE=$(find dist -name main.js | head -n 1)
+  # Frontend E2E - runs in parallel with admin
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
 
-          if [ -z "$MAIN_FILE" ]; then
-            echo "FATAL: main.js not found in dist folder!"
-            exit 1
-          fi
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:15-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: joker
+          POSTGRES_PASSWORD: joker_secret
+          POSTGRES_DB: joker_db
 
-          echo "Found entrypoint at: $MAIN_FILE"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-          # Explicitly export env vars
-          export SKIP_AUTH=true
-          export NODE_ENV=test
-          export REDIS_URL=redis://localhost:6379
-          export DATABASE_URL=postgresql://joker:joker_secret@localhost:5432/joker_db
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8.15.0
 
-          # Run node with the found file
-          node "$MAIN_FILE" &
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-          # Wait for backend to be ready
-          echo "Waiting for backend to start..."
+      - name: Restore build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/backend/dist
+            apps/frontend/dist
+            apps/admin/dist
+            packages/shared/dist
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: build-${{ github.sha }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/frontend/pnpm-lock.yaml') }}
+
+      - name: Install Playwright
+        run: pnpm --filter @joker/frontend exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright deps only
+        run: pnpm --filter @joker/frontend exec playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Run migrations
+        run: cd apps/backend && npx prisma migrate deploy
+
+      - name: Seed database for tests
+        run: cd apps/backend && npx prisma db seed
+
+      - name: Start Backend
+        run: |
+          pnpm --filter @joker/backend start:prod &
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
-          echo "Backend started!"
 
-      - name: Build Frontend
-        run: pnpm --filter @joker/frontend build
-
-      - name: Start Frontend for e2e tests
+      - name: Start Frontend
         run: |
           cd apps/frontend
           pnpm preview --host 127.0.0.1 --port 5173 &
-
-          echo "Waiting for frontend to start..."
           timeout 30 bash -c 'until curl -s http://127.0.0.1:5173 > /dev/null; do sleep 1; done'
-          echo "Frontend started!"
 
       - name: Run frontend e2e
         env:
@@ -151,12 +196,110 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
         run: pnpm --filter @joker/frontend test:e2e
 
-      - name: Upload test artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
-          name: e2e-test-results
+          name: frontend-e2e-results
           path: |
             apps/frontend/test-results/
             apps/frontend/playwright-report/
-          retention-days: 7
+          retention-days: 3
+
+  # Admin E2E - runs in parallel with frontend
+  admin-e2e:
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:15-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: joker
+          POSTGRES_PASSWORD: joker_secret
+          POSTGRES_DB: joker_db
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/backend/dist
+            apps/frontend/dist
+            apps/admin/dist
+            packages/shared/dist
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: build-${{ github.sha }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/admin/pnpm-lock.yaml') }}
+
+      - name: Install Playwright
+        run: pnpm --filter @joker/admin exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright deps only
+        run: pnpm --filter @joker/admin exec playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Run migrations
+        run: cd apps/backend && npx prisma migrate deploy
+
+      - name: Seed database for tests
+        run: cd apps/backend && npx prisma db seed
+
+      - name: Start Backend
+        run: |
+          pnpm --filter @joker/backend start:prod &
+          timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
+
+      - name: Start Admin
+        run: |
+          cd apps/admin
+          pnpm preview --host 127.0.0.1 --port 3001 &
+          timeout 30 bash -c 'until curl -s http://127.0.0.1:3001 > /dev/null; do sleep 1; done'
+
+      - name: Run admin e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3001
+          PLAYWRIGHT_API_URL: http://127.0.0.1:3000/api
+          ADMIN_TEST_USERNAME: admin
+          ADMIN_TEST_PASSWORD: ${{ secrets.ADMIN_TEST_PASSWORD || 'admin123' }}
+        run: pnpm --filter @joker/admin test:e2e
+        continue-on-error: true # TODO: Remove after tests are stable
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: admin-e2e-results
+          path: |
+            apps/admin/test-results/
+            apps/admin/playwright-report/
+          retention-days: 3

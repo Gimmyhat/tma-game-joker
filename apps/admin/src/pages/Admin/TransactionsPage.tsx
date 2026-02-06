@@ -31,8 +31,15 @@ export default function TransactionsPage() {
       if (statusFilter !== 'all') params.status = statusFilter;
 
       const res = await adminApi.getTransactions(params);
-      setTransactions(res.data.transactions || res.data);
-      setTotal(res.data.total || 0);
+      const transactionsData = Array.isArray(res.data?.transactions)
+        ? res.data.transactions
+        : Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.items)
+            ? res.data.items
+            : [];
+      setTransactions(transactionsData);
+      setTotal(typeof res.data?.total === 'number' ? res.data.total : transactionsData.length);
     } catch (e) {
       console.error('Failed to fetch transactions', e);
     } finally {
@@ -43,7 +50,14 @@ export default function TransactionsPage() {
   const fetchPending = useCallback(async () => {
     try {
       const res = await adminApi.getPendingWithdrawals();
-      setPendingWithdrawals(res.data || []);
+      const pendingData = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.transactions)
+          ? res.data.transactions
+          : Array.isArray(res.data?.items)
+            ? res.data.items
+            : [];
+      setPendingWithdrawals(pendingData);
     } catch (e) {
       console.error('Failed to fetch pending', e);
     }
@@ -77,21 +91,30 @@ export default function TransactionsPage() {
   };
 
   const totalPages = Math.ceil(total / limit);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safePendingWithdrawals = Array.isArray(pendingWithdrawals) ? pendingWithdrawals : [];
 
   return (
     <>
       <PageMeta title="Transactions | Joker Admin" description="Manage transactions" />
-      <PageBreadcrumb pageTitle="Transactions" />
+      <div data-testid="transactions-page-header" aria-label="Transactions header">
+        <PageBreadcrumb pageTitle="Transactions" />
+      </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="transactions-page" aria-label="Transactions content">
         {/* Pending Withdrawals Alert */}
-        {pendingWithdrawals.length > 0 && (
-          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+        {safePendingWithdrawals.length > 0 && (
+          <div
+            className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20"
+            data-testid="pending-withdrawals-alert"
+            role="status"
+            aria-live="polite"
+          >
             <h3 className="mb-3 font-semibold text-orange-800 dark:text-orange-400">
-              {pendingWithdrawals.length} Pending Withdrawal(s)
+              {safePendingWithdrawals.length} Pending Withdrawal(s)
             </h3>
             <div className="space-y-2">
-              {pendingWithdrawals.slice(0, 5).map((tx) => (
+              {safePendingWithdrawals.slice(0, 5).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between rounded bg-white p-2 dark:bg-gray-800"
@@ -103,12 +126,16 @@ export default function TransactionsPage() {
                     <button
                       onClick={() => handleApprove(tx.id)}
                       className="rounded bg-green-500 px-2 py-1 text-xs text-white hover:bg-green-600"
+                      data-testid="pending-withdrawal-approve"
+                      aria-label="Approve withdrawal"
                     >
                       Approve
                     </button>
                     <button
                       onClick={() => handleReject(tx.id)}
                       className="rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
+                      data-testid="pending-withdrawal-reject"
+                      aria-label="Reject withdrawal"
                     >
                       Reject
                     </button>
@@ -120,11 +147,17 @@ export default function TransactionsPage() {
         )}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-4">
+        <div
+          className="flex flex-wrap gap-4"
+          data-testid="transactions-filters"
+          aria-label="Transaction filters"
+        >
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+            data-testid="transactions-type-filter"
+            aria-label="Type filter"
           >
             <option value="all">All Types</option>
             <option value="DEPOSIT">Deposit</option>
@@ -138,6 +171,8 @@ export default function TransactionsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+            data-testid="transactions-status-filter"
+            aria-label="Status filter"
           >
             <option value="all">All Statuses</option>
             <option value="PENDING">Pending</option>
@@ -148,15 +183,44 @@ export default function TransactionsPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="transactions-table"
+          aria-label="Transactions table"
+        >
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Date</th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500"
+                  data-testid="transactions-column-user"
+                >
+                  User
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500"
+                  data-testid="transactions-column-type"
+                >
+                  Type
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500"
+                  data-testid="transactions-column-amount"
+                >
+                  Amount
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500"
+                  data-testid="transactions-column-status"
+                >
+                  Status
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500"
+                  data-testid="transactions-column-date"
+                >
+                  Date
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -166,14 +230,14 @@ export default function TransactionsPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : transactions.length === 0 ? (
+              ) : safeTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                     No transactions found
                   </td>
                 </tr>
               ) : (
-                transactions.map((tx) => (
+                safeTransactions.map((tx) => (
                   <tr key={tx.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-white">
                       {tx.user?.username || tx.userId.slice(0, 8)}
@@ -221,6 +285,8 @@ export default function TransactionsPage() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
+                data-testid="transactions-pagination-prev"
+                aria-label="Previous transactions page"
               >
                 Previous
               </button>
@@ -228,6 +294,8 @@ export default function TransactionsPage() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
+                data-testid="transactions-pagination-next"
+                aria-label="Next transactions page"
               >
                 Next
               </button>

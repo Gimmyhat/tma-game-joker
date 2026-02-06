@@ -56,16 +56,23 @@ export default function TablesPage() {
     <>
       <PageMeta title="Tables | Joker Admin" description="Active game tables" />
       <PageBreadcrumb pageTitle="Tables" />
+      <h1 className="sr-only" data-testid="tables-heading">
+        Tables
+      </h1>
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+        <div className="flex items-center justify-between" data-testid="tables-header">
+          <h2
+            className="text-lg font-semibold text-gray-800 dark:text-white"
+            data-testid="tables-active-heading"
+          >
             Active Tables ({tables.length})
           </h2>
           <button
             onClick={fetchTables}
             className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
+            data-testid="tables-refresh"
           >
             Refresh
           </button>
@@ -78,26 +85,34 @@ export default function TablesPage() {
         )}
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading tables...</div>
+          <div className="py-8 text-center text-gray-500" data-testid="tables-loading">
+            Loading tables...
+          </div>
         ) : tables.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="tables-empty-state"
+          >
             <p className="text-gray-500">No active tables</p>
             <p className="mt-2 text-sm text-gray-400">
               Tables will appear here when players start games
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="tables-grid">
             {tables.map((table) => (
               <Link
                 key={table.id}
                 to={`/tables/${table.id}`}
                 className="block rounded-xl border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-blue-600"
+                data-testid="table-card"
+                data-table-id={table.id}
               >
                 <div className="mb-3 flex items-center justify-between">
                   <span className="font-mono text-sm text-gray-500">{table.id.slice(0, 8)}...</span>
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getPhaseColor(table.phase)}`}
+                    data-testid="table-phase"
                   >
                     {table.phase}
                   </span>
@@ -112,7 +127,11 @@ export default function TablesPage() {
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-gray-500">Players:</div>
                   {table.players.map((player) => (
-                    <div key={player.id} className="flex items-center justify-between text-sm">
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between text-sm"
+                      data-testid="table-player-row"
+                    >
                       <span className="text-gray-800 dark:text-white">
                         {player.name}
                         {player.isBot && (

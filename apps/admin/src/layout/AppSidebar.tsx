@@ -9,6 +9,7 @@ import {
   TableIcon,
   TaskIcon,
   MailIcon,
+  ShootingStarIcon,
 } from '../icons';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -50,6 +51,11 @@ const navItems: NavItem[] = [
     path: '/tables',
   },
   {
+    icon: <ShootingStarIcon />,
+    name: 'Tournaments',
+    path: '/tournaments',
+  },
+  {
     icon: <ListIcon />,
     name: 'Event Log',
     path: '/event-log',
@@ -66,7 +72,10 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
+  const isActive = useCallback(
+    (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`),
+    [location.pathname],
+  );
 
   // Handle click outside for mobile
   useEffect(() => {

@@ -166,7 +166,7 @@ export default function TableDetailPage() {
       <PageMeta title={`Table ${id?.slice(0, 8)} | Joker Admin`} description="Table God Mode" />
       <PageBreadcrumb pageTitle="Table Details (God Mode)" />
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="table-detail-page">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -174,12 +174,19 @@ export default function TableDetailPage() {
               &larr;
             </Link>
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+              <h2
+                className="text-lg font-semibold text-gray-800 dark:text-white"
+                data-testid="table-detail-heading"
+              >
                 Table: <span className="font-mono">{gameState.id.slice(0, 12)}...</span>
               </h2>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div
+                className="flex items-center gap-2 text-sm text-gray-500"
+                data-testid="table-meta"
+              >
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${getPhaseColor(gameState.phase)}`}
+                  data-testid="table-phase-indicator"
                 >
                   {gameState.phase}
                 </span>
@@ -214,7 +221,10 @@ export default function TableDetailPage() {
         {/* Game Info Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           {/* Trump */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="table-cards"
+          >
             <div className="text-sm text-gray-500">Trump</div>
             <div className="mt-1 text-2xl font-bold">
               {gameState.trump ? (
@@ -297,7 +307,7 @@ export default function TableDetailPage() {
         )}
 
         {/* Players (GOD MODE - show all hands) */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="table-player-list">
           <h3 className="text-lg font-medium text-gray-800 dark:text-white">
             Players (God Mode - All Hands Visible)
           </h3>
@@ -316,6 +326,7 @@ export default function TableDetailPage() {
                       ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
                       : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]'
                   }`}
+                  data-testid="table-player-card"
                 >
                   {/* Player Header */}
                   <div className="mb-3 flex items-center justify-between">
@@ -374,7 +385,7 @@ export default function TableDetailPage() {
                   </div>
 
                   {/* Hand */}
-                  <div>
+                  <div data-testid="table-player-hand">
                     <div className="mb-1 text-xs font-medium text-gray-500">
                       Hand ({player.hand.length} cards):
                     </div>

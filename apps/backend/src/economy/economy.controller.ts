@@ -48,8 +48,10 @@ export class EconomyController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
+    const resolvedUserId = await this.economyService.resolveUserId(userId, true);
+
     return this.transactionService.getUserHistory(
-      userId,
+      resolvedUserId,
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 20,
     );

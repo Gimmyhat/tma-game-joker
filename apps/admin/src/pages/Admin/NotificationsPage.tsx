@@ -84,11 +84,15 @@ export default function NotificationsPage() {
     <>
       <PageMeta title="Notifications | Joker Admin" description="Manage notifications" />
       <PageBreadcrumb pageTitle="Notifications" />
+      <h1 className="sr-only" data-testid="notifications-heading">
+        Notifications
+      </h1>
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="notifications-page">
         {/* Filters & Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <select
+            data-testid="notifications-status-filter"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
@@ -107,15 +111,22 @@ export default function NotificationsPage() {
           <Link
             to="/notifications/new"
             className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            data-testid="notifications-create"
           >
             + Create Notification
           </Link>
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="notifications-table-wrapper"
+        >
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table
+              className="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+              data-testid="notifications-table"
+            >
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -138,22 +149,44 @@ export default function NotificationsPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody
+                className="divide-y divide-gray-200 dark:divide-gray-700"
+                data-testid="notifications-table-body"
+              >
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
+                  <tr
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                    data-testid="notifications-loading-row"
+                  >
+                    <td
+                      colSpan={6}
+                      className="px-6 py-4 text-center"
+                      data-testid="notifications-loading"
+                    >
                       Loading...
                     </td>
                   </tr>
                 ) : notifications.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <tr
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                    data-testid="notifications-empty-row"
+                  >
+                    <td
+                      colSpan={6}
+                      className="px-6 py-4 text-center text-gray-500"
+                      data-testid="notifications-empty"
+                    >
                       No notifications found
                     </td>
                   </tr>
                 ) : (
                   notifications.map((notification) => (
-                    <tr key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <tr
+                      key={notification.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                      data-testid="notification-row"
+                      data-notification-id={notification.id}
+                    >
                       <td className="whitespace-nowrap px-6 py-4">
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getTypeBadge(notification.type)}`}
@@ -205,6 +238,7 @@ export default function NotificationsPage() {
                           <Link
                             to={`/notifications/${notification.id}`}
                             className="rounded bg-blue-500 px-3 py-1 text-sm text-white hover:bg-blue-600"
+                            data-testid="notification-detail-link"
                           >
                             {notification.status === 'DRAFT' ? 'Edit' : 'View'}
                           </Link>

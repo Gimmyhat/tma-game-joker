@@ -74,26 +74,30 @@ export default function UsersPage() {
   };
 
   const totalPages = Math.ceil(total / limit);
+  const safeUsers = Array.isArray(users) ? users : [];
 
   return (
     <>
       <PageMeta title="Users | Joker Admin" description="Manage users" />
       <PageBreadcrumb pageTitle="Users" />
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="users-page">
         {/* Search & Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <form onSubmit={handleSearch} className="flex gap-2" data-testid="users-search-form">
             <input
               type="text"
               placeholder="Search by username..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
+              data-testid="users-search-input"
+              aria-label="Users search"
             />
             <button
               type="submit"
               className="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+              data-testid="users-search-button"
             >
               Search
             </button>
@@ -106,6 +110,8 @@ export default function UsersPage() {
               setPage(1);
             }}
             className="rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
+            data-testid="users-status-filter"
+            aria-label="Users status filter"
           >
             <option value="all">All Status</option>
             <option value="ACTIVE">Active</option>
@@ -114,7 +120,10 @@ export default function UsersPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+          data-testid="users-table"
+        >
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
@@ -146,15 +155,20 @@ export default function UsersPage() {
                       Loading...
                     </td>
                   </tr>
-                ) : users.length === 0 ? (
+                ) : safeUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                       No users found
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  safeUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                      data-testid="user-row"
+                      data-user-id={user.id}
+                    >
                       <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900 dark:text-white">
                         {user.username || '—'}
                       </td>
@@ -183,6 +197,7 @@ export default function UsersPage() {
                           <Link
                             to={`/users/${user.id}`}
                             className="rounded bg-blue-500 px-3 py-1 text-sm text-white hover:bg-blue-600"
+                            data-testid="user-view-link"
                           >
                             View
                           </Link>
@@ -190,6 +205,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => handleBlock(user.id)}
                               className="rounded bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600"
+                              data-testid="user-block-button"
                             >
                               Block
                             </button>
@@ -197,6 +213,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => handleUnblock(user.id)}
                               className="rounded bg-green-500 px-3 py-1 text-sm text-white hover:bg-green-600"
+                              data-testid="user-unblock-button"
                             >
                               Unblock
                             </button>
@@ -212,7 +229,10 @@ export default function UsersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3 dark:border-gray-700">
+            <div
+              className="flex items-center justify-between border-t border-gray-200 px-6 py-3 dark:border-gray-700"
+              data-testid="users-pagination"
+            >
               <div className="text-sm text-gray-500">
                 Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}
               </div>

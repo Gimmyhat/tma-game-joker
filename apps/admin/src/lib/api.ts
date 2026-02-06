@@ -82,6 +82,43 @@ export const adminApi = {
   getTables: () => api.get('/admin/tables'),
   getTable: (id: string) => api.get(`/admin/tables/${id}`),
 
+  // Tournaments
+  getTournaments: (params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) => api.get('/admin/tournaments', { params }),
+  getTournament: (id: string) => api.get(`/admin/tournaments/${id}`),
+  createTournament: (data: {
+    title?: string;
+    config?: Record<string, unknown>;
+    status?: string;
+    registrationStart?: string;
+    startTime?: string;
+    botFillConfig?: Record<string, unknown>;
+    currentStage?: number;
+  }) => api.post('/admin/tournaments', data),
+  updateTournament: (
+    id: string,
+    data: {
+      title?: string;
+      config?: Record<string, unknown>;
+      status?: string;
+      registrationStart?: string | null;
+      startTime?: string | null;
+      botFillConfig?: Record<string, unknown>;
+      currentStage?: number;
+    },
+  ) => api.put(`/admin/tournaments/${id}`, data),
+  deleteTournament: (id: string) => api.post(`/admin/tournaments/${id}/delete`),
+  publishTournament: (id: string) => api.post(`/admin/tournaments/${id}/publish`),
+  addTournamentBots: (id: string, count: number) =>
+    api.post(`/admin/tournaments/${id}/add-bots`, { count }),
+  getTournamentTables: (id: string) => api.get(`/admin/tournaments/${id}/tables`),
+  getTournamentParticipants: (id: string, params?: { page?: number; pageSize?: number }) =>
+    api.get(`/admin/tournaments/${id}/participants`, { params }),
+
   // Tasks
   getTasks: (params?: { status?: string; page?: number; pageSize?: number }) =>
     api.get('/admin/tasks', { params }),
