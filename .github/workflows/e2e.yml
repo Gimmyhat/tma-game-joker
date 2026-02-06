@@ -82,12 +82,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers (Frontend)
         run: pnpm --filter @joker/frontend exec playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - name: Install Playwright browsers (OS deps only)
         run: pnpm --filter @joker/frontend exec playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Install Playwright browsers (Admin)
+        run: pnpm --filter @joker/admin exec playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - name: Run Database Migrations
         run: |
@@ -151,6 +155,27 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
         run: pnpm --filter @joker/frontend test:e2e
 
+      # Admin E2E Tests
+      - name: Build Admin
+        run: pnpm --filter @joker/admin build
+
+      - name: Start Admin for e2e tests
+        run: |
+          cd apps/admin
+          pnpm preview --host 127.0.0.1 --port 3001 &
+
+          echo "Waiting for admin to start..."
+          timeout 30 bash -c 'until curl -s http://127.0.0.1:3001 > /dev/null; do sleep 1; done'
+          echo "Admin started!"
+
+      - name: Run admin e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3001
+          PLAYWRIGHT_API_URL: http://127.0.0.1:3000/api
+          ADMIN_TEST_USERNAME: admin
+          ADMIN_TEST_PASSWORD: ${{ secrets.ADMIN_TEST_PASSWORD }}
+        run: pnpm --filter @joker/admin test:e2e
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -159,4 +184,6 @@ jobs:
           path: |
             apps/frontend/test-results/
             apps/frontend/playwright-report/
+            apps/admin/test-results/
+            apps/admin/playwright-report/
           retention-days: 7
