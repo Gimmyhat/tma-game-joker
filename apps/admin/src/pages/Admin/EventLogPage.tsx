@@ -12,6 +12,40 @@ interface EventLogItem {
   createdAt: string;
 }
 
+function normalizeEventLogItem(item: unknown): EventLogItem | null {
+  if (!item || typeof item !== 'object') return null;
+
+  const raw = item as Record<string, unknown>;
+  const detailsRaw = raw.details;
+  const createdAtRaw = raw.createdAt;
+
+  const details =
+    typeof detailsRaw === 'string'
+      ? detailsRaw
+      : detailsRaw == null
+        ? '-'
+        : JSON.stringify(detailsRaw);
+
+  const createdAt =
+    typeof createdAtRaw === 'string'
+      ? createdAtRaw
+      : createdAtRaw instanceof Date
+        ? createdAtRaw.toISOString()
+        : new Date().toISOString();
+
+  return {
+    id: String(raw.id ?? crypto.randomUUID()),
+    adminId: String(raw.adminId ?? ''),
+    admin:
+      raw.admin && typeof raw.admin === 'object'
+        ? { username: String((raw.admin as Record<string, unknown>).username ?? '') }
+        : undefined,
+    action: String(raw.action ?? 'unknown'),
+    details,
+    createdAt,
+  };
+}
+
 export default function EventLogPage() {
   const [events, setEvents] = useState<EventLogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,10 +61,24 @@ export default function EventLogPage() {
       if (actionFilter !== 'all') params.action = actionFilter;
 
       const res = await adminApi.getEventLog(params);
-      setEvents(res.data.events || res.data);
-      setTotal(res.data.total || 0);
+      const payload = res.data as {
+        items?: EventLogItem[];
+        events?: EventLogItem[];
+        total?: number;
+      };
+      const fetchedEvents = payload.events ?? payload.items ?? [];
+      const normalizedEvents = Array.isArray(fetchedEvents)
+        ? fetchedEvents
+            .map(normalizeEventLogItem)
+            .filter((item): item is EventLogItem => item !== null)
+        : [];
+
+      setEvents(normalizedEvents);
+      setTotal(typeof payload.total === 'number' ? payload.total : 0);
     } catch (err) {
       console.error(err);
+      setEvents([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }

@@ -19,18 +19,49 @@ export interface HoldResult {
 @Injectable()
 export class EconomyService {
   private readonly logger = new Logger(EconomyService.name);
+  private static readonly UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLog: EventLogService,
   ) {}
 
+  async resolveUserId(userId: string, createIfTelegram = false): Promise<string> {
+    if (EconomyService.UUID_REGEX.test(userId)) {
+      return userId;
+    }
+
+    if (!/^\d+$/.test(userId)) {
+      throw new BadRequestException('userId must be UUID or Telegram numeric ID');
+    }
+
+    const tgId = BigInt(userId);
+
+    if (createIfTelegram) {
+      const user = await this.getOrCreateUser(tgId);
+      return user.id;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { tgId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    return user.id;
+  }
+
   /**
    * Get user balance
    */
   async getBalance(userId: string): Promise<BalanceResult> {
+    const resolvedUserId = await this.resolveUserId(userId, true);
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: resolvedUserId },
       select: { id: true, balanceCj: true },
     });
 

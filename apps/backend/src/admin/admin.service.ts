@@ -1,7 +1,13 @@
-import { Injectable, Logger, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { AdminRole, User, Prisma } from '@prisma/client';
+import { AdminRole, User, Prisma, TournamentStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { EventLogService } from '../event-log/event-log.service';
 import { mergeWhere } from './utils/query-builder';
@@ -91,6 +97,64 @@ export interface UpdateTaskDto {
   endDate?: Date;
   status?: string;
   autoVerify?: boolean;
+}
+
+export interface PaginatedTournaments {
+  items: Array<{
+    id: string;
+    title: string | null;
+    status: TournamentStatus;
+    registrationStart: Date | null;
+    startTime: Date | null;
+    currentStage: number;
+    prizePoolActual: string;
+    revenue: string;
+    participantsCount: number;
+    tablesCount: number;
+    createdAt: Date;
+  }>;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface TournamentDetailResponse {
+  id: string;
+  title: string | null;
+  config: Prisma.JsonValue;
+  status: TournamentStatus;
+  registrationStart: Date | null;
+  startTime: Date | null;
+  botFillConfig: Prisma.JsonValue | null;
+  currentStage: number;
+  bracketState: Prisma.JsonValue | null;
+  prizePoolActual: string;
+  revenue: string;
+  participantsCount: number;
+  tablesCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTournamentDto {
+  title?: string;
+  config?: Prisma.InputJsonValue;
+  status?: TournamentStatus;
+  registrationStart?: Date;
+  startTime?: Date;
+  botFillConfig?: Prisma.InputJsonValue;
+  currentStage?: number;
+}
+
+export interface UpdateTournamentDto {
+  title?: string;
+  config?: Prisma.InputJsonValue;
+  status?: TournamentStatus;
+  registrationStart?: Date | null;
+  startTime?: Date | null;
+  botFillConfig?: Prisma.InputJsonValue;
+  currentStage?: number;
 }
 
 export interface UserDetailResponse {
@@ -1076,5 +1140,347 @@ export class AdminService {
         reason,
       },
     });
+  }
+
+  async listTournaments(
+    page = 1,
+    pageSize = 20,
+    status?: TournamentStatus,
+    search?: string,
+    advancedWhere?: Prisma.TournamentWhereInput,
+    orderBy?: Prisma.TournamentOrderByWithRelationInput[],
+  ): Promise<PaginatedTournaments> {
+    const where = mergeWhere(
+      status ? { status } : undefined,
+      search
+        ? {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }
+        : undefined,
+      advancedWhere,
+    );
+
+    const [items, total] = await Promise.all([
+      this.prisma.tournament.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: orderBy && orderBy.length > 0 ? orderBy : [{ createdAt: 'desc' }],
+        include: {
+          _count: {
+            select: {
+              participants: true,
+              tables: true,
+            },
+          },
+        },
+      }),
+      this.prisma.tournament.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        registrationStart: item.registrationStart,
+        startTime: item.startTime,
+        currentStage: item.currentStage,
+        prizePoolActual: item.prizePoolActual.toString(),
+        revenue: item.revenue.toString(),
+        participantsCount: item._count.participants,
+        tablesCount: item._count.tables,
+        createdAt: item.createdAt,
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getTournament(id: string): Promise<TournamentDetailResponse> {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            participants: true,
+            tables: true,
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    return {
+      id: tournament.id,
+      title: tournament.title,
+      config: tournament.config,
+      status: tournament.status,
+      registrationStart: tournament.registrationStart,
+      startTime: tournament.startTime,
+      botFillConfig: tournament.botFillConfig,
+      currentStage: tournament.currentStage,
+      bracketState: tournament.bracketState,
+      prizePoolActual: tournament.prizePoolActual.toString(),
+      revenue: tournament.revenue.toString(),
+      participantsCount: tournament._count.participants,
+      tablesCount: tournament._count.tables,
+      createdAt: tournament.createdAt,
+      updatedAt: tournament.updatedAt,
+    };
+  }
+
+  async createTournament(
+    dto: CreateTournamentDto,
+    createdById?: string,
+  ): Promise<TournamentDetailResponse> {
+    const tournament = await this.prisma.tournament.create({
+      data: {
+        title: dto.title?.trim() || null,
+        config: dto.config ?? {},
+        status: dto.status ?? TournamentStatus.DRAFT,
+        registrationStart: dto.registrationStart ?? null,
+        startTime: dto.startTime ?? null,
+        botFillConfig: dto.botFillConfig ?? Prisma.DbNull,
+        currentStage: dto.currentStage ?? 0,
+        createdById,
+      },
+    });
+
+    this.eventLog.logTournamentEvent('TOURNAMENT_CREATED', tournament.id, createdById, {
+      status: tournament.status,
+      title: tournament.title,
+    });
+
+    return this.getTournament(tournament.id);
+  }
+
+  async updateTournament(
+    id: string,
+    dto: UpdateTournamentDto,
+    updatedById?: string,
+  ): Promise<TournamentDetailResponse> {
+    const existing = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    await this.prisma.tournament.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title?.trim() || null } : {}),
+        ...(dto.config !== undefined ? { config: dto.config } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+        ...(dto.registrationStart !== undefined
+          ? { registrationStart: dto.registrationStart }
+          : {}),
+        ...(dto.startTime !== undefined ? { startTime: dto.startTime } : {}),
+        ...(dto.botFillConfig !== undefined
+          ? { botFillConfig: dto.botFillConfig ?? Prisma.DbNull }
+          : {}),
+        ...(dto.currentStage !== undefined ? { currentStage: dto.currentStage } : {}),
+      },
+    });
+
+    if (dto.status === TournamentStatus.CANCELLED) {
+      this.eventLog.logTournamentEvent('TOURNAMENT_CANCELLED', id, updatedById, {
+        action: 'STATUS_UPDATED',
+      });
+    }
+
+    return this.getTournament(id);
+  }
+
+  async deleteTournament(
+    id: string,
+    deletedById?: string,
+  ): Promise<{ id: string; status: string }> {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            participants: true,
+            tables: true,
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    if (tournament._count.participants > 0 || tournament._count.tables > 0) {
+      await this.prisma.tournament.update({
+        where: { id },
+        data: { status: TournamentStatus.CANCELLED },
+      });
+      this.eventLog.logTournamentEvent('TOURNAMENT_CANCELLED', id, deletedById, {
+        reason: 'Soft cancel because tournament has relations',
+      });
+      return { id, status: TournamentStatus.CANCELLED };
+    }
+
+    await this.prisma.tournament.delete({ where: { id } });
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId: deletedById,
+      actorType: 'ADMIN',
+      targetId: id,
+      targetType: 'TOURNAMENT',
+      details: { action: 'TOURNAMENT_DELETED' },
+      contextTournamentId: id,
+    });
+
+    return { id, status: 'DELETED' };
+  }
+
+  async publishTournament(id: string, actorId?: string): Promise<TournamentDetailResponse> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    if (
+      tournament.status !== TournamentStatus.DRAFT &&
+      tournament.status !== TournamentStatus.ANNOUNCED
+    ) {
+      throw new BadRequestException('Only DRAFT or ANNOUNCED tournaments can be published');
+    }
+
+    await this.prisma.tournament.update({
+      where: { id },
+      data: { status: TournamentStatus.REGISTRATION },
+    });
+
+    this.eventLog.logTournamentEvent('TOURNAMENT_PUBLISHED', id, actorId, {
+      previousStatus: tournament.status,
+      nextStatus: TournamentStatus.REGISTRATION,
+    });
+
+    return this.getTournament(id);
+  }
+
+  async addTournamentBots(
+    id: string,
+    count: number,
+    actorId?: string,
+  ): Promise<{ id: string; botFillConfig: Prisma.JsonValue | null }> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    const existingBotConfig =
+      tournament.botFillConfig &&
+      typeof tournament.botFillConfig === 'object' &&
+      !Array.isArray(tournament.botFillConfig)
+        ? (tournament.botFillConfig as Prisma.JsonObject)
+        : {};
+
+    const nextBotConfig: Prisma.JsonObject = {
+      ...existingBotConfig,
+      manualBotAddCount: count,
+      manualBotAddAt: new Date().toISOString(),
+      manualBotAddBy: actorId ?? null,
+    };
+
+    const updated = await this.prisma.tournament.update({
+      where: { id },
+      data: {
+        botFillConfig: nextBotConfig,
+      },
+      select: {
+        id: true,
+        botFillConfig: true,
+      },
+    });
+
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      actorId,
+      actorType: 'ADMIN',
+      targetId: id,
+      targetType: 'TOURNAMENT',
+      details: {
+        action: 'TOURNAMENT_ADD_BOTS',
+        count,
+      },
+      contextTournamentId: id,
+    });
+
+    return updated;
+  }
+
+  async getTournamentTables(id: string) {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    return this.prisma.table.findMany({
+      where: { tournamentId: id },
+      orderBy: [{ tournamentStage: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        tournamentStage: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getTournamentParticipants(id: string, page = 1, pageSize = 20) {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      throw new NotFoundException(`Tournament ${id} not found`);
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.tournamentParticipant.findMany({
+        where: { tournamentId: id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              tgId: true,
+            },
+          },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { registeredAt: 'desc' },
+      }),
+      this.prisma.tournamentParticipant.count({ where: { tournamentId: id } }),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        username: item.user.username,
+        tgId: item.user.tgId.toString(),
+        status: item.status,
+        finalPlace: item.finalPlace,
+        prizeAmount: item.prizeAmount?.toString() ?? null,
+        registeredAt: item.registeredAt,
+        eliminatedAt: item.eliminatedAt,
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 }

@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-06 16:40
+**Последнее обновление:** 2026-02-06 21:20
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -59,6 +59,119 @@ cd apps/admin && pnpm dev
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-06 21:20] - OpenCode
+
+### Выполнено
+- ✅ Исправлен белый экран на `/admin/event-log`: страница теперь корректно обрабатывает API payload c `items/events`, добавлена нормализация записей и безопасный рендер (`apps/admin/src/pages/Admin/EventLogPage.tsx`).
+- ✅ Добавлен fallback для аватаров в header dropdowns, чтобы не показывались битые изображения при 404 (`apps/admin/src/components/header/UserDropdown.tsx`, `apps/admin/src/components/header/NotificationDropdown.tsx`).
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/event-log.spec.ts` — успешно.
+
+### В процессе
+- 🔄 Общая стабилизация остальных admin e2e селекторов/ожиданий (вне event-log).
+
+### Следующие шаги
+- [ ] Допривести остальные failing admin e2e группы (notifications/settings/tables/transactions/users).
+
+## [2026-02-06 21:05] - OpenCode
+
+## [2026-02-06 21:05] - OpenCode
+
+### Выполнено
+- ✅ T-2: реализован Tournament admin CRUD на backend (`apps/backend/src/admin/admin.controller.ts`, `apps/backend/src/admin/admin.service.ts`) с endpoint-ами list/get/create/update/delete/publish/add-bots/tables/participants.
+- ✅ Добавлен frontend CRUD в админке: страницы `TournamentsPage`, `TournamentCreatePage`, `TournamentDetailPage`, роуты и пункт меню (`apps/admin/src/App.tsx`, `apps/admin/src/layout/AppSidebar.tsx`).
+- ✅ Расширен API-клиент админки методами турниров (`apps/admin/src/lib/api.ts`).
+- ✅ Проверки: `pnpm --filter @joker/backend lint`, `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/backend exec tsc --noEmit`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/frontend test:e2e` — успешно.
+
+### В процессе
+- 🔄 Проверка стабильности admin e2e окружения (existing issue в Playwright webServer: `vite --port 3001` vs `adminPort=3002`).
+
+### Следующие шаги
+- [ ] Стабилизировать `pnpm --filter @joker/admin test:e2e` (унифицировать dev script/admin port в `apps/admin/playwright.config.ts` и `apps/admin/package.json`).
+- [ ] После фикса прогнать admin e2e повторно.
+
+## [2026-02-06 20:18] - OpenCode
+
+### Выполнено
+- ✅ F-4: добавлены mock-модалки пополнения/вывода с вводом суммы и подтверждением (`apps/frontend/src/App.tsx`).
+- ✅ В mock-режиме операции сразу отражаются в локальном балансе и добавляются в историю транзакций.
+- ✅ Добавлены i18n ключи для F-4 (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Повторные проверки: `pnpm --filter @joker/{frontend,backend} lint`, `pnpm --filter @joker/{frontend,backend} exec tsc --noEmit`, `pnpm --filter @joker/frontend test:e2e` — успешно.
+
+### В процессе
+- 🔄 T-2: Tournament admin CRUD.
+
+### Следующие шаги
+- [ ] Начать T-2: реализовать CRUD турниров в админке.
+
+## [2026-02-06 20:02] - OpenCode
+
+### Выполнено
+- ✅ Исправлен backend economy userId mismatch: добавлен резолв `UUID | Telegram ID` в `apps/backend/src/economy/economy.service.ts`.
+- ✅ Обновлен endpoint истории: `apps/backend/src/economy/economy.controller.ts` теперь резолвит Telegram ID в internal UUID перед `getUserHistory`.
+- ✅ F-3: добавлена история операций в player UI (`apps/frontend/src/App.tsx`) + i18n ключи в `apps/frontend/src/locales/ru.json` и `apps/frontend/src/locales/en.json`.
+- ✅ Проверки: backend/frontend lint и `tsc --noEmit` (ok), `pnpm --filter @joker/frontend test:e2e` (6 passed, 1 skipped).
+
+### В процессе
+- 🔄 F-4: Deposit/Withdraw modals.
+
+### Следующие шаги
+- [ ] Реализовать F-4: Deposit/Withdraw modals (mock).
+- [ ] После F-4 прогнать `pnpm lint` и пакетные type-check/e2e повторно.
+
+## [2026-02-06 19:41] - OpenCode
+
+### Выполнено
+- ✅ F-2: реализован mock UI кошелька в лобби (`apps/frontend/src/App.tsx`) с привязкой/отвязкой и сохранением mock-адреса в `localStorage`.
+- ✅ Добавлены i18n ключи `wallet.*` для RU/EN (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Проверки: `pnpm lint` (ok), `pnpm --filter @joker/{shared,backend,frontend,admin} exec tsc --noEmit` (ok).
+
+### В процессе
+- 🔄 E2E в фронтенде: `pnpm --filter @joker/frontend test:e2e` падает на существующем backend 500 в `/economy/balance/:userId` из-за Prisma UUID validation (`apps/backend/src/economy/economy.service.ts:32`).
+
+### Следующие шаги
+- [ ] Исправить backend обработку `userId` для economy endpoints (нормализовать/валидировать Telegram id до UUID-совместимой схемы или сменить тип идентификатора в запросах к Prisma).
+- [ ] Повторно запустить `pnpm --filter @joker/frontend test:e2e`.
+- [ ] Перейти к F-3: Transaction history page.
+
+## [2026-02-06 19:10] - OpenCode
+
+### Выполнено
+- ✅ Привёл все admin e2e тесты и фикстуру к вызову `page.goto('/admin/...')`, чтобы они запускались на подкаталоге админки, не трогая остальную логику.
+
+### В процессе
+- 🔄 Нет
+
+### Следующие шаги
+- [ ] Запустить `pnpm --filter @joker/admin test:e2e` или `pnpm test` для подтверждения стабильности путей.
+
+## [2026-02-06 17:25] - OpenCode
+
+### Выполнено
+- ✅ F-1: показ баланса в лобби (App.tsx + i18n)
+
+### В процессе
+- 🔄 Тесты: `pnpm lint` падает в `apps/admin/tests/e2e/*` (unused vars, hooks rule)
+
+### Следующие шаги
+- [ ] Починить lint в admin e2e тестах или исключить их из lint
+- [ ] Перезапустить `pnpm lint && pnpm type-check && pnpm test:e2e`
+
+## [2026-02-06 13:13] - OpenCode
+
+### Выполнено
+- ✅ Добавлены операционные макросы для `opencode-pty` в `AGENTS.md`
+
+### Следующие шаги
+- [ ] Нет
+
+## [2026-02-06 16:50] - OpenCode
+
+### Выполнено
+- ✅ Обновлены guardrails для `opencode-pty` в `AGENTS.md`
+
+### Следующие шаги
+- [ ] Нет
 
 ## [2026-02-06 16:40] - OpenCode
 
