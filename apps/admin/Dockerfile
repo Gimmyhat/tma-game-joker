@@ -14,6 +14,8 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
+# Cache bust arg to force rebuild when source changes
+ARG CACHE_BUST
 COPY . .
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/apps/admin/node_modules ./apps/admin/node_modules

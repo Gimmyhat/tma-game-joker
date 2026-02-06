@@ -7,8 +7,8 @@ const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Admin test credentials - should match seeded admin user
 export const ADMIN_CREDENTIALS = {
-  username: process.env.E2E_ADMIN_USERNAME ?? 'admin',
-  password: process.env.E2E_ADMIN_PASSWORD ?? 'admin123',
+  username: process.env.ADMIN_TEST_USERNAME ?? 'admin',
+  password: process.env.ADMIN_TEST_PASSWORD ?? 'admin123',
 };
 
 export const AUTH_STORAGE_PATH = path.join(configDir, '..', '.auth', 'admin.json');
@@ -20,32 +20,42 @@ if (!fs.existsSync(authDir)) {
 }
 
 /**
+ * Wait for app to be ready (React hydrated)
+ */
+export async function waitForAppReady(page: Page): Promise<void> {
+  // Wait for React to hydrate - look for any interactive element
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+
+  // Give React time to hydrate
+  await page.waitForTimeout(500);
+}
+
+/**
  * Login to admin panel and save storage state
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
   await page.goto('/signin');
+  await waitForAppReady(page);
 
-  // Wait for login form
-  await expect(page.locator('input[name="username"], input[type="text"]').first()).toBeVisible();
+  // Wait for login form using data-testid
+  const usernameInput = page.getByTestId('username-input');
+  await expect(usernameInput).toBeVisible({ timeout: 15_000 });
 
   // Fill credentials
-  await page
-    .locator('input[name="username"], input[type="text"]')
-    .first()
-    .fill(ADMIN_CREDENTIALS.username);
-  await page
-    .locator('input[name="password"], input[type="password"]')
-    .first()
-    .fill(ADMIN_CREDENTIALS.password);
+  await usernameInput.fill(ADMIN_CREDENTIALS.username);
+  await page.getByTestId('password-input').fill(ADMIN_CREDENTIALS.password);
 
-  // Submit
-  await page.locator('button[type="submit"]').click();
+  // Submit - find button by text
+  await page.getByRole('button', { name: /sign in/i }).click();
 
   // Wait for redirect to dashboard
   await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
 
-  // Verify we're authenticated - check for sidebar or user menu
-  await expect(page.locator('[data-testid="sidebar"], nav, aside').first()).toBeVisible();
+  // Verify we're authenticated - check for sidebar or main content
+  await expect(page.locator('aside, nav, [role="navigation"]').first()).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 /**
@@ -54,12 +64,13 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 export async function logout(page: Page): Promise<void> {
   // Navigate to settings where logout button is
   await page.goto('/settings');
+  await waitForAppReady(page);
 
   // Click logout button
-  const logoutButton = page.locator('button:has-text("Logout"), button:has-text("Выйти")');
-  if (await logoutButton.isVisible()) {
+  const logoutButton = page.getByRole('button', { name: /logout|sign out|выйти/i });
+  if (await logoutButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await logoutButton.click();
-    await expect(page).toHaveURL(/\/signin/);
+    await expect(page).toHaveURL(/\/signin/, { timeout: 10_000 });
   }
 }
 

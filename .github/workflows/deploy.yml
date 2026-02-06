@@ -147,6 +147,8 @@ jobs:
           labels: ${{ steps.meta-admin.outputs.labels }}
           cache-from: type=gha,scope=admin
           cache-to: type=gha,mode=max,scope=admin
+          build-args: |
+            CACHE_BUST=${{ github.sha }}
 
   deploy:
     needs: [build-backend, build-frontend, build-admin]
