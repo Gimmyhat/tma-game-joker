@@ -66,6 +66,17 @@ export default function SettingsPage() {
   const [editedSettings, setEditedSettings] = useState<Record<string, unknown>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [activeAnchor, setActiveAnchor] = useState<string>(() =>
+    window.location.hash ? window.location.hash.slice(1) : '',
+  );
+
+  const sectionTitles: Record<string, string> = {
+    profile: 'Edit Profile',
+    'account-settings': 'Account Settings',
+    support: 'Support',
+  };
+
+  const pageTitle = sectionTitles[activeAnchor] || 'Settings';
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -88,6 +99,34 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    const offset = 96;
+
+    const scrollToAnchor = () => {
+      const hash = window.location.hash;
+      setActiveAnchor(hash ? hash.slice(1) : '');
+      if (!hash) return false;
+
+      const anchorId = hash.slice(1);
+      const anchor = document.getElementById(anchorId);
+      if (!anchor) return false;
+      const top = anchor.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+      return true;
+    };
+
+    scrollToAnchor();
+    const retry1 = window.setTimeout(scrollToAnchor, 100);
+    const retry2 = window.setTimeout(scrollToAnchor, 300);
+    window.addEventListener('hashchange', scrollToAnchor);
+
+    return () => {
+      window.removeEventListener('hashchange', scrollToAnchor);
+      window.clearTimeout(retry1);
+      window.clearTimeout(retry2);
+    };
+  }, [loading]);
 
   const handleLogout = () => {
     logout();
@@ -182,8 +221,8 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageMeta title="Settings | Joker Admin" description="Admin settings" />
-      <PageBreadcrumb pageTitle="Settings" />
+      <PageMeta title={`${pageTitle} | Joker Admin`} description="Admin settings" />
+      <PageBreadcrumb pageTitle={pageTitle} />
 
       <div className="space-y-6">
         {/* Global Settings */}
