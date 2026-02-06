@@ -56,6 +56,7 @@ export default function App() {
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/event-log" element={<EventLogPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<Navigate to="/settings" replace />} />
             <Route path="/tables" element={<TablesPage />} />
             <Route path="/tables/:id" element={<TableDetailPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
