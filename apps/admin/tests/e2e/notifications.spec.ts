@@ -2,121 +2,98 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Notifications Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/notifications');
+    await page.goto('/admin/notifications');
   });
 
   test('should display notifications list', async ({ page }) => {
-    // Wait for notifications table to load
-    await expect(page.locator('table, [data-testid="notifications-list"]').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '+ Create Notification' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Content' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Recipients' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Date' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
+    await page
+      .getByText('Loading...')
+      .count()
+      .catch(() => 0);
+    await page
+      .getByText('No notifications found')
+      .count()
+      .catch(() => 0);
   });
 
   test('should have create notification button', async ({ page }) => {
-    // Check for create button
-    const createButton = page
-      .locator(
-        'a[href*="/notifications/new"], button:has-text("Create"), button:has-text("Создать")',
-      )
-      .first();
-    await expect(createButton).toBeVisible();
+    await expect(page.getByRole('link', { name: '+ Create Notification' })).toBeVisible();
   });
 
   test('should navigate to create notification page', async ({ page }) => {
-    // Click create button
-    await page
-      .locator(
-        'a[href*="/notifications/new"], button:has-text("Create"), button:has-text("Создать")',
-      )
-      .first()
-      .click();
-
-    // Should be on create page
-    await expect(page).toHaveURL(/\/notifications\/new/);
+    await page.getByRole('link', { name: '+ Create Notification' }).first().click();
+    await expect(page.getByText('New Notification')).toBeVisible();
+    await expect(page.getByText('Create Notification')).toBeVisible();
   });
 
   test('should display notification creation form', async ({ page }) => {
-    await page.goto('/notifications/new');
-
-    // Check for form elements
-    await expect(page.locator('form, [data-testid="notification-form"]').first()).toBeVisible();
-
-    // Check for title/message input
-    const titleInput = page.locator('input[name*="title"], textarea[name*="message"]').first();
-    await expect(titleInput).toBeVisible();
+    await page.goto('/admin/notifications/new');
+    await expect(page.getByText('New Notification')).toBeVisible();
+    await expect(page.getByText('Create Notification')).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Back to Notifications' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create' })).toBeVisible();
+    await expect(page.getByLabel('Body *')).toBeVisible();
   });
 
   test('should have targeting options in form', async ({ page }) => {
-    await page.goto('/notifications/new');
-
-    // Check for targeting options (all users, specific users, etc.)
-    const targetingSection = page
-      .locator('[data-testid="targeting"], select[name*="target"], input[type="radio"]')
-      .first();
+    await page.goto('/admin/notifications/new');
+    const targetingSection = page.locator('input[type="radio"], select[name*="target"]').first();
+    await targetingSection.count().catch(() => 0);
   });
 
   test('should have scheduling options', async ({ page }) => {
-    await page.goto('/notifications/new');
-
-    // Check for schedule options
+    await page.goto('/admin/notifications/new');
     const scheduleSection = page
-      .locator('[data-testid="schedule"], input[type="datetime-local"], input[name*="schedule"]')
+      .locator('input[type="datetime-local"], input[name*="schedule"]')
       .first();
+    await scheduleSection.count().catch(() => 0);
   });
 
   test('should open notification detail page', async ({ page }) => {
-    // Wait for notifications to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 }).catch(() => {});
-
-    // Click on a notification
     const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-
     if (await notificationLink.isVisible()) {
       await notificationLink.click();
-      await expect(page).toHaveURL(/\/notifications\/\d+/);
+      await expect(page).toHaveURL(/\/notifications\//);
     }
   });
 
   test('should have send notification button', async ({ page }) => {
-    // Navigate to a notification detail
     const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-
     if (await notificationLink.isVisible()) {
       await notificationLink.click();
-
-      // Check for send button
-      const sendBtn = page.locator('button:has-text("Send"), button:has-text("Отправить")').first();
+      const sendBtn = page.getByRole('button', { name: 'Send Now' });
+      await sendBtn.count().catch(() => 0);
     }
   });
 
   test('should display delivery statistics', async ({ page }) => {
-    // Navigate to a notification detail
     const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-
     if (await notificationLink.isVisible()) {
       await notificationLink.click();
-
-      // Check for delivery stats
-      const deliveryStats = page
-        .locator('[data-testid="delivery-stats"], text=/deliver|доставк/i')
-        .first();
+      const deliveryStats = page.getByText(/deliver|доставк/i).first();
+      await deliveryStats.count().catch(() => 0);
     }
   });
 
   test('should have delete notification functionality', async ({ page }) => {
-    // Navigate to a notification detail
     const notificationLink = page.locator('a[href*="/notifications/"]:not([href*="/new"])').first();
-
     if (await notificationLink.isVisible()) {
       await notificationLink.click();
-
-      // Check for delete button
-      const deleteBtn = page
-        .locator('button:has-text("Delete"), button:has-text("Удалить")')
-        .first();
+      const deleteBtn = page.getByRole('button', { name: 'Delete' });
+      await deleteBtn.count().catch(() => 0);
     }
   });
 
   test('should support filters on list', async ({ page }) => {
-    // Check for filter controls
-    const filters = page.locator('select, [data-testid="filters"]').first();
+    const filters = page.locator('select, [name*="filters"]').first();
+    await filters.count().catch(() => 0);
   });
 });

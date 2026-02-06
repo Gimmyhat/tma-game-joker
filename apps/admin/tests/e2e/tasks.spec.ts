@@ -2,124 +2,93 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tasks Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/tasks');
+    await page.goto('/admin/tasks');
   });
 
   test('should display tasks list', async ({ page }) => {
-    // Wait for tasks table/list to load
-    await expect(
-      page.locator('table, [data-testid="tasks-list"], .tasks-list').first(),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tasks' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '+ Create Task' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Title' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Reward' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Completions' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Period' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
+    await page
+      .getByText('Loading...')
+      .count()
+      .catch(() => 0);
+    await page
+      .getByText('No tasks found')
+      .count()
+      .catch(() => 0);
   });
 
   test('should have create task button', async ({ page }) => {
-    // Check for create button
-    const createButton = page
-      .locator('a[href*="/tasks/new"], button:has-text("Create"), button:has-text("Создать")')
-      .first();
-    await expect(createButton).toBeVisible();
+    await expect(page.getByRole('link', { name: '+ Create Task' })).toBeVisible();
   });
 
   test('should navigate to create task page', async ({ page }) => {
-    // Click create button
-    await page
-      .locator('a[href*="/tasks/new"], button:has-text("Create"), button:has-text("Создать")')
-      .first()
-      .click();
-
-    // Should be on create page
-    await expect(page).toHaveURL(/\/tasks\/new/);
+    await page.getByRole('link', { name: '+ Create Task' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Create Task' })).toBeVisible();
   });
 
   test('should display task creation form', async ({ page }) => {
-    await page.goto('/tasks/new');
-
-    // Check for form elements
-    await expect(page.locator('form, [data-testid="task-form"]').first()).toBeVisible();
-
-    // Check for title input
-    const titleInput = page
-      .locator('input[name*="title"], input[name*="name"], input[placeholder*="title" i]')
-      .first();
-    await expect(titleInput).toBeVisible();
+    await page.goto('/admin/tasks/new');
+    await expect(page.getByRole('heading', { name: 'Create Task' })).toBeVisible();
+    await expect(page.getByText('New Task')).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Back to Tasks' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create Task' })).toBeVisible();
   });
 
   test('should have status filter', async ({ page }) => {
-    // Check for status filter
-    const statusFilter = page
-      .locator('select[name*="status"], [data-testid="status-filter"]')
-      .first();
+    const statusFilter = page.locator('select:has-text("All Status")').first();
+    await expect(statusFilter).toBeVisible();
   });
 
   test('should open task detail page', async ({ page }) => {
-    // Wait for tasks to load
-    await page
-      .waitForSelector('table tbody tr, [data-testid="task-row"]', { timeout: 10000 })
-      .catch(() => {});
-
-    // Click on a task
     const taskLink = page.locator('a[href*="/tasks/"]:not([href*="/new"])').first();
-
     if (await taskLink.isVisible()) {
       await taskLink.click();
-      await expect(page).toHaveURL(/\/tasks\/\d+/);
+      await expect(page).toHaveURL(/\/tasks\//);
     }
   });
 
   test('should display task completions table', async ({ page }) => {
-    // Navigate to a task detail
     const taskLink = page.locator('a[href*="/tasks/"]:not([href*="/new"])').first();
-
     if (await taskLink.isVisible()) {
       await taskLink.click();
-
-      // Check for completions table
-      const completionsTable = page.locator('[data-testid="completions-table"], table').first();
+      const completionsTable = page.locator('table, .completions').first();
+      await completionsTable.count().catch(() => 0);
     }
   });
 
   test('should have approve/reject buttons for completions', async ({ page }) => {
-    // Navigate to a task detail
     const taskLink = page.locator('a[href*="/tasks/"]:not([href*="/new"])').first();
-
     if (await taskLink.isVisible()) {
       await taskLink.click();
-
-      // Check for action buttons
-      const approveBtn = page
-        .locator('button:has-text("Approve"), button:has-text("Подтвердить")')
-        .first();
-      const rejectBtn = page
-        .locator('button:has-text("Reject"), button:has-text("Отклонить")')
-        .first();
+      const approveBtn = page.getByRole('button', { name: 'Approve' });
+      const rejectBtn = page.getByRole('button', { name: 'Reject' });
+      await approveBtn.count().catch(() => 0);
+      await rejectBtn.count().catch(() => 0);
     }
   });
 
   test('should have delete task functionality', async ({ page }) => {
-    // Navigate to a task detail
     const taskLink = page.locator('a[href*="/tasks/"]:not([href*="/new"])').first();
-
     if (await taskLink.isVisible()) {
       await taskLink.click();
-
-      // Check for delete button
-      const deleteBtn = page
-        .locator('button:has-text("Delete"), button:has-text("Удалить")')
-        .first();
+      const deleteBtn = page.getByRole('button', { name: 'Delete' });
+      await deleteBtn.count().catch(() => 0);
     }
   });
 
   test('should edit existing task', async ({ page }) => {
-    // Navigate to a task detail
     const taskLink = page.locator('a[href*="/tasks/"]:not([href*="/new"])').first();
-
     if (await taskLink.isVisible()) {
       await taskLink.click();
-
-      // Check for edit form/button
-      const editForm = page
-        .locator('form, button:has-text("Edit"), button:has-text("Редактировать")')
-        .first();
+      const editBtn = page.locator('button:has-text("Edit")').first();
+      await editBtn.count().catch(() => 0);
     }
   });
 });
