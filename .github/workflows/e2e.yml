@@ -180,8 +180,7 @@ jobs:
 
       - name: Start Backend
         run: |
-          cd apps/backend
-          node dist/main.js &
+          pnpm --filter @joker/backend start:prod &
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
 
       - name: Start Frontend
@@ -277,8 +276,7 @@ jobs:
 
       - name: Start Backend
         run: |
-          cd apps/backend
-          node dist/main.js &
+          pnpm --filter @joker/backend start:prod &
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health > /dev/null; do sleep 1; done'
 
       - name: Start Admin
