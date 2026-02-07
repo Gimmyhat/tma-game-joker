@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 09:27  
+**Last Updated:** 2026-02-07 09:40  
 **Sprint:** Phase 2 - Economy & Admin  
 **Deadline:** TBD (estimated 3 weeks)
 
@@ -75,6 +75,7 @@
 | S4-18    | Split profile dropdown links by settings anchors    | 2026-02-06 | -                |
 | S4-19    | Distinguish settings anchors via dynamic page title | 2026-02-06 | -                |
 | S4-20    | Distinct settings anchor views + TS compat fix      | 2026-02-07 | 0375983          |
+| S4-21    | Ignore and clean admin e2e local artifacts          | 2026-02-07 | (pending commit) |
 | S4-11    | Tables (God Mode)                                   | 2026-02-04 | 021732e          |
 | S4-12    | BigInt serialization fixes                          | 2026-02-05 | 3eda812, 8f66a9f |
 | S4-13    | Session handoff mechanism                           | 2026-02-05 | bf1d7ed          |

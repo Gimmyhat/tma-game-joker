@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 09:27
+**Последнее обновление:** 2026-02-07 09:40
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -59,6 +59,21 @@ cd apps/admin && pnpm dev
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-07 09:40] - OpenCode
+
+### Выполнено
+- ✅ Запушены коммиты с фиксом Settings hash views в ветку `fix/admin-eventlog-avatar-crash`.
+- ✅ Создан PR в `develop`: `https://github.com/Gimmyhat/tma-game-joker/pull/13`.
+- ✅ Добавлен ignore для локальных e2e-артефактов админки: `apps/admin/.gitignore` (`test-results/`, `tests/e2e/.auth/`).
+- ✅ Очищены локальные артефакты: `apps/admin/test-results/`, `apps/admin/tests/e2e/.auth/`.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Дождаться ревью и merge PR #13.
+- [ ] После merge проверить прод-маршруты settings hash в `/admin`.
 
 ## [2026-02-07 09:27] - OpenCode
 
