@@ -80,6 +80,17 @@ export class GameProcessService {
     return this.countActiveHumans(state) === 1;
   }
 
+  private getBetHoldCostCj(): number {
+    const rawCost = this.configService.get<string>('GAME_BET_HOLD_COST_CJ');
+    const parsedCost = Number(rawCost ?? 0);
+
+    if (!Number.isFinite(parsedCost) || parsedCost <= 0) {
+      return 0;
+    }
+
+    return parsedCost;
+  }
+
   private clearReconnectTimeouts(state: GameState): void {
     for (const player of state.players) {
       if (!player.isBot) {
@@ -161,17 +172,22 @@ export class GameProcessService {
       throw new Error('Room not found');
     }
 
-    // P0-5: Hold funds for bet
-    // Use room.id as referenceId
-    const holdResult = await this.economyService.holdForBet(
-      playerId,
-      amount,
-      room.id,
-      `bet-${room.id}-${playerId}-${Date.now()}`, // Simple idempotency key
-    );
+    const holdCostCj = this.getBetHoldCostCj();
+    let holdId: string | null = null;
 
-    if (!holdResult.success) {
-      throw new Error('Insufficient funds or transaction failed');
+    if (holdCostCj > 0) {
+      const holdResult = await this.economyService.holdForBet(
+        playerId,
+        holdCostCj,
+        room.id,
+        `bet-${room.id}-${playerId}-${Date.now()}`,
+      );
+
+      if (!holdResult.success) {
+        throw new Error('Insufficient funds or transaction failed');
+      }
+
+      holdId = holdResult.holdId;
     }
 
     try {
@@ -183,7 +199,9 @@ export class GameProcessService {
       await this.processBotTurn(room.id);
     } catch (error) {
       // Release hold if game logic fails
-      await this.economyService.releaseBetHold(playerId, amount, holdResult.holdId);
+      if (holdId && holdCostCj > 0) {
+        await this.economyService.releaseBetHold(playerId, holdCostCj, holdId);
+      }
       throw error;
     }
   }
