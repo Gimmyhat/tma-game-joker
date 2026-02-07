@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 23:59
-**Текущий статус:** 🔄 Phase 4: frontend hotfix задеплоен, ожидается повторный manual smoke в Telegram
+**Последнее обновление:** 2026-02-08 00:12
+**Текущий статус:** 🔄 Phase 4: referral backend hotfix задеплоен, ожидается повторный manual smoke в Telegram
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -26,7 +26,7 @@
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
 | 3 | Tournaments & Meta | ✅ Done | 100% |
-| 4 | Integration & Polish | 🔄 In Progress | 26% |
+| 4 | Integration & Polish | 🔄 In Progress | 30% |
 
 ---
 
@@ -57,6 +57,23 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-08 00:12] - OpenCode
+
+### Выполнено
+- ✅ Локализована причина ошибки Referral в Telegram: `TelegramAuthGuard` передает `req.user.id` как Telegram bigint, а `ReferralService.getReferralStats` ожидал internal UUID.
+- ✅ Применен backend hotfix в `apps/backend/src/referral/referral.service.ts`: добавлен `economyService.resolveUserId(userIdOrTgId.toString(), true)` перед referral-запросами.
+- ✅ Проверки: `pnpm --filter @joker/backend lint`, `pnpm --filter @joker/backend build`, `pnpm --filter @joker/backend test:e2e` — green (4/4 suites, 24/24 tests).
+- ✅ Коммит `ae517a6` отправлен в `main`; production deploy run `21781987204` — `success` (`https://github.com/Gimmyhat/tma-game-joker/actions/runs/21781987204`).
+
+### В процессе
+- 🔄 `P4-2`: ожидается повторный ручной smoke в Telegram Mini App для подтверждения исправления Referral.
+
+### Следующие шаги
+- [ ] Перепроверить в Telegram: Tournament / Leaderboard / Referral (кнопка `Обновить` в каждой модалке).
+- [ ] При подтверждении закрыть `P4-2` в `CURRENT_SPRINT.md`.
 
 ---
 
