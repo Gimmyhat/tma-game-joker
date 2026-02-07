@@ -10,6 +10,7 @@ import { AdminModule } from './admin/admin.module';
 import { EventLogModule } from './event-log/event-log.module';
 import { TournamentModule } from './tournament/tournament.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { TasksModule } from './tasks/tasks.module';
 import { ReferralModule } from './referral/referral.module';
 import { GatewayModule } from './gateway/gateway.module';
 
@@ -18,16 +19,16 @@ import { GatewayModule } from './gateway/gateway.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
-    GameModule,
-    BotModule,
     AdminModule,
     EconomyModule,
-    TelegramBotModule,
+    GatewayModule,
+    GameModule,
     EventLogModule,
     TournamentModule,
     LeaderboardModule,
+    TelegramBotModule,
     ReferralModule,
-    GatewayModule,
+    TasksModule,
   ],
 })
 export class AppModule {}

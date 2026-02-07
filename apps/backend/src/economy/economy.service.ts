@@ -444,4 +444,58 @@ export class EconomyService {
       currency: 'CJ',
     };
   }
+
+  /**
+   * Payout task reward
+   */
+  async payoutTaskReward(
+    userId: string,
+    amount: number,
+    taskId: string,
+  ): Promise<{ balanceResult: BalanceResult; transactionId: string }> {
+    const amountDecimal = new Decimal(amount);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User ${userId} not found`);
+      }
+
+      const currentBalance = new Decimal(user.balanceCj.toString());
+      const newBalance = currentBalance.plus(amountDecimal);
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { balanceCj: newBalance.toFixed(2) },
+      });
+
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          amount: amountDecimal.toFixed(2),
+          type: 'TASK_REWARD',
+          status: 'SUCCESS',
+          balanceAfter: newBalance.toFixed(2),
+          referenceId: taskId,
+          referenceType: 'TASK',
+        },
+      });
+
+      return { newBalance, transactionId: transaction.id };
+    });
+
+    this.logger.log(`Payout task reward ${amount} CJ to user ${userId} for task ${taskId}`);
+
+    return {
+      balanceResult: {
+        userId,
+        balance: result.newBalance,
+        currency: 'CJ',
+      },
+      transactionId: result.transactionId,
+    };
+  }
 }
