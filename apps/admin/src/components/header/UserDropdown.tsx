@@ -3,6 +3,7 @@ import { DropdownItem } from '../ui/dropdown/DropdownItem';
 import { Dropdown } from '../ui/dropdown/Dropdown';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../../lib/auth';
+import { adminApi } from '../../lib/api';
 
 const FALLBACK_AVATAR =
   'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="22" fill="%23E5E7EB"/><text x="22" y="23" text-anchor="middle" dominant-baseline="middle" fill="%236B7280" font-family="Arial" font-size="14">U</text></svg>';
@@ -12,9 +13,13 @@ export default function UserDropdown() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/signin');
+  const handleLogout = async () => {
+    try {
+      await adminApi.logout();
+    } finally {
+      logout();
+      navigate('/signin');
+    }
   };
 
   const handleAvatarError = (event: SyntheticEvent<HTMLImageElement>) => {

@@ -36,6 +36,7 @@ export const adminApi = {
   // Auth
   login: (username: string, password: string) =>
     api.post<{ accessToken: string }>('/admin/auth/login', { username, password }),
+  logout: () => api.post<{ success: boolean }>('/admin/auth/logout'),
 
   // Dashboard
   getDashboard: () => api.get('/admin/dashboard'),
