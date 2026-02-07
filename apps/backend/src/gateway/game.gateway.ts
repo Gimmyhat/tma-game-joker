@@ -191,14 +191,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     // Initialize rate limit data
     this.rateLimitData.set(userId, { lastActionTime: 0, actionTimestamps: [] });
 
-    // Check if player was in a game (reconnection)
-    const roomId = await this.gameProcess.handleConnection(userId, client.id);
-    if (roomId) {
-      client.join(roomId);
-      this.logger.log(`Player ${userId} reconnected to room ${roomId}`);
-    }
+    try {
+      // Check if player was in a game (reconnection)
+      const roomId = await this.gameProcess.handleConnection(userId, client.id, userName);
+      if (roomId) {
+        client.join(roomId);
+        this.logger.log(`Player ${userId} reconnected to room ${roomId}`);
+      }
 
-    this.logger.log(`Client connected: ${client.id} (${userId})`);
+      this.logger.log(`Client connected: ${client.id} (${userId})`);
+    } catch (error) {
+      this.connectionRegistry.unregister(client.id);
+      this.lastThrowCardTime.delete(userId);
+      this.rateLimitData.delete(userId);
+
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to initialize connection for ${userId}: ${reason}`);
+      client.emit('error', {
+        code: 'USER_SYNC_FAILED',
+        message: 'Unable to initialize user account',
+      });
+      client.disconnect(true);
+    }
   }
 
   /**

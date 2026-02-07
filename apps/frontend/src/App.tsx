@@ -4,6 +4,7 @@ import { TelegramProvider, useTelegram } from './providers';
 import { useGameStore } from './store';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
+import { TournamentLobbyPanel } from './components/TournamentLobbyPanel';
 
 // Lazy load GameScreen for better initial bundle size
 const GameScreen = lazy(() =>
@@ -35,11 +36,37 @@ function createMockWalletAddress(): string {
   return `0x${randomHex}`;
 }
 
+function normalizeApiUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+
+    if (parsed.protocol === 'ws:') {
+      parsed.protocol = 'http:';
+    } else if (parsed.protocol === 'wss:') {
+      parsed.protocol = 'https:';
+    }
+
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return rawUrl
+      .replace(/^ws:\/\//i, 'http://')
+      .replace(/^wss:\/\//i, 'https://')
+      .replace(/\/$/, '');
+  }
+}
+
 function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_SOCKET_URL;
-  if (envUrl) {
+  const apiEnvUrl = import.meta.env.VITE_API_URL;
+  if (apiEnvUrl) {
+    return normalizeApiUrl(apiEnvUrl);
+  }
+
+  const socketEnvUrl = import.meta.env.VITE_SOCKET_URL;
+  if (socketEnvUrl) {
+    const normalizedSocketUrl = normalizeApiUrl(socketEnvUrl);
+
     try {
-      const parsed = new URL(envUrl);
+      const parsed = new URL(normalizedSocketUrl);
       const host = window.location.hostname;
       const isLoopbackHost = host === 'localhost' || host === '127.0.0.1';
       const isLoopbackEnv = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
@@ -48,11 +75,12 @@ function getApiBaseUrl(): string {
         return window.location.origin;
       }
     } catch {
-      return envUrl;
+      return normalizedSocketUrl;
     }
 
-    return envUrl;
+    return normalizedSocketUrl;
   }
+
   return window.location.origin;
 }
 
@@ -69,6 +97,7 @@ function LobbyScreen() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -106,6 +135,7 @@ function LobbyScreen() {
           setCurrency(typeof data.currency === 'string' ? data.currency : null);
         }
       } catch (error) {
+        console.warn('Failed to load user balance', error);
         if (isActive) {
           setBalance(null);
           setCurrency(null);
@@ -351,6 +381,13 @@ function LobbyScreen() {
                 </div>
               </button>
 
+              <button
+                onClick={() => setIsTournamentModalOpen(true)}
+                className="mt-2 w-full rounded-lg border border-sky-300/40 bg-sky-500/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-sky-100 transition-colors hover:bg-sky-500/25"
+              >
+                {t('tournament.openLobby')}
+              </button>
+
               {!isTelegram && (
                 <p className="text-center text-[9px] text-white/20 mt-2">{t('lobby.devMode')}</p>
               )}
@@ -508,6 +545,31 @@ function LobbyScreen() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isTournamentModalOpen && (
+        <div className="absolute inset-0 z-[76] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Arena</p>
+                <h3 className="text-lg font-black tracking-tight text-sky-200">
+                  {t('tournament.title')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsTournamentModalOpen(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            <div className="h-[58vh] min-h-[360px]">
+              <TournamentLobbyPanel userId={userId} />
             </div>
           </div>
         </div>

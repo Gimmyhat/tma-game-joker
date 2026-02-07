@@ -15,6 +15,7 @@ import { GameEngineService } from './game-engine.service';
 import { RoomManager } from './room.manager';
 import { BotService } from '../../bot/bot.service';
 import { GameAuditService } from './game-audit.service';
+import { EconomyService } from '../../economy/economy.service';
 
 @Injectable()
 export class GameProcessService {
@@ -31,10 +32,25 @@ export class GameProcessService {
     private botService: BotService,
     private configService: ConfigService,
     private gameAuditService: GameAuditService,
+    private economyService: EconomyService,
   ) {}
 
   setServer(server: Server) {
     this.server = server;
+  }
+
+  private async ensurePersistentUser(playerId: string, playerName?: string): Promise<void> {
+    if (!/^\d+$/.test(playerId)) {
+      return;
+    }
+
+    try {
+      await this.economyService.getOrCreateUser(BigInt(playerId), playerName);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to persist user ${playerId}: ${reason}`);
+      throw error;
+    }
   }
 
   private countConnectedHumans(state: GameState): number {
@@ -286,7 +302,13 @@ export class GameProcessService {
   /**
    * Handle new connection and reconcile reconnection state
    */
-  async handleConnection(playerId: string, socketId: string): Promise<string | null> {
+  async handleConnection(
+    playerId: string,
+    socketId: string,
+    playerName?: string,
+  ): Promise<string | null> {
+    await this.ensurePersistentUser(playerId, playerName);
+
     const room = await this.roomManager.getRoomByPlayerId(playerId);
     if (!room) return null;
 

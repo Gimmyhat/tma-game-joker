@@ -14,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { EconomyModule } from './economy/economy.module';
 import { AdminModule } from './admin/admin.module';
 import { EventLogModule } from './event-log/event-log.module';
+import { TournamentModule } from './tournament/tournament.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EventLogModule } from './event-log/event-log.module';
     EconomyModule,
     AdminModule,
     EventLogModule,
+    TournamentModule,
   ],
   controllers: [HealthController],
   providers: [],

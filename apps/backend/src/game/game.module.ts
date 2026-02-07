@@ -15,9 +15,10 @@ import { PulkaService } from './services/pulka.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { DatabaseModule } from '../database/database.module';
 import { BotModule } from '../bot/bot.module';
+import { EconomyModule } from '../economy/economy.module';
 
 @Module({
-  imports: [PrismaModule, DatabaseModule, forwardRef(() => BotModule)],
+  imports: [PrismaModule, DatabaseModule, forwardRef(() => BotModule), EconomyModule],
   providers: [
     DeckService,
     MoveValidator,
