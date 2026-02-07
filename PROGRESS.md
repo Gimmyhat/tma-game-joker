@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
 **Последнее обновление:** 2026-02-07 19:05
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-2 referral delivered)
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-3 tasks started)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
