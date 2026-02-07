@@ -1,4 +1,3 @@
-import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -8,7 +7,6 @@ import {
   IsObject,
   Min,
   IsDateString,
-  IsUUID,
 } from 'class-validator';
 
 export enum TaskVerificationType {

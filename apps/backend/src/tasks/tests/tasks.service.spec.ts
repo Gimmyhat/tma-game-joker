@@ -3,7 +3,7 @@ import { TasksService } from '../tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EconomyService } from '../../economy/economy.service';
 import { TaskStatus, TaskCompletionStatus } from '@prisma/client';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 describe('TasksService', () => {
   let service: TasksService;

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GameModule } from './game/game.module';
-import { BotModule } from './bot/bot.module';
 import { AuthModule } from './auth/auth.module';
 import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 import { PrismaModule } from './prisma/prisma.module';

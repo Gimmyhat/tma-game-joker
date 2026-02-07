@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 19:05
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-3 tasks started)
+**Последнее обновление:** 2026-02-07 16:45
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-3 closed, M-4 next)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~75% |
+| 3 | Tournaments & Meta | 🔄 In Progress | ~80% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,25 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 16:45] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-3 (Task system backend): добавлен полноценный backend e2e `apps/backend/test/tasks.e2e-spec.ts`.
+- ✅ Покрыты HTTP-контракты и интеграция с БД: admin CRUD/security, user submit completion, manual review, auto-verify, начисление `TASK_REWARD`, delete/archive поведение.
+- ✅ Для e2e добавлен тестовый override `TelegramAuthGuard`, который инжектит `req.user` в HTTP-контекст без websocket handshake.
+- ✅ Проверки green: `pnpm --filter @joker/backend test:e2e -- test/tasks.e2e-spec.ts` (7/7) и полный `pnpm --filter @joker/backend test:e2e` (23/23).
+- ✅ Дополнительно подтверждены quality checks: `pnpm lint` (workspace) green, `pnpm -r --if-present type-check` green, package e2e green (`@joker/backend` 23 passed, `@joker/frontend` 9 passed/1 skipped, `@joker/admin` 94 passed/1 skipped).
+- ✅ Обновлен `CURRENT_SPRINT.md`: M-3 переведен в DONE, следующий блок — M-4.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-4: frontend tasks UI (список задач, статусы, submit/claim flow).
+- [ ] Добавить frontend e2e happy-path задач и прогнать полный quality-gate (`pnpm lint && pnpm type-check && pnpm test:e2e`).
 
 ---
 
