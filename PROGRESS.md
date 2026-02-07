@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 23:15
-**Текущий статус:** 🔄 Phase 4: backend hotfix для P4-2 готов, ожидается повторный prod smoke после деплоя
+**Последнее обновление:** 2026-02-07 23:40
+**Текущий статус:** 🔄 Phase 4: deploy hotfix выполнен, P4-2 на финальном manual smoke в Telegram
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -26,7 +26,7 @@
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
 | 3 | Tournaments & Meta | ✅ Done | 100% |
-| 4 | Integration & Polish | 🔄 In Progress | 18% |
+| 4 | Integration & Polish | 🔄 In Progress | 22% |
 
 ---
 
@@ -57,6 +57,22 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 23:40] - OpenCode
+
+### Выполнено
+- ✅ Коммит `9c45937` с backend fix (`ListTournamentsDto` numeric transform для `page/pageSize`) отправлен в `main`.
+- ✅ Production deploy выполнен через GitHub Actions `Deploy`: run `21781331283` — `success` (`https://github.com/Gimmyhat/tma-game-joker/actions/runs/21781331283`).
+- ✅ Post-deploy smoke: `https://georgian-joker.ru/` -> `200`, `/admin/` -> `200`, `/api/tournaments` -> `200`, `/api/tournaments?pageSize=20` -> `200`, `/api/referral/stats` -> `401` (ожидаемо без initData).
+
+### В процессе
+- 🔄 `P4-2`: финальная ручная проверка в Telegram Mini App (открытие Tournament/Referral модалок) перед переводом в `DONE`.
+
+### Следующие шаги
+- [ ] Выполнить manual smoke в Telegram Mini App на production.
+- [ ] После подтверждения UI-проверки закрыть `P4-2` в `CURRENT_SPRINT.md`.
 
 ---
 
