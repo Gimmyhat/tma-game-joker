@@ -28,6 +28,18 @@ describe('App (e2e)', () => {
   let stateMachine: StateMachineService;
   let roomManager: RoomManager;
   let serverUrl: string;
+  let prismaMock: {
+    $connect: jest.Mock;
+    $disconnect: jest.Mock;
+    game: {
+      upsert: jest.Mock;
+      updateMany: jest.Mock;
+    };
+    user: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+    };
+  };
 
   const socketTimeoutMs = 40000;
 
@@ -93,6 +105,23 @@ describe('App (e2e)', () => {
   const waitForState = (socket: Socket, timeoutMs = socketTimeoutMs) =>
     waitForEvent<{ state: GameState }>(socket, 'game_state', timeoutMs);
 
+  const waitForCondition = async (
+    condition: () => boolean,
+    timeoutMs = socketTimeoutMs,
+    errorMessage = 'Condition was not met in time',
+  ) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (condition()) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    throw new Error(errorMessage);
+  };
+
   const waitForStateWithoutPlayer = (
     socket: Socket,
     playerId: string,
@@ -137,12 +166,16 @@ describe('App (e2e)', () => {
   beforeAll(async () => {
     process.env.E2E_TEST = 'true'; // Disable Redis connection
 
-    const prismaMock = {
+    prismaMock = {
       $connect: jest.fn(),
       $disconnect: jest.fn(),
       game: {
         upsert: jest.fn(),
         updateMany: jest.fn(),
+      },
+      user: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
       },
     };
 
@@ -182,6 +215,58 @@ describe('App (e2e)', () => {
 
   it('initializes the application', () => {
     expect(app).toBeDefined();
+  });
+
+  it('persists telegram user in database on socket connect', async () => {
+    const telegramId = `${Date.now()}${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0')}`;
+    const playerName = 'ConnectSyncUser';
+
+    prismaMock.user.findUnique.mockReset();
+    prismaMock.user.create.mockReset();
+
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.create.mockResolvedValueOnce({
+      id: 'test-user-id',
+      tgId: BigInt(telegramId),
+      username: playerName,
+    });
+
+    const client = io(serverUrl, {
+      transports: ['websocket'],
+      autoConnect: false,
+      forceNew: true,
+      query: {
+        userId: telegramId,
+        userName: playerName,
+      },
+    });
+
+    try {
+      const connectPromise = waitForEvent<void>(client, 'connect');
+      client.connect();
+      await connectPromise;
+
+      await waitForCondition(
+        () => prismaMock.user.findUnique.mock.calls.length > 0,
+        5000,
+        'User sync was not triggered on socket connect',
+      );
+
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { tgId: BigInt(telegramId) },
+      });
+      expect(prismaMock.user.create).toHaveBeenCalledWith({
+        data: {
+          tgId: BigInt(telegramId),
+          username: playerName,
+        },
+      });
+    } finally {
+      roomManager.removeFromQueue(telegramId);
+      client.disconnect();
+    }
   });
 
   it('creates a room via websocket matchmaking', async () => {

@@ -1,7 +1,7 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 09:40  
-**Sprint:** Phase 2 - Economy & Admin  
+**Last Updated:** 2026-02-07 12:48  
+**Sprint:** Phase 3 - Tournaments & Meta  
 **Deadline:** TBD (estimated 3 weeks)
 
 ---
@@ -52,6 +52,20 @@
 | T-1 | Tournament schema in Prisma | ✅ DONE | `prisma/schema.prisma` | Tournament, TournamentParticipant |
 | T-2 | Tournament admin CRUD       | ✅ DONE | `admin/tournaments/`   | Создание/редактирование турниров  |
 
+### Priority 5: Tournament Engine & Lobby (REQ-10)
+
+| ID  | Задача                                            | Статус  | Файлы                                   | Acceptance Criteria                                         |
+| --- | ------------------------------------------------- | ------- | --------------------------------------- | ----------------------------------------------------------- |
+| T-3 | TournamentModule + public API (list/detail)       | ✅ DONE | `apps/backend/src/tournament/`          | `GET /tournaments`, `GET /tournaments/:id`                  |
+| T-4 | Tournament registration (join/leave)              | ✅ DONE | `apps/backend/src/tournament/`          | `POST /tournaments/:id/join`, `POST /tournaments/:id/leave` |
+| T-5 | Tournament lifecycle transitions by schedule      | ✅ DONE | `apps/backend/src/tournament/`          | `ANNOUNCED -> REGISTRATION -> STARTED`                      |
+| T-6 | Tournament bracket generation + stage progression | ✅ DONE | `apps/backend/src/tournament/`          | Bracket 16/32/64, переход победителей между стадиями        |
+| T-7 | Frontend Tournament Lobby pages                   | ✅ DONE | `apps/frontend/src/`                    | Список турниров + детали + регистрация                      |
+| T-8 | Tournament table/bracket UI                       | ⬜ TODO | `apps/frontend/src/`                    | Просмотр стадии, столов, слотов, результатов                |
+| T-9 | Telegram reminders before start                   | ⬜ TODO | `apps/backend/src/telegram-bot/`        | Напоминания зарегистрированным участникам                   |
+| M-1 | Meta: global leaderboard API + page               | ⬜ TODO | `apps/backend/src`, `apps/frontend/src` | Рейтинг игроков по REQ-11                                   |
+| M-2 | Meta: referral program backend + UI               | ⬜ TODO | `apps/backend/src`, `apps/frontend/src` | Реферальная ссылка, начисления, история                     |
+
 ---
 
 ## ✅ Completed This Sprint
@@ -97,6 +111,13 @@
 | F-4      | Deposit/Withdraw modals                             | 2026-02-06 | (pending commit) |
 | T-2      | Tournament admin CRUD                               | 2026-02-06 | (pending commit) |
 | FIX-2    | Admin event-log crash + avatar fallback             | 2026-02-06 | (pending commit) |
+| T-3      | Tournament public API (list/detail)                 | 2026-02-07 | (pending commit) |
+| T-4      | Tournament registration (join/leave)                | 2026-02-07 | (pending commit) |
+| T-5      | Tournament lifecycle scheduler                      | 2026-02-07 | (pending commit) |
+| T-6      | Tournament bracket + stage progression              | 2026-02-07 | (pending commit) |
+| T-7      | Frontend Tournament Lobby (list/detail/join/leave)  | 2026-02-07 | (pending commit) |
+| FIX-3    | Гарантированный user sync при socket connect        | 2026-02-07 | (pending commit) |
+| FIX-4    | Regression e2e: user sync on connect + Playwright   | 2026-02-07 | (pending commit) |
 
 ---
 
@@ -133,8 +154,10 @@
 > Добавляй сюда блокеры и заметки
 
 - Frontend e2e снова проходит после фикса резолва userId (TG ID -> UUID) в economy endpoints
-- `apps/admin` e2e нестабилен из-за текущего конфликта webServer port/script (`vite --port 3001` vs Playwright `adminPort=3002`)
+- Frontend/Admin Playwright e2e подтверждены green после фикса user sync (`@joker/frontend`: 6 passed, 1 skipped; `@joker/admin`: 92 passed, 1 skipped)
 - Исправлен runtime crash на `/admin/event-log` (нормализация API payload + безопасный рендер), добавлен fallback аватаров в header dropdowns
+- Phase 3 foundation расширен: T-7 закрыт (frontend tournament lobby), следующий блок — T-8 bracket UI
+- Критический разрыв регистрации закрыт: при websocket connect backend теперь гарантирует `getOrCreateUser` для Telegram ID; frontend поддерживает `VITE_API_URL` и нормализацию `ws(s) -> http(s)` для economy fetch
 
 ---
 
@@ -142,9 +165,9 @@
 
 ```
 Economy API:     ████████████████████ 100% (8/8)
-Admin Panel:     ███████████████████░  95% (19/20 est.)
+Admin Panel:     ████████████████████ 100% (20/20 est.)
 Frontend Econ:   ████████████████████ 100% (4/4)
-Tournaments:     ████░░░░░░░░░░░░░░░░  20% (2/10 est.)
+Tournaments:     ████████████░░░░░░░░  60% (10/16 est.)
 ─────────────────────────────────────────────
-Overall Phase 2: ████████████████░░░░  75%
+Overall Phase 3: ███████████░░░░░░░░░  55%
 ```
