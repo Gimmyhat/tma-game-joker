@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-06 20:30
+**Последнее обновление:** 2026-02-07 09:27
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -59,6 +59,21 @@ cd apps/admin && pnpm dev
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-07 09:27] - OpenCode
+
+### Выполнено
+- ✅ Доведён hotfix для «разных экранов» в Settings по hash-роутам: в `SettingsPage` включено условное отображение секций для `#profile`, `#account-settings`, `#support`, чтобы пункты dropdown открывали разные view, а не один и тот же длинный экран.
+- ✅ Исправлена TS-совместимость проверки якоря: `Object.hasOwn(...)` заменён на `Object.prototype.hasOwnProperty.call(...)` в `apps/admin/src/pages/Admin/SettingsPage.tsx`.
+- ✅ Обновлён e2e `apps/admin/tests/e2e/settings.spec.ts`: добавлены проверки `visible/hidden` секций для каждого hash-якоря.
+- ✅ Проверки: `pnpm lint` (ok), `pnpm --filter @joker/admin type-check` (ok), `pnpm --filter @joker/admin test:e2e` (92 passed, 1 skipped).
+
+### В процессе
+- 🔄 Подготовка коммита с фиксом Settings hash views.
+
+### Следующие шаги
+- [ ] Закоммитить hotfix и запушить в рабочую ветку.
+- [ ] После merge в `main` проверить в проде `/admin/settings#profile`, `/admin/settings#account-settings`, `/admin/settings#support`.
 
 ## [2026-02-06 20:30] - OpenCode
 
