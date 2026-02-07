@@ -259,3 +259,62 @@ test('opens referral panel and copies link', async ({ page }) => {
   await page.getByText('Copy').click();
   await expect(page.getByText('Copied!')).toBeVisible();
 });
+
+test('opens tasks panel and submits task completion', async ({ page }) => {
+  let taskStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null = null;
+
+  await page.route('**/tasks', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 'task-1',
+          title: 'Play 1 game',
+          shortDescription: 'Finish one match in any mode',
+          rewardAmount: '50.00',
+          rewardCurrency: 'CJ',
+          verificationType: 'AUTO',
+          myCompletion:
+            taskStatus == null
+              ? null
+              : {
+                  status: taskStatus,
+                  submittedAt: '2026-02-07T10:00:00.000Z',
+                },
+        },
+      ]),
+    });
+  });
+
+  await page.route('**/tasks/task-1/complete', async (route) => {
+    taskStatus = 'APPROVED';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'completion-1',
+        status: 'APPROVED',
+        submittedAt: '2026-02-07T10:00:00.000Z',
+      }),
+    });
+  });
+
+  await page.goto('/');
+
+  await expect(page.locator('#root')).toBeAttached();
+  await expect(page.getByText('connected')).toBeVisible({ timeout: 30000 });
+
+  const tasksButton = page.getByTestId('tasks-open');
+  await expect(tasksButton).toBeVisible({ timeout: 15000 });
+  await tasksButton.click();
+
+  await expect(page.getByTestId('tasks-panel')).toBeVisible();
+  await expect(page.getByTestId('task-item-task-1')).toBeVisible();
+  await expect(page.getByTestId('task-status-task-1')).toContainText('Available');
+
+  await page.getByTestId('task-claim-task-1').click();
+
+  await expect(page.getByText('Task approved and reward issued')).toBeVisible();
+  await expect(page.getByTestId('task-status-task-1')).toContainText('Completed');
+});
