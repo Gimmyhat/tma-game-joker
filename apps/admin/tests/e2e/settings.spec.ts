@@ -90,9 +90,24 @@ test.describe('Settings', () => {
 
   test('should navigate to hash anchors for profile menu links', async ({ page }) => {
     const anchors = [
-      { id: 'profile', title: 'Edit Profile' },
-      { id: 'account-settings', title: 'Account Settings' },
-      { id: 'support', title: 'Support' },
+      {
+        id: 'profile',
+        title: 'Edit Profile',
+        visible: ['profile-section'],
+        hidden: ['account-actions-section', 'support-section'],
+      },
+      {
+        id: 'account-settings',
+        title: 'Account Settings',
+        visible: ['global-settings-section', 'account-actions-section'],
+        hidden: ['profile-section', 'support-section'],
+      },
+      {
+        id: 'support',
+        title: 'Support',
+        visible: ['support-section'],
+        hidden: ['global-settings-section', 'profile-section', 'account-actions-section'],
+      },
     ];
 
     for (const anchor of anchors) {
@@ -102,6 +117,14 @@ test.describe('Settings', () => {
       const section = page.locator(`#${anchor.id}`);
       await expect(section).toBeVisible();
       await expect(page.getByRole('heading', { name: anchor.title }).first()).toBeVisible();
+
+      for (const testId of anchor.visible) {
+        await expect(page.getByTestId(testId)).toBeVisible();
+      }
+
+      for (const testId of anchor.hidden) {
+        await expect(page.getByTestId(testId)).toHaveCount(0);
+      }
     }
   });
 });
