@@ -1,8 +1,7 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 12:48  
-**Sprint:** Phase 3 - Tournaments & Meta  
-**Deadline:** TBD (estimated 3 weeks)
+**Last Updated:** 2026-02-07 16:45  
+**Sprint:** Phase 3 - Tournaments & Meta
 
 ---
 
@@ -61,10 +60,12 @@
 | T-5 | Tournament lifecycle transitions by schedule      | ✅ DONE | `apps/backend/src/tournament/`          | `ANNOUNCED -> REGISTRATION -> STARTED`                      |
 | T-6 | Tournament bracket generation + stage progression | ✅ DONE | `apps/backend/src/tournament/`          | Bracket 16/32/64, переход победителей между стадиями        |
 | T-7 | Frontend Tournament Lobby pages                   | ✅ DONE | `apps/frontend/src/`                    | Список турниров + детали + регистрация                      |
-| T-8 | Tournament table/bracket UI                       | ⬜ TODO | `apps/frontend/src/`                    | Просмотр стадии, столов, слотов, результатов                |
-| T-9 | Telegram reminders before start                   | ⬜ TODO | `apps/backend/src/telegram-bot/`        | Напоминания зарегистрированным участникам                   |
-| M-1 | Meta: global leaderboard API + page               | ⬜ TODO | `apps/backend/src`, `apps/frontend/src` | Рейтинг игроков по REQ-11                                   |
-| M-2 | Meta: referral program backend + UI               | ⬜ TODO | `apps/backend/src`, `apps/frontend/src` | Реферальная ссылка, начисления, история                     |
+| T-8 | Tournament table/bracket UI                       | ✅ DONE | `apps/frontend/src/`                    | Просмотр стадии, столов, слотов, результатов                |
+| T-9 | Telegram reminders before start                   | ✅ DONE | `apps/backend/src/telegram-bot/`        | Напоминания зарегистрированным участникам                   |
+| M-1 | Meta: global leaderboard API + page               | ✅ DONE | `apps/backend/src`, `apps/frontend/src` | Рейтинг игроков по REQ-11                                   |
+| M-2 | Meta: referral program backend + UI               | ✅ DONE | `apps/backend/src`, `apps/frontend/src` | Реферальная ссылка, начисления, история                     |
+| M-3 | Meta: Task system backend (CRUD + verification)   | ✅ DONE | `apps/backend/src/tasks/`               | Создание задач, проверка выполнения (mock)                  |
+| M-4 | Meta: Frontend tasks UI (list, status, claim)     | ⬜ TODO | `apps/frontend/src/`                    | Экран заданий, клейм награды                                |
 
 ---
 
@@ -118,6 +119,13 @@
 | T-7      | Frontend Tournament Lobby (list/detail/join/leave)  | 2026-02-07 | (pending commit) |
 | FIX-3    | Гарантированный user sync при socket connect        | 2026-02-07 | (pending commit) |
 | FIX-4    | Regression e2e: user sync on connect + Playwright   | 2026-02-07 | (pending commit) |
+| T-8      | Tournament table/bracket UI                         | 2026-02-07 | (pending commit) |
+| T-9      | Telegram reminders before start                     | 2026-02-07 | (pending commit) |
+| M-1      | Meta: global leaderboard API + page                 | 2026-02-07 | (pending commit) |
+| M-2      | Meta: referral program backend + UI                 | 2026-02-07 | a3d45e8          |
+| M-3      | Meta: task system backend (CRUD + verification)     | 2026-02-07 | 3207dc8          |
+| FIX-5    | Admin sign-out invalidation + websocket e2e restore | 2026-02-07 | 7f4764f          |
+| FIX-6    | Admin lint ENOENT guard for generated dirs          | 2026-02-07 | (pending commit) |
 
 ---
 
@@ -156,8 +164,11 @@
 - Frontend e2e снова проходит после фикса резолва userId (TG ID -> UUID) в economy endpoints
 - Frontend/Admin Playwright e2e подтверждены green после фикса user sync (`@joker/frontend`: 6 passed, 1 skipped; `@joker/admin`: 92 passed, 1 skipped)
 - Исправлен runtime crash на `/admin/event-log` (нормализация API payload + безопасный рендер), добавлен fallback аватаров в header dropdowns
-- Phase 3 foundation расширен: T-7 закрыт (frontend tournament lobby), следующий блок — T-8 bracket UI
+- Phase 3 foundation расширен: M-3 закрыт (tasks backend + e2e), следующий блок — M-4 tasks UI
 - Критический разрыв регистрации закрыт: при websocket connect backend теперь гарантирует `getOrCreateUser` для Telegram ID; frontend поддерживает `VITE_API_URL` и нормализацию `ws(s) -> http(s)` для economy fetch
+- Hotfix: Sign out в admin dropdown теперь очищает auth store перед redirect; добавлен e2e smoke `should require re-authentication after sign out`
+- Backend e2e снова green после восстановления регистрации websocket gateway через `GatewayModule` в `AppModule` и стабилизации `app.e2e` (Prisma mock + bet flow)
+- Admin lint стабилизирован: в `apps/admin/eslint.config.js` добавлены ignore для `test-results`, `playwright-report`, `coverage` (устранен риск ENOENT)
 
 ---
 
@@ -167,7 +178,7 @@
 Economy API:     ████████████████████ 100% (8/8)
 Admin Panel:     ████████████████████ 100% (20/20 est.)
 Frontend Econ:   ████████████████████ 100% (4/4)
-Tournaments:     ████████████░░░░░░░░  60% (10/16 est.)
+Tournaments:     ████████████████████ 100% (16/16 est.)
 ─────────────────────────────────────────────
-Overall Phase 3: ███████████░░░░░░░░░  55%
+Overall Phase 3: ████████████████░░░░  80%
 ```

@@ -31,6 +31,7 @@ describe('App (e2e)', () => {
   let prismaMock: {
     $connect: jest.Mock;
     $disconnect: jest.Mock;
+    $transaction: jest.Mock;
     game: {
       upsert: jest.Mock;
       updateMany: jest.Mock;
@@ -38,6 +39,18 @@ describe('App (e2e)', () => {
     user: {
       findUnique: jest.Mock;
       create: jest.Mock;
+      update: jest.Mock;
+    };
+    transaction: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+    };
+    eventLog: {
+      create: jest.Mock;
+    };
+    globalSettings: {
+      findUnique: jest.Mock;
+      upsert: jest.Mock;
     };
   };
 
@@ -169,15 +182,57 @@ describe('App (e2e)', () => {
     prismaMock = {
       $connect: jest.fn(),
       $disconnect: jest.fn(),
+      $transaction: jest.fn(),
       game: {
         upsert: jest.fn(),
         updateMany: jest.fn(),
       },
       user: {
-        findUnique: jest.fn(),
+        findUnique: jest.fn().mockImplementation((args) => {
+          // If searching by ID (e.g. for balance check)
+          if (args?.where?.id) {
+            return Promise.resolve({
+              id: args.where.id,
+              balanceCj: '1000.00',
+              tgId: BigInt(12345),
+              username: 'MockUser',
+              referrerId: null,
+            });
+          }
+          return Promise.resolve(null);
+        }),
+        create: jest.fn().mockImplementation(async ({ data }) => ({
+          id: data?.id ?? 'mock-created-user',
+          tgId: data?.tgId ?? BigInt(0),
+          username: data?.username ?? 'mock-created',
+          balanceCj: '1000.00',
+          referrerId: data?.referrerId ?? null,
+        })),
+        update: jest.fn().mockImplementation(async ({ where, data }) => ({
+          id: where?.id ?? 'mock-updated-user',
+          tgId: BigInt(0),
+          username: 'mock-updated',
+          balanceCj: data?.balanceCj ?? '1000.00',
+          referrerId: null,
+        })),
+      },
+      transaction: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'mock-tx' }),
+      },
+      eventLog: {
         create: jest.fn(),
       },
+      globalSettings: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+      },
     };
+
+    // Pass the full prismaMock to transaction callback to ensure all models are available
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+      callback(prismaMock),
+    );
 
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
@@ -223,8 +278,8 @@ describe('App (e2e)', () => {
       .padStart(3, '0')}`;
     const playerName = 'ConnectSyncUser';
 
-    prismaMock.user.findUnique.mockReset();
-    prismaMock.user.create.mockReset();
+    prismaMock.user.findUnique.mockClear();
+    prismaMock.user.create.mockClear();
 
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
     prismaMock.user.create.mockResolvedValueOnce({
@@ -261,6 +316,7 @@ describe('App (e2e)', () => {
         data: {
           tgId: BigInt(telegramId),
           username: playerName,
+          referrerId: null,
         },
       });
     } finally {
@@ -621,10 +677,21 @@ describe('App (e2e)', () => {
       // But if Round > 1, Trump Selection only happens if Hidden/Joker, usually phase is Betting directly.
       expect([GamePhase.Betting, GamePhase.Playing]).toContain(currentState.phase);
 
+      const humanPlayerIds = new Set(playerIds);
+      const MAX_STATE_STEPS = 40;
+
       // If still betting, proceed with betting loop
       if (currentState.phase === GamePhase.Betting) {
-        for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+        let safetySteps = 0;
+        while (currentState.phase === GamePhase.Betting && safetySteps < MAX_STATE_STEPS) {
           const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
+
+          if (!humanPlayerIds.has(currentPlayerId)) {
+            currentState = (await waitForState(clients[0])).state;
+            safetySteps += 1;
+            continue;
+          }
+
           const socketIndex = playerIds.indexOf(currentPlayerId);
           const currentSocket = clients[socketIndex];
           if (!currentSocket) {
@@ -632,15 +699,26 @@ describe('App (e2e)', () => {
           }
 
           const nextStatePromise = waitForState(clients[0]);
-          currentSocket.emit('make_bet', { roomId: activeRoomId, amount: 0 });
+          currentSocket.emit('make_bet', { roomId: activeRoomId, amount: 1 });
           currentState = (await nextStatePromise).state;
+          safetySteps += 1;
         }
+
+        expect(safetySteps).toBeLessThan(MAX_STATE_STEPS);
       }
 
       expect(currentState.phase).toBe(GamePhase.Playing);
 
-      for (let i = 0; i < GAME_CONSTANTS.PLAYERS_COUNT; i++) {
+      let playSafetySteps = 0;
+      while (currentState.phase === GamePhase.Playing && playSafetySteps < MAX_STATE_STEPS) {
         const currentPlayerId = currentState.players[currentState.currentPlayerIndex].id;
+
+        if (!humanPlayerIds.has(currentPlayerId)) {
+          currentState = (await waitForState(clients[0])).state;
+          playSafetySteps += 1;
+          continue;
+        }
+
         const socketIndex = playerIds.indexOf(currentPlayerId);
         const currentSocket = clients[socketIndex];
         if (!currentSocket) {
@@ -675,7 +753,10 @@ describe('App (e2e)', () => {
         const nextStatePromise = waitForState(clients[0]);
         currentSocket.emit('throw_card', payload);
         currentState = (await nextStatePromise).state;
+        playSafetySteps += 1;
       }
+
+      expect(playSafetySteps).toBeLessThan(MAX_STATE_STEPS);
 
       // With the new delay mechanic, we might receive TrickComplete state first
       // If so, we need to wait for the actual Round change (which happens after delay)

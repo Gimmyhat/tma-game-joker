@@ -66,6 +66,20 @@
     "leaveSuccess": "Tournament registration has been cancelled",
     "registrationClosed": "Registration is closed for this tournament",
     "stage": "Stage",
+    "bracketTitle": "Bracket",
+    "bracketFormat": "Format",
+    "bracketNotAvailable": "Bracket is not generated yet",
+    "bracketPending": "Tournament is in progress",
+    "bracketFinished": "Tournament is finished",
+    "bracketWinner": "Winner",
+    "roundLabel": "Round {{stage}}",
+    "tableLabel": "Table {{index}}",
+    "matchPending": "Match pending",
+    "matchCompleted": "Completed",
+    "slotEmpty": "Open slot",
+    "byeRound": "Bye",
+    "winnerTag": "Winner",
+    "youShort": "You",
     "statuses": {
       "DRAFT": "Draft",
       "ANNOUNCED": "Announced",
@@ -75,6 +89,44 @@
       "CANCELLED": "Cancelled",
       "ARCHIVED": "Archived"
     }
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Global player ranking",
+    "open": "Leaderboard",
+    "refresh": "Refresh",
+    "loading": "Loading leaderboard...",
+    "empty": "No players in leaderboard yet",
+    "loadError": "Failed to load leaderboard",
+    "prev": "Prev",
+    "next": "Next",
+    "page": "Page",
+    "sort": {
+      "rating": "Rating",
+      "wins": "Wins",
+      "games": "Games",
+      "balance": "Balance"
+    },
+    "columns": {
+      "rating": "Rating",
+      "balance": "Balance",
+      "wins": "Wins",
+      "games": "Games",
+      "winRate": "Win rate",
+      "places": "Places 1/2/3"
+    }
+  },
+  "referral": {
+    "title": "Referral Program",
+    "open": "Invite Friends",
+    "loading": "Loading...",
+    "loadError": "Failed to load referral data",
+    "totalEarnings": "Total Earnings",
+    "invitedCount": "{{count}} friends invited",
+    "yourLink": "Your Referral Link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "description": "Share this link with your friends. You will receive 10% of the commission from every game they play."
   },
   "game": {
     "loading": "Loading Game...",
