@@ -90,6 +90,32 @@
       "ARCHIVED": "Archived"
     }
   },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Global player ranking",
+    "open": "Leaderboard",
+    "refresh": "Refresh",
+    "loading": "Loading leaderboard...",
+    "empty": "No players in leaderboard yet",
+    "loadError": "Failed to load leaderboard",
+    "prev": "Prev",
+    "next": "Next",
+    "page": "Page",
+    "sort": {
+      "rating": "Rating",
+      "wins": "Wins",
+      "games": "Games",
+      "balance": "Balance"
+    },
+    "columns": {
+      "rating": "Rating",
+      "balance": "Balance",
+      "wins": "Wins",
+      "games": "Games",
+      "winRate": "Win rate",
+      "places": "Places 1/2/3"
+    }
+  },
   "game": {
     "loading": "Loading Game...",
     "trickWon": "{{player}} Wins!",

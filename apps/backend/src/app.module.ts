@@ -15,6 +15,7 @@ import { EconomyModule } from './economy/economy.module';
 import { AdminModule } from './admin/admin.module';
 import { EventLogModule } from './event-log/event-log.module';
 import { TournamentModule } from './tournament/tournament.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { TournamentModule } from './tournament/tournament.module';
     AdminModule,
     EventLogModule,
     TournamentModule,
+    LeaderboardModule,
   ],
   controllers: [HealthController],
   providers: [],

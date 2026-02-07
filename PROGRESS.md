@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 16:05
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (T-9 reminders delivered)
+**Последнее обновление:** 2026-02-07 17:05
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-1 leaderboard delivered)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~62% |
+| 3 | Tournaments & Meta | 🔄 In Progress | ~68% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,24 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 17:05] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-1: реализован backend Leaderboard API и frontend Leaderboard UI.
+- ✅ Backend: модуль `LeaderboardModule`, endpoint `GET /leaderboard` с пагинацией, мульти-сортировкой (rating, wins, games, balance) и расчетом winRate на лету.
+- ✅ Frontend: API-клиент `leaderboard-api.ts`, компонент `LeaderboardPanel` с таблицей рангов, фильтрами сортировки, пагинацией и адаптивным UI.
+- ✅ Frontend UI интегрирован в Lobby через модальное окно (кнопка "Leaderboard"), поддерживает i18n (RU/EN).
+- ✅ Добавлен e2e-тест happy path для лидерборда в `apps/frontend/tests/e2e/app.spec.ts`.
+- ✅ Проверки: `pnpm lint`, `pnpm exec tsc` (backend/admin/frontend), `pnpm test:e2e` (backend: 16 passed, frontend: 9 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-2: Referral program (backend + UI).
 
 ---
 

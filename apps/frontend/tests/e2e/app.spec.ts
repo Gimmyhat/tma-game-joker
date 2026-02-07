@@ -146,3 +146,68 @@ test('opens tournament details and performs join/leave flow', async ({ page }) =
     page.getByText(/registration has been cancelled|регистрация в турнире отменена/i),
   ).toBeVisible();
 });
+
+test('opens leaderboard and refreshes entries', async ({ page }) => {
+  let leaderboardRequests = 0;
+
+  await page.route('**/leaderboard?*', async (route) => {
+    leaderboardRequests += 1;
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            rank: 1,
+            userId: 'u-1',
+            tgId: '111111111',
+            username: 'AcePlayer',
+            countryCode: 'RU',
+            rating: 1720,
+            wins: 14,
+            games: 20,
+            winRate: 70,
+            balanceCj: '2450.00',
+            places: { first: 5, second: 4, third: 2 },
+          },
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        sortBy: 'rating',
+        order: 'desc',
+      }),
+    });
+  });
+
+  page.on('console', (msg) => console.log(`[Browser Console] ${msg.text()}`));
+
+  await page.goto('/');
+
+  // Wait for application to mount
+  await expect(page.locator('#root')).toBeAttached();
+
+  // Ensure we are not stuck in loading state or telegram-only screen
+  await expect(page.getByText('This game is available only inside Telegram')).toBeHidden();
+
+  // Debug: Wait for status indicator to show connected
+  // This will help us identify if the socket connection is the bottleneck
+  await expect(page.getByText('connected')).toBeVisible({ timeout: 30000 });
+
+  // Wait for the lobby to be ready (tournaments button is a good indicator)
+  const tournamentsButton = page.getByRole('button', { name: /tournaments|турниры/i }).first();
+  await expect(tournamentsButton).toBeVisible({ timeout: 10000 });
+
+  // Wait for the leaderboard button to appear (it's in the lobby)
+  const leaderboardButton = page.getByTestId('leaderboard-open');
+  await expect(leaderboardButton).toBeVisible({ timeout: 15000 });
+  await leaderboardButton.click();
+
+  await expect(page.getByTestId('leaderboard-panel')).toBeVisible();
+  await expect(page.getByTestId('leaderboard-row-u-1')).toBeVisible();
+  await expect(page.getByText(/AcePlayer/)).toBeVisible();
+
+  await page.getByTestId('leaderboard-refresh').click();
+  await expect.poll(() => leaderboardRequests).toBeGreaterThan(1);
+});
