@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-08 00:12  
+**Last Updated:** 2026-02-08 00:20  
 **Sprint:** Phase 4 - Integration & Polish
 
 ---
@@ -11,10 +11,10 @@
 
 ### Priority 1: Release Consolidation
 
-| ID   | Задача                                 | Статус         | Зоны/Файлы                       | Acceptance Criteria (DoD)                                                           |
-| ---- | -------------------------------------- | -------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
-| P4-1 | Подготовить PR по hotfix + прогнать CI | ✅ DONE        | GitHub PR/Actions, `PROGRESS.md` | PR создан, CI green, чеклист релиза заполнен                                        |
-| P4-2 | Production smoke в Telegram Mini App   | 🔄 IN_PROGRESS | Production TMA                   | Проверены Tournament/Referral модалки на прод-домене, результат зафиксирован в логе |
+| ID   | Задача                                 | Статус  | Зоны/Файлы                       | Acceptance Criteria (DoD)                                                           |
+| ---- | -------------------------------------- | ------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| P4-1 | Подготовить PR по hotfix + прогнать CI | ✅ DONE | GitHub PR/Actions, `PROGRESS.md` | PR создан, CI green, чеклист релиза заполнен                                        |
+| P4-2 | Production smoke в Telegram Mini App   | ✅ DONE | Production TMA                   | Проверены Tournament/Referral модалки на прод-домене, результат зафиксирован в логе |
 
 ### Priority 2: Reliability & Quality Gates
 
@@ -79,7 +79,8 @@
 - Frontend hotfix `ec74d48` (leaderboard API base + устойчивое получение Telegram initData) задеплоен (Deploy run `21781711536` — success).
 - Backend hotfix `ae517a6` (referral: resolve Telegram ID -> UUID в `/referral/stats`) задеплоен (Deploy run `21781987204` — success).
 - API smoke после деплоя green: `/api/tournaments?pageSize=20` -> `200`, `/api/leaderboard?page=1&pageSize=20` -> `200`, `/api/referral/stats` -> `401` (ожидаемо без Telegram initData).
-- Для закрытия `P4-2` нужен финальный manual smoke внутри Telegram Mini App (особенно Referral после hotfix `ae517a6`).
+- `P4-2` закрыт: manual smoke в Telegram подтвержден пользователем (`Турниры: ОК`, `Лидерборд: ОК`, `Реферал: ОК`).
+- Следующая активная задача: `P4-3` (расширение e2e critical path + nightly run).
 - Protected components остаются без изменений: `packages/shared/src/logic/*`, `ScoringService`, event signatures в `game.gateway.ts`.
 
 ---
@@ -88,7 +89,7 @@
 
 ```
 P4-1 Release:      ✅ 100%
-P4-2 Prod Smoke:   🔄 in progress (referral backend hotfix deployed)
+P4-2 Prod Smoke:   ✅ 100% (manual Telegram smoke confirmed)
 P4-3 E2E/Nightly:  ⬜ 0%
 P4-4 Reconnect:    ⬜ 0%
 P4-5 UX Polish:    ⬜ 0%
@@ -96,5 +97,5 @@ P4-6 Admin Polish: ⬜ 0%
 P4-7 Observability ⬜ 0%
 P4-8 Security/Docs ⬜ 0%
 ────────────────────────
-Overall Phase 4:   🔄 30%
+Overall Phase 4:   🔄 35%
 ```
