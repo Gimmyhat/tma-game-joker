@@ -35,6 +35,62 @@ export const defaultTheme: TelegramTheme = {
   secondaryBackgroundColor: '#16213e',
 };
 
+const INIT_DATA_STORAGE_KEY = '__joker_tma_init_data__';
+let cachedInitData: string | null = null;
+
+function extractRawParamValue(rawQuery: string, key: string): string | null {
+  const query = rawQuery.replace(/^[?#]/, '');
+  if (!query) return null;
+
+  const segments = query.split('&');
+  for (const segment of segments) {
+    if (!segment) continue;
+
+    const separatorIndex = segment.indexOf('=');
+    const rawKey = separatorIndex >= 0 ? segment.slice(0, separatorIndex) : segment;
+    if (rawKey !== key) continue;
+
+    const rawValue = separatorIndex >= 0 ? segment.slice(separatorIndex + 1) : '';
+    try {
+      return decodeURIComponent(rawValue);
+    } catch {
+      return rawValue;
+    }
+  }
+
+  return null;
+}
+
+function persistInitData(initData: string): string {
+  cachedInitData = initData;
+
+  try {
+    sessionStorage.setItem(INIT_DATA_STORAGE_KEY, initData);
+  } catch {
+    // sessionStorage may be unavailable
+  }
+
+  return initData;
+}
+
+function readStoredInitData(): string | null {
+  if (cachedInitData) {
+    return cachedInitData;
+  }
+
+  try {
+    const stored = sessionStorage.getItem(INIT_DATA_STORAGE_KEY);
+    if (stored && stored.trim().length > 0) {
+      cachedInitData = stored;
+      return stored;
+    }
+  } catch {
+    // sessionStorage may be unavailable
+  }
+
+  return null;
+}
+
 /**
  * Check if running inside Telegram WebApp
  * Uses multiple detection methods for iOS/Android compatibility
@@ -93,13 +149,15 @@ export function getTelegramInitData(): string | null {
 
   const telegram = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram;
   const initData = typeof telegram?.WebApp?.initData === 'string' ? telegram.WebApp.initData : '';
-  if (initData) return initData;
+  if (initData) return persistInitData(initData);
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(
-    window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash,
-  );
-  return searchParams.get('tgWebAppData') || hashParams.get('tgWebAppData');
+  const rawSearchInitData = extractRawParamValue(window.location.search, 'tgWebAppData');
+  if (rawSearchInitData) return persistInitData(rawSearchInitData);
+
+  const rawHashInitData = extractRawParamValue(window.location.hash, 'tgWebAppData');
+  if (rawHashInitData) return persistInitData(rawHashInitData);
+
+  return readStoredInitData();
 }
 
 /**

@@ -54,6 +54,26 @@ function normalizeApiUrl(rawUrl: string): string {
   }
 }
 
+function appendApiPrefix(url: string): string {
+  if (import.meta.env.DEV) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.replace(/\/$/, '');
+
+    if (pathname === '' || pathname === '/') {
+      parsed.pathname = '/api';
+    }
+
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    const cleanedUrl = url.replace(/\/$/, '');
+    return cleanedUrl.endsWith('/api') ? cleanedUrl : `${cleanedUrl}/api`;
+  }
+}
+
 function getApiBaseUrl(): string {
   const apiEnvUrl = import.meta.env.VITE_API_URL;
   if (apiEnvUrl) {
@@ -74,13 +94,14 @@ function getApiBaseUrl(): string {
         return window.location.origin;
       }
     } catch {
-      return normalizedSocketUrl;
+      return appendApiPrefix(normalizedSocketUrl);
     }
 
-    return normalizedSocketUrl;
+    return appendApiPrefix(normalizedSocketUrl);
   }
 
-  return window.location.origin;
+  const origin = window.location.origin.replace(/\/$/, '');
+  return import.meta.env.DEV ? origin : `${origin}/api`;
 }
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
