@@ -58,24 +58,59 @@ interface TableDetail {
   error?: string;
 }
 
-const SUIT_SYMBOLS: Record<string, string> = {
-  Hearts: '♥',
-  Diamonds: '♦',
-  Clubs: '♣',
-  Spades: '♠',
+type NormalizedSuit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
+
+const SUIT_META: Record<NormalizedSuit, { symbol: string; color: string }> = {
+  hearts: { symbol: '♥', color: 'text-red-500' },
+  diamonds: { symbol: '♦', color: 'text-red-500' },
+  clubs: { symbol: '♣', color: 'text-gray-800 dark:text-gray-200' },
+  spades: { symbol: '♠', color: 'text-gray-800 dark:text-gray-200' },
 };
 
-const SUIT_COLORS: Record<string, string> = {
-  Hearts: 'text-red-500',
-  Diamonds: 'text-red-500',
-  Clubs: 'text-gray-800 dark:text-gray-200',
-  Spades: 'text-gray-800 dark:text-gray-200',
-};
+function normalizeSuit(rawSuit: string): NormalizedSuit | null {
+  const suit = String(rawSuit ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (['hearts', 'heart', '♥', 'черви'].includes(suit)) return 'hearts';
+  if (['diamonds', 'diamond', '♦', 'бубны'].includes(suit)) return 'diamonds';
+  if (['clubs', 'club', '♣', 'трефы', 'крести'].includes(suit)) return 'clubs';
+  if (['spades', 'spade', '♠', 'пики'].includes(suit)) return 'spades';
+
+  return null;
+}
+
+function getSuitMeta(rawSuit: string): { symbol: string; color: string } {
+  const normalized = normalizeSuit(rawSuit);
+  if (!normalized) {
+    return { symbol: String(rawSuit ?? '?'), color: 'text-gray-600' };
+  }
+
+  return SUIT_META[normalized];
+}
+
+function formatRank(rawRank: string): string {
+  const rank = String(rawRank ?? '').trim();
+  const upper = rank.toUpperCase();
+  const parsedNumber = Number.parseInt(rank, 10);
+
+  if (upper === 'JOKER') return '🃏';
+  if (upper === 'J' || upper === 'JACK' || parsedNumber === 11) return 'В';
+  if (upper === 'Q' || upper === 'QUEEN' || parsedNumber === 12) return 'Д';
+  if (upper === 'K' || upper === 'KING' || parsedNumber === 13) return 'К';
+  if (upper === 'A' || upper === 'ACE' || parsedNumber === 14) return 'Т';
+
+  if (Number.isFinite(parsedNumber) && parsedNumber >= 2 && parsedNumber <= 10) {
+    return String(parsedNumber);
+  }
+
+  return rank;
+}
 
 function formatCard(card: Card): { symbol: string; color: string } {
-  const suitSymbol = SUIT_SYMBOLS[card.suit] || card.suit;
-  const color = SUIT_COLORS[card.suit] || 'text-gray-600';
-  return { symbol: `${card.rank}${suitSymbol}`, color };
+  const suitMeta = getSuitMeta(card.suit);
+  const rankLabel = formatRank(card.rank);
+  return { symbol: `${rankLabel}${suitMeta.symbol}`, color: suitMeta.color };
 }
 
 function getPhaseColor(phase: string): string {
@@ -228,8 +263,8 @@ export default function TableDetailPage() {
             <div className="text-sm text-gray-500">Trump</div>
             <div className="mt-1 text-2xl font-bold">
               {gameState.trump ? (
-                <span className={SUIT_COLORS[gameState.trump]}>
-                  {SUIT_SYMBOLS[gameState.trump] || gameState.trump}
+                <span className={getSuitMeta(gameState.trump).color}>
+                  {getSuitMeta(gameState.trump).symbol}
                 </span>
               ) : (
                 <span className="text-gray-400">None</span>
@@ -295,8 +330,7 @@ export default function TableDetailPage() {
                     </div>
                     {tc.jokerOption && (
                       <div className="mt-1 text-xs text-purple-500">
-                        Joker: {tc.jokerOption.mode}{' '}
-                        {SUIT_SYMBOLS[tc.jokerOption.suit] || tc.jokerOption.suit}
+                        Joker: {tc.jokerOption.mode} {getSuitMeta(tc.jokerOption.suit).symbol}
                       </div>
                     )}
                   </div>
