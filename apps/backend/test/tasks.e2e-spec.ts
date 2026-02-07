@@ -96,6 +96,7 @@ describe('Tasks (e2e)', () => {
       sub: admin.id,
       username: admin.username,
       role: admin.adminRole,
+      tokenVersion: admin.adminTokenVersion,
     });
   });
 

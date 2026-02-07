@@ -16,6 +16,7 @@ export interface AdminTokenPayload {
   sub: string;
   username: string;
   role: AdminRole;
+  tokenVersion: number;
 }
 
 export interface AdminLoginResult {
@@ -214,6 +215,7 @@ export class AdminService {
       sub: user.id,
       username: user.username || '',
       role: user.adminRole!,
+      tokenVersion: user.adminTokenVersion,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -245,7 +247,39 @@ export class AdminService {
       return null;
     }
 
+    if (user.adminTokenVersion !== payload.tokenVersion) {
+      return null;
+    }
+
     return user;
+  }
+
+  async logout(adminId: string): Promise<void> {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id: adminId,
+        adminRole: { not: null },
+      },
+      data: {
+        adminTokenVersion: { increment: 1 },
+      },
+    });
+
+    if (result.count === 0) {
+      throw new UnauthorizedException('Invalid admin session');
+    }
+
+    this.eventLog.log({
+      eventType: 'ADMIN_ACTION',
+      severity: 'INFO',
+      actorId: adminId,
+      actorType: 'ADMIN',
+      details: {
+        action: 'LOGOUT',
+      },
+    });
+
+    this.logger.log(`Admin ${adminId} logged out`);
   }
 
   /**

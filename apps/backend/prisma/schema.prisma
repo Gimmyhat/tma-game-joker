@@ -62,6 +62,7 @@ model User {
   // Admin Auth
   adminRole   AdminRole? @map("admin_role")
   passwordHash String?   @map("password_hash") @db.VarChar(256)
+  adminTokenVersion Int  @default(0) @map("admin_token_version")
   
   // Blocking
   blockedAt   DateTime? @map("blocked_at") @db.Timestamptz
