@@ -67,9 +67,10 @@ cd apps/admin && pnpm dev
 - ✅ Исправлена TS-совместимость проверки якоря: `Object.hasOwn(...)` заменён на `Object.prototype.hasOwnProperty.call(...)` в `apps/admin/src/pages/Admin/SettingsPage.tsx`.
 - ✅ Обновлён e2e `apps/admin/tests/e2e/settings.spec.ts`: добавлены проверки `visible/hidden` секций для каждого hash-якоря.
 - ✅ Проверки: `pnpm lint` (ok), `pnpm --filter @joker/admin type-check` (ok), `pnpm --filter @joker/admin test:e2e` (92 passed, 1 skipped).
+- ✅ Коммит: `0375983` (`fix(admin): split settings hash views and TS-safe anchor check`).
 
 ### В процессе
-- 🔄 Подготовка коммита с фиксом Settings hash views.
+- 🔄 Нет.
 
 ### Следующие шаги
 - [ ] Закоммитить hotfix и запушить в рабочую ветку.
