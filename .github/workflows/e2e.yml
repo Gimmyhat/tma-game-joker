@@ -92,6 +92,9 @@ jobs:
         run: pnpm --filter @joker/backend test:e2e
 
       - name: Build all apps
+        env:
+          VITE_SOCKET_URL: http://127.0.0.1:3000
+          VITE_API_URL: http://127.0.0.1:3000
         run: |
           pnpm --filter @joker/backend build
           pnpm --filter @joker/frontend build
