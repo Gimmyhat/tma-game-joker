@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 16:45
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-3 closed, M-4 next)
+**Последнее обновление:** 2026-02-07 20:35
+**Текущий статус:** ✅ Phase 3: Tournaments & Meta complete (M-4 closed)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -57,6 +57,42 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 19:02] - OpenCode
+
+### Выполнено
+- ✅ Исправлен баг ставок для живого игрока: `EconomyService.holdForBet` теперь резолвит `userId` как Telegram numeric ID -> UUID перед Prisma-запросами.
+- ✅ Добавлен такой же резолв в `EconomyService.releaseBetHold`, чтобы rollback ставки не падал на non-UUID `userId`.
+- ✅ Сохранена совместимость backend e2e с тестовыми synthetic player IDs (`E2E_TEST=true`) в `resolveUserId`.
+- ✅ Проверки: `pnpm --filter @joker/backend lint && pnpm --filter @joker/backend build && pnpm --filter @joker/backend test:e2e` — green (24/24).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Прогнать frontend e2e smoke для сценария живой ставки в Telegram Mini App.
+- [ ] Подготовить коммит с hotfix (economy userId resolve + sprint/progress updates).
+
+---
+
+## [2026-02-07 20:35] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-4 (frontend tasks UI): добавлены `apps/frontend/src/components/TasksPanel.tsx` и API-клиент `apps/frontend/src/lib/tasks-api.ts`.
+- ✅ Интегрирована новая Tasks-модалка в лобби (`apps/frontend/src/App.tsx`): список задач, статусы (`available/pending/approved/rejected`) и action `claim` через `POST /tasks/:id/complete`.
+- ✅ Добавлены RU/EN локализации для tasks (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Добавлен frontend e2e happy-path `opens tasks panel and submits task completion` в `apps/frontend/tests/e2e/app.spec.ts`.
+- ✅ Проверки: `pnpm lint` (green), `pnpm --filter @joker/frontend build` (green), `pnpm --filter @joker/frontend test:e2e` (10 passed, 1 skipped; повторный прогон после единичного timeout в smoke — green).
+- ✅ Обновлен `CURRENT_SPRINT.md`: M-4 переведен в DONE, прогресс Phase 3 -> 100%.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Подготовить коммит с M-4 (tasks UI + e2e + sprint/progress updates).
+- [ ] Перейти к Phase 4 (Integration & Polish) и сформировать первый блок задач.
 
 ---
 

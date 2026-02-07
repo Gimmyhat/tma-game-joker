@@ -6,6 +6,7 @@ import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { ReferralPanel } from './components/ReferralPanel';
+import { TasksPanel } from './components/TasksPanel';
 import { TournamentLobbyPanel } from './components/TournamentLobbyPanel';
 
 // Lazy load GameScreen for better initial bundle size
@@ -102,6 +103,7 @@ function LobbyScreen() {
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -408,6 +410,14 @@ function LobbyScreen() {
                 {t('referral.open')}
               </button>
 
+              <button
+                onClick={() => setIsTasksModalOpen(true)}
+                data-testid="tasks-open"
+                className="mt-2 w-full rounded-lg border border-lime-300/40 bg-lime-500/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-lime-100 transition-colors hover:bg-lime-500/25"
+              >
+                {t('tasks.open')}
+              </button>
+
               {!isTelegram && (
                 <p className="text-center text-[9px] text-white/20 mt-2">{t('lobby.devMode')}</p>
               )}
@@ -640,6 +650,31 @@ function LobbyScreen() {
 
             <div className="h-[40vh] min-h-[300px]">
               <ReferralPanel />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isTasksModalOpen && (
+        <div className="absolute inset-0 z-[79] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Missions</p>
+                <h3 className="text-lg font-black tracking-tight text-lime-200">
+                  {t('tasks.title')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsTasksModalOpen(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            <div className="h-[50vh] min-h-[340px]">
+              <TasksPanel userId={userId} />
             </div>
           </div>
         </div>
