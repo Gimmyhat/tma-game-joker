@@ -193,7 +193,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
     try {
       // Check if player was in a game (reconnection)
-      const roomId = await this.gameProcess.handleConnection(userId, client.id, userName);
+      // Pass startParam if available in userInfo
+      const roomId = await this.gameProcess.handleConnection(
+        userId,
+        client.id,
+        userName,
+        (client.data.verifiedUser as VerifiedTelegramUser)?.startParam,
+      );
       if (roomId) {
         client.join(roomId);
         this.logger.log(`Player ${userId} reconnected to room ${roomId}`);

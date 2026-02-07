@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 17:05
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-1 leaderboard delivered)
+**Последнее обновление:** 2026-02-07 18:45
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-2 referral delivered)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~68% |
+| 3 | Tournaments & Meta | 🔄 In Progress | ~75% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,45 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 18:45] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-2: реализована реферальная программа (Backend API + Frontend UI).
+- ✅ Backend: создан `ReferralModule`, `ReferralService`, `ReferralController` (`GET /referral/stats`, `GET /referral/link`).
+- ✅ Реализована привязка реферера при первом входе через `start_param` в `TelegramAuthGuard` и `GameGateway`.
+- ✅ Обновлен `GameProcessService` для начисления реферального бонуса (10% от рейка) после завершения игры.
+- ✅ Frontend: добавлен API-клиент `referral-api.ts`, компонент `ReferralPanel` с отображением статистики, ссылки и кнопки копирования.
+- ✅ Frontend UI интегрирован в Lobby через модальное окно (кнопка "Referral").
+- ✅ Добавлен e2e-тест happy path для реферальной панели в `apps/frontend/tests/e2e/app.spec.ts`.
+- ✅ Обновлен `TelegramAuthGuard` для поддержки mock-данных в e2e тестах (`SKIP_AUTH=true`).
+- ✅ Проверки: `pnpm lint`, `pnpm exec tsc` (backend/admin/frontend), `pnpm test:e2e` (backend: 16 passed, frontend: 10 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Завершить Phase 3, убедиться в стабильности всех мета-фич.
+
+---
+
+## [2026-02-07 18:10] - OpenCode
+
+### Выполнено
+- ✅ Исправлен critical logout flow в админке: `Sign out` в dropdown теперь вызывает `logout()` и очищает persisted auth перед редиректом на `/signin`.
+- ✅ Добавлен e2e smoke-кейс в `apps/admin/tests/e2e/auth.spec.ts`: после sign out защищенные роуты (`/admin/users`) требуют повторной авторизации.
+- ✅ Устранена причина websocket `connect_error` в backend e2e: восстановлено подключение `GatewayModule` в `apps/backend/src/app.module.ts`.
+- ✅ Обновлен `apps/backend/test/app.e2e-spec.ts` под текущую бизнес-логику (referral/economy side effects, positive bet validation, bot-turn tolerant flow).
+- ✅ Проверки: `pnpm --filter @joker/backend test:e2e` — 16/16 passed; admin smoke `should require re-authentication after sign out` — passed (8 tests in run).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Разобрать `apps/admin` lint-конфиг (ENOENT на `apps/admin/test-results`) чтобы `pnpm --filter @joker/admin run lint` проходил стабильно.
+- [ ] Перейти к M-2: referral program backend + UI.
 
 ---
 

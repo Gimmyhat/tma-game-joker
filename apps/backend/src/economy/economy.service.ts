@@ -79,19 +79,33 @@ export class EconomyService {
   /**
    * Get user by Telegram ID, create if not exists
    */
-  async getOrCreateUser(tgId: bigint, username?: string): Promise<User> {
+  async getOrCreateUser(tgId: bigint, username?: string, startParam?: string): Promise<User> {
     let user = await this.prisma.user.findUnique({
       where: { tgId },
     });
 
     if (!user) {
+      let referrerId: string | null = null;
+
+      if (startParam) {
+        // Try to find referrer by code
+        const referrer = await this.prisma.user.findUnique({
+          where: { referralCode: startParam },
+          select: { id: true },
+        });
+        if (referrer) {
+          referrerId = referrer.id;
+        }
+      }
+
       user = await this.prisma.user.create({
         data: {
           tgId,
           username,
+          referrerId,
         },
       });
-      this.logger.log(`Created new user ${user.id} for tgId ${tgId}`);
+      this.logger.log(`Created new user ${user.id} for tgId ${tgId} (referrer: ${referrerId})`);
     }
 
     return user;
@@ -368,6 +382,61 @@ export class EconomyService {
 
     // Audit log
     this.eventLog.logBalanceAdjustment(initiatedById, userId, amount, comment);
+
+    return {
+      userId,
+      balance: result,
+      currency: 'CJ',
+    };
+  }
+
+  /**
+   * Payout referral bonus
+   */
+  async payoutReferralBonus(
+    userId: string,
+    amount: number,
+    referenceId: string,
+    comment?: string,
+  ): Promise<BalanceResult> {
+    const amountDecimal = new Decimal(amount);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User ${userId} not found`);
+      }
+
+      const currentBalance = new Decimal(user.balanceCj.toString());
+      const newBalance = currentBalance.plus(amountDecimal);
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { balanceCj: newBalance.toFixed(2) },
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId,
+          amount: amountDecimal.toFixed(2),
+          type: 'REFERRAL_BONUS',
+          status: 'SUCCESS',
+          balanceAfter: newBalance.toFixed(2),
+          referenceId,
+          referenceType: 'GAME',
+          comment,
+        },
+      });
+
+      return newBalance;
+    });
+
+    this.logger.log(
+      `Referral bonus ${amount} CJ for user ${userId} (Game ${referenceId}). Comment: ${comment}`,
+    );
 
     return {
       userId,

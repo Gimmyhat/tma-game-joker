@@ -5,6 +5,7 @@ import { useGameStore } from './store';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LobbyTable } from './components/LobbyTable';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
+import { ReferralPanel } from './components/ReferralPanel';
 import { TournamentLobbyPanel } from './components/TournamentLobbyPanel';
 
 // Lazy load GameScreen for better initial bundle size
@@ -100,6 +101,7 @@ function LobbyScreen() {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -393,9 +395,17 @@ function LobbyScreen() {
               <button
                 onClick={() => setIsLeaderboardModalOpen(true)}
                 data-testid="leaderboard-open"
-                className="mt-2 w-full rounded-lg border border-amber-300/40 bg-amber-500/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-amber-100 transition-colors hover:bg-amber-500/25"
+                className="w-full rounded-lg border border-amber-300/40 bg-amber-500/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-amber-100 transition-colors hover:bg-amber-500/25"
               >
                 {t('leaderboard.open')}
+              </button>
+
+              <button
+                onClick={() => setIsReferralModalOpen(true)}
+                data-testid="referral-open"
+                className="mt-2 w-full rounded-lg border border-purple-300/40 bg-purple-500/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-purple-100 transition-colors hover:bg-purple-500/25"
+              >
+                {t('referral.open')}
               </button>
 
               {!isTelegram && (
@@ -605,6 +615,31 @@ function LobbyScreen() {
 
             <div className="h-[58vh] min-h-[360px]">
               <LeaderboardPanel />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isReferralModalOpen && (
+        <div className="absolute inset-0 z-[78] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Invite</p>
+                <h3 className="text-lg font-black tracking-tight text-purple-200">
+                  {t('referral.title')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsReferralModalOpen(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            <div className="h-[40vh] min-h-[300px]">
+              <ReferralPanel />
             </div>
           </div>
         </div>

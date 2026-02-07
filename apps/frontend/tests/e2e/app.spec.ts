@@ -211,3 +211,51 @@ test('opens leaderboard and refreshes entries', async ({ page }) => {
   await page.getByTestId('leaderboard-refresh').click();
   await expect.poll(() => leaderboardRequests).toBeGreaterThan(1);
 });
+
+test('opens referral panel and copies link', async ({ page }) => {
+  await page.route('**/referral/stats', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        totalEarnings: '150.00',
+        referrals: 5,
+      }),
+    });
+  });
+
+  await page.route('**/referral/link', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        link: 'https://t.me/joker_bot?start=ref123',
+      }),
+    });
+  });
+
+  // Grant clipboard permissions
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await page.goto('/');
+
+  // Wait for application to mount and connect
+  await expect(page.locator('#root')).toBeAttached();
+
+  // Wait for connection to be established (buttons are hidden until connected)
+  await expect(page.getByText('connected')).toBeVisible({ timeout: 30000 });
+
+  // Open referral panel
+  const referralButton = page.getByTestId('referral-open');
+  await expect(referralButton).toBeVisible({ timeout: 15000 });
+  await referralButton.click();
+
+  // Check visibility
+  await expect(page.getByText('Referral Program')).toBeVisible();
+  await expect(page.getByText('150.00 CJ')).toBeVisible();
+  await expect(page.getByText('5 friends invited')).toBeVisible();
+
+  // Test copy link
+  await page.getByText('Copy').click();
+  await expect(page.getByText('Copied!')).toBeVisible();
+});

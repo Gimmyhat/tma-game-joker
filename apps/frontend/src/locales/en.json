@@ -116,6 +116,18 @@
       "places": "Places 1/2/3"
     }
   },
+  "referral": {
+    "title": "Referral Program",
+    "open": "Invite Friends",
+    "loading": "Loading...",
+    "loadError": "Failed to load referral data",
+    "totalEarnings": "Total Earnings",
+    "invitedCount": "{{count}} friends invited",
+    "yourLink": "Your Referral Link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "description": "Share this link with your friends. You will receive 10% of the commission from every game they play."
+  },
   "game": {
     "loading": "Loading Game...",
     "trickWon": "{{player}} Wins!",
