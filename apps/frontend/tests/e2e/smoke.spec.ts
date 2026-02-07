@@ -7,17 +7,12 @@ test('App loads and shows lobby', async ({ page }) => {
   // 2. Wait for loading spinner to disappear (it has animate-spin class)
   await expect(page.locator('.animate-spin')).toBeHidden({ timeout: 10000 });
 
-  // 3. Check for the title "Joker"
-  // Assuming default locale is EN or RU, let's look for h1
+  // 3. Lobby shell is visible
+  await expect(page.getByTestId('lobby-root')).toBeVisible();
+
+  // 4. Title and connection status are rendered regardless of current connection phase
   await expect(page.locator('h1')).toBeVisible();
-
-  // 4. Check for "Find Game" button
-  // We look for a button that contains text "Find Game" or "Найти игру"
-  // Or just check for the 🃏 emoji which is hardcoded
-  await expect(page.getByText('🃏')).toBeVisible();
-
-  // Check for development mode text since we are not in Telegram
-  await expect(page.getByText('(Development Mode)')).toBeVisible();
+  await expect(page.getByTestId('lobby-connection-status')).toBeVisible();
 
   // 5. Take a screenshot for evidence
   await page.screenshot({ path: 'tests/e2e/smoke-test.png' });

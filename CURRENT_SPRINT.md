@@ -126,6 +126,7 @@
 | M-3      | Meta: task system backend (CRUD + verification)     | 2026-02-07 | 3207dc8          |
 | FIX-5    | Admin sign-out invalidation + websocket e2e restore | 2026-02-07 | 7f4764f          |
 | FIX-6    | Admin lint ENOENT guard for generated dirs          | 2026-02-07 | (pending commit) |
+| FIX-8    | Frontend smoke e2e stabilized with testids          | 2026-02-07 | (pending commit) |
 
 ---
 
@@ -169,6 +170,7 @@
 - Hotfix: Sign out в admin dropdown теперь очищает auth store перед redirect; добавлен e2e smoke `should require re-authentication after sign out`
 - Backend e2e снова green после восстановления регистрации websocket gateway через `GatewayModule` в `AppModule` и стабилизации `app.e2e` (Prisma mock + bet flow)
 - Admin lint стабилизирован: в `apps/admin/eslint.config.js` добавлены ignore для `test-results`, `playwright-report`, `coverage` (устранен риск ENOENT)
+- Frontend smoke e2e стабилизирован: удалена хрупкая проверка emoji `🃏`, добавлены стабильные `data-testid` для лобби и статуса соединения
 
 ---
 
