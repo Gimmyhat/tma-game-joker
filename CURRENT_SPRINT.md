@@ -128,6 +128,8 @@
 | FIX-5    | Admin sign-out invalidation + websocket e2e restore | 2026-02-07 | 7f4764f          |
 | FIX-6    | Admin lint ENOENT guard for generated dirs          | 2026-02-07 | (pending commit) |
 | FIX-7    | Fix bets for Telegram IDs in Economy hold/release   | 2026-02-07 | (pending commit) |
+| FIX-8    | Frontend smoke e2e stabilized with testids          | 2026-02-07 | (pending commit) |
+| FIX-9    | Disable per-bid wallet hold in live joker bets      | 2026-02-07 | (pending commit) |
 
 ---
 
@@ -172,6 +174,8 @@
 - Backend e2e снова green после восстановления регистрации websocket gateway через `GatewayModule` в `AppModule` и стабилизации `app.e2e` (Prisma mock + bet flow)
 - Admin lint стабилизирован: в `apps/admin/eslint.config.js` добавлены ignore для `test-results`, `playwright-report`, `coverage` (устранен риск ENOENT)
 - Hotfix: в `EconomyService` исправлен резолв `userId` для ставок живых игроков (numeric Telegram ID -> UUID), устранена ошибка Prisma UUID при `INVALID_BET`; backend e2e green
+- Frontend smoke e2e стабилизирован: удалена хрупкая проверка emoji `🃏`, добавлены стабильные `data-testid` для лобби и статуса соединения
+- Hotfix live-game: `processUserBet` больше не списывает CJ по значению заявки (0/1/...), hold вынесен в отдельную конфигурацию `GAME_BET_HOLD_COST_CJ` (по умолчанию 0)
 
 ---
 

@@ -60,23 +60,6 @@ cd apps/admin && pnpm dev
 
 ---
 
-## [2026-02-07 19:02] - OpenCode
-
-### Выполнено
-- ✅ Исправлен баг ставок для живого игрока: `EconomyService.holdForBet` теперь резолвит `userId` как Telegram numeric ID -> UUID перед Prisma-запросами.
-- ✅ Добавлен такой же резолв в `EconomyService.releaseBetHold`, чтобы rollback ставки не падал на non-UUID `userId`.
-- ✅ Сохранена совместимость backend e2e с тестовыми synthetic player IDs (`E2E_TEST=true`) в `resolveUserId`.
-- ✅ Проверки: `pnpm --filter @joker/backend lint && pnpm --filter @joker/backend build && pnpm --filter @joker/backend test:e2e` — green (24/24).
-
-### В процессе
-- 🔄 Нет.
-
-### Следующие шаги
-- [ ] Прогнать frontend e2e smoke для сценария живой ставки в Telegram Mini App.
-- [ ] Подготовить коммит с hotfix (economy userId resolve + sprint/progress updates).
-
----
-
 ## [2026-02-07 20:35] - OpenCode
 
 ### Выполнено
@@ -93,6 +76,57 @@ cd apps/admin && pnpm dev
 ### Следующие шаги
 - [ ] Подготовить коммит с M-4 (tasks UI + e2e + sprint/progress updates).
 - [ ] Перейти к Phase 4 (Integration & Polish) и сформировать первый блок задач.
+
+---
+
+## [2026-02-07 19:40] - OpenCode
+
+### Выполнено
+- ✅ Найдена и исправлена причина `ERROR_INVALID_BET` у живого игрока в Telegram: `processUserBet` ошибочно отправлял игровую заявку (0/1/...) как денежный hold в Economy.
+- ✅ В `apps/backend/src/game/services/game-process.service.ts` добавлен конфигурируемый hold `GAME_BET_HOLD_COST_CJ`; по умолчанию `0`, поэтому обычные ставки больше не требуют баланса CJ.
+- ✅ Сохранен rollback-path: при включенном hold (если `GAME_BET_HOLD_COST_CJ > 0`) release выполняется корректно и только при реально созданном hold.
+- ✅ Прогон проверок: `pnpm --filter @joker/backend lint && pnpm --filter @joker/backend build && pnpm --filter @joker/backend test:e2e` — green (24/24).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Выпустить hotfix через PR в `main` и дождаться deploy.
+- [ ] Проверить в Telegram manual smoke: bet `0` и bet `1` в первом раунде.
+
+---
+
+## [2026-02-07 19:29] - OpenCode
+
+### Выполнено
+- ✅ Исправлена причина падения CI e2e smoke: тест больше не зависит от нестабильного текста `🃏` и dev-only маркера.
+- ✅ В `apps/frontend/src/App.tsx` добавлены стабильные селекторы `data-testid`: `lobby-root`, `lobby-connection-status`, `find-game-button`.
+- ✅ Обновлен `apps/frontend/tests/e2e/smoke.spec.ts`: проверка строится на `data-testid` и базовой видимости лобби/статуса соединения.
+- ✅ Прогон `pnpm --filter @joker/frontend test:e2e` — green (9 passed, 1 skipped).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Прогнать полный quality-gate эквивалентом: `pnpm lint`, `pnpm -r --if-present type-check`, package e2e.
+- [ ] Создать PR и смержить hotfix в `main` для восстановления зеленого CI.
+
+---
+
+## [2026-02-07 19:02] - OpenCode
+
+### Выполнено
+- ✅ Исправлен баг ставок для живого игрока: `EconomyService.holdForBet` теперь резолвит `userId` как Telegram numeric ID -> UUID перед Prisma-запросами.
+- ✅ Добавлен такой же резолв в `EconomyService.releaseBetHold`, чтобы rollback ставки не падал на non-UUID `userId`.
+- ✅ Сохранена совместимость backend e2e с тестовыми synthetic player IDs (`E2E_TEST=true`) в `resolveUserId`.
+- ✅ Проверки: `pnpm --filter @joker/backend lint && pnpm --filter @joker/backend build && pnpm --filter @joker/backend test:e2e` — green (24/24).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Прогнать frontend e2e smoke для сценария живой ставки в Telegram Mini App.
+- [ ] Подготовить коммит с hotfix (economy userId resolve + sprint/progress updates).
 
 ---
 

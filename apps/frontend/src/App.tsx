@@ -266,6 +266,7 @@ function LobbyScreen() {
 
   return (
     <div
+      data-testid="lobby-root"
       className="bg-gradient-to-b from-green-900 to-green-950 flex flex-col items-center justify-center p-4 relative overflow-hidden"
       style={{ height: 'var(--tg-viewport-height, 100vh)' }}
     >
@@ -305,7 +306,10 @@ function LobbyScreen() {
                   : 'bg-red-400'
             }`}
           />
-          <span className="text-[9px] font-medium text-white/60 uppercase tracking-widest">
+          <span
+            data-testid="lobby-connection-status"
+            className="text-[9px] font-medium text-white/60 uppercase tracking-widest"
+          >
             {connectionStatus}
           </span>
         </div>
@@ -377,6 +381,7 @@ function LobbyScreen() {
 
               <button
                 onClick={findGame}
+                data-testid="find-game-button"
                 className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-b from-amber-400 to-orange-600 p-[1px] shadow-[0_8px_30px_-8px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="relative h-full w-full rounded-xl bg-gradient-to-b from-amber-500 to-orange-600 px-4 py-3 transition-all group-hover:bg-opacity-90 flex items-center justify-center gap-2">
