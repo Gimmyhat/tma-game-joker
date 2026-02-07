@@ -5,42 +5,129 @@ import { adminApi } from '../../lib/api';
 
 interface EventLogItem {
   id: string;
-  adminId: string;
-  admin?: { username: string };
-  action: string;
-  details: string;
+  eventType: string;
+  severity: string;
+  actorId: string;
+  actorType: string;
+  actor?: { username?: string; id?: string };
+  targetId: string;
+  targetType: string;
+  details: Record<string, unknown>;
   createdAt: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseDetails(details: unknown): Record<string, unknown> {
+  if (isRecord(details)) {
+    return details;
+  }
+
+  if (typeof details === 'string' && details.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(details) as unknown;
+      return isRecord(parsed) ? parsed : { message: details };
+    } catch {
+      return { message: details };
+    }
+  }
+
+  return {};
+}
+
+function humanize(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function shortId(value?: string): string {
+  if (!value) return '';
+  return value.length > 8 ? `${value.slice(0, 8)}...` : value;
+}
+
+function detailsSummary(event: EventLogItem): string {
+  const details = event.details;
+  const action = details.action;
+  if (event.eventType === 'ADMIN_ACTION' && typeof action === 'string') {
+    return `Action: ${humanize(action)}`;
+  }
+
+  const keys = Object.keys(details);
+  if (keys.length === 0) {
+    return '-';
+  }
+
+  const summary = keys
+    .slice(0, 3)
+    .map((key) => {
+      const rawValue = details[key];
+      if (
+        typeof rawValue === 'string' ||
+        typeof rawValue === 'number' ||
+        typeof rawValue === 'boolean'
+      ) {
+        return `${key}: ${String(rawValue)}`;
+      }
+
+      if (Array.isArray(rawValue)) {
+        return `${key}: [${rawValue.length}]`;
+      }
+
+      if (isRecord(rawValue)) {
+        return `${key}: {..}`;
+      }
+
+      return `${key}: -`;
+    })
+    .join(', ');
+
+  return keys.length > 3 ? `${summary}...` : summary;
+}
+
+function displayActor(event: EventLogItem): string {
+  if (event.actor?.username) return event.actor.username;
+  if (event.actorId) return shortId(event.actorId);
+  if (event.actorType) return humanize(event.actorType);
+  return 'System';
+}
+
 function normalizeEventLogItem(item: unknown): EventLogItem | null {
-  if (!item || typeof item !== 'object') return null;
+  if (!isRecord(item)) return null;
 
-  const raw = item as Record<string, unknown>;
-  const detailsRaw = raw.details;
-  const createdAtRaw = raw.createdAt;
+  const details = parseDetails(item.details);
 
-  const details =
-    typeof detailsRaw === 'string'
-      ? detailsRaw
-      : detailsRaw == null
-        ? '-'
-        : JSON.stringify(detailsRaw);
+  const actor = isRecord(item.actor)
+    ? {
+        username: typeof item.actor.username === 'string' ? item.actor.username : undefined,
+        id: typeof item.actor.id === 'string' ? item.actor.id : undefined,
+      }
+    : isRecord(item.admin)
+      ? {
+          username: typeof item.admin.username === 'string' ? item.admin.username : undefined,
+        }
+      : undefined;
 
   const createdAt =
-    typeof createdAtRaw === 'string'
-      ? createdAtRaw
-      : createdAtRaw instanceof Date
-        ? createdAtRaw.toISOString()
+    typeof item.createdAt === 'string'
+      ? item.createdAt
+      : item.createdAt instanceof Date
+        ? item.createdAt.toISOString()
         : new Date().toISOString();
 
   return {
-    id: String(raw.id ?? crypto.randomUUID()),
-    adminId: String(raw.adminId ?? ''),
-    admin:
-      raw.admin && typeof raw.admin === 'object'
-        ? { username: String((raw.admin as Record<string, unknown>).username ?? '') }
-        : undefined,
-    action: String(raw.action ?? 'unknown'),
+    id: String(item.id ?? crypto.randomUUID()),
+    eventType: String(item.eventType ?? item.action ?? 'UNKNOWN_EVENT').toUpperCase(),
+    severity: String(item.severity ?? 'INFO').toUpperCase(),
+    actorId: String(item.actorId ?? item.adminId ?? ''),
+    actorType: String(item.actorType ?? ''),
+    actor,
+    targetId: String(item.targetId ?? ''),
+    targetType: String(item.targetType ?? ''),
     details,
     createdAt,
   };
@@ -49,21 +136,21 @@ function normalizeEventLogItem(item: unknown): EventLogItem | null {
 export default function EventLogPage() {
   const [events, setEvents] = useState<EventLogItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionFilter, setActionFilter] = useState('all');
+  const [eventTypeFilter, setEventTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 20;
+  const pageSize = 20;
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { page, limit };
-      if (actionFilter !== 'all') params.action = actionFilter;
+      const params: Record<string, string | number> = { page, pageSize };
+      if (eventTypeFilter !== 'all') params.eventType = eventTypeFilter;
 
       const res = await adminApi.getEventLog(params);
       const payload = (res.data ?? {}) as {
-        items?: EventLogItem[];
-        events?: EventLogItem[];
+        items?: unknown[];
+        events?: unknown[];
         total?: number;
       };
       const fetchedEvents = payload.events ?? payload.items ?? [];
@@ -82,21 +169,31 @@ export default function EventLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [actionFilter, limit, page]);
+  }, [eventTypeFilter, page, pageSize]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(total / pageSize);
   const displayEvents = Array.isArray(events) ? events : [];
 
-  const getActionColor = (action: string) => {
-    if (action.includes('block')) return 'bg-red-100 text-red-800';
-    if (action.includes('approve')) return 'bg-green-100 text-green-800';
-    if (action.includes('reject')) return 'bg-orange-100 text-orange-800';
-    if (action.includes('login')) return 'bg-blue-100 text-blue-800';
+  const getEventColor = (eventType: string) => {
+    if (eventType.includes('BANNED') || eventType.includes('REJECTED'))
+      return 'bg-red-100 text-red-800';
+    if (eventType.includes('APPROVED') || eventType.includes('FINISHED'))
+      return 'bg-green-100 text-green-800';
+    if (eventType.includes('LOGIN') || eventType.includes('ADMIN_ACTION'))
+      return 'bg-blue-100 text-blue-800';
+    if (eventType.includes('GOD_MODE') || eventType.includes('CRITICAL'))
+      return 'bg-orange-100 text-orange-800';
     return 'bg-gray-100 text-gray-800';
+  };
+
+  const getSeverityColor = (severity: string) => {
+    if (severity === 'CRITICAL') return 'bg-red-100 text-red-800';
+    if (severity === 'WARNING') return 'bg-orange-100 text-orange-800';
+    return 'bg-blue-100 text-blue-800';
   };
 
   return (
@@ -108,19 +205,21 @@ export default function EventLogPage() {
         {/* Filter */}
         <div>
           <select
-            value={actionFilter}
+            value={eventTypeFilter}
             onChange={(e) => {
-              setActionFilter(e.target.value);
+              setEventTypeFilter(e.target.value);
               setPage(1);
             }}
             className="rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-700 dark:bg-gray-800"
           >
-            <option value="all">All Actions</option>
-            <option value="login">Login</option>
-            <option value="block_user">Block User</option>
-            <option value="unblock_user">Unblock User</option>
-            <option value="approve_transaction">Approve Transaction</option>
-            <option value="reject_transaction">Reject Transaction</option>
+            <option value="all">All Events</option>
+            <option value="ADMIN_ACTION">Admin Actions</option>
+            <option value="USER_BANNED">User Banned</option>
+            <option value="USER_UNBANNED">User Unbanned</option>
+            <option value="BALANCE_ADJUSTED">Balance Adjusted</option>
+            <option value="WITHDRAWAL_APPROVED">Withdrawal Approved</option>
+            <option value="WITHDRAWAL_REJECTED">Withdrawal Rejected</option>
+            <option value="SETTINGS_UPDATED">Settings Updated</option>
           </select>
         </div>
 
@@ -134,10 +233,16 @@ export default function EventLogPage() {
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                    Admin
+                    Event
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                    Action
+                    Severity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                    Actor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                    Target
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                     Details
@@ -147,13 +252,13 @@ export default function EventLogPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center">
+                    <td colSpan={6} className="px-6 py-4 text-center">
                       Loading...
                     </td>
                   </tr>
                 ) : displayEvents.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                       No events found
                     </td>
                   </tr>
@@ -163,18 +268,33 @@ export default function EventLogPage() {
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {new Date(event.createdAt).toLocaleString()}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 font-medium">
-                        {event.admin?.username || event.adminId?.slice(0, 8) || 'System'}
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span
+                          className={`rounded px-2 py-1 text-xs ${getEventColor(event.eventType)}`}
+                        >
+                          {humanize(event.eventType)}
+                        </span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <span
-                          className={`rounded px-2 py-1 text-xs ${getActionColor(event.action)}`}
+                          className={`rounded px-2 py-1 text-xs ${getSeverityColor(event.severity)}`}
                         >
-                          {event.action}
+                          {event.severity}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
-                        {event.details}
+                      <td className="whitespace-nowrap px-6 py-4 font-medium">
+                        {displayActor(event)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                        {event.targetType
+                          ? `${humanize(event.targetType)} ${shortId(event.targetId)}`
+                          : '-'}
+                      </td>
+                      <td
+                        className="max-w-xl px-6 py-4 text-sm text-gray-500"
+                        title={JSON.stringify(event.details)}
+                      >
+                        <div className="truncate">{detailsSummary(event)}</div>
                       </td>
                     </tr>
                   ))
