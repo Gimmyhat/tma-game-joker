@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 23:40  
+**Last Updated:** 2026-02-07 23:59  
 **Sprint:** Phase 4 - Integration & Polish
 
 ---
@@ -76,8 +76,9 @@
 ## 🚨 Blockers & Notes
 
 - Backend hotfix по `ListTournamentsDto` задеплоен в production (Deploy run `21781331283` — success).
-- API smoke после деплоя green: `/api/tournaments?pageSize=20` -> `200`, `/api/referral/stats` -> `401` (ожидаемо без Telegram initData).
-- Для закрытия `P4-2` нужен финальный manual smoke внутри Telegram Mini App (Tournament/Referral модалки).
+- Frontend hotfix `ec74d48` (leaderboard API base + устойчивое получение Telegram initData) задеплоен (Deploy run `21781711536` — success).
+- API smoke после деплоя green: `/api/tournaments?pageSize=20` -> `200`, `/api/leaderboard?page=1&pageSize=20` -> `200`, `/api/referral/stats` -> `401` (ожидаемо без Telegram initData).
+- Для закрытия `P4-2` нужен финальный manual smoke внутри Telegram Mini App (Tournament/Referral/Leaderboard модалки).
 - Protected components остаются без изменений: `packages/shared/src/logic/*`, `ScoringService`, event signatures в `game.gateway.ts`.
 
 ---
@@ -86,7 +87,7 @@
 
 ```
 P4-1 Release:      ✅ 100%
-P4-2 Prod Smoke:   🔄 in progress (prod API smoke green)
+P4-2 Prod Smoke:   🔄 in progress (prod API smoke + frontend hotfix deployed)
 P4-3 E2E/Nightly:  ⬜ 0%
 P4-4 Reconnect:    ⬜ 0%
 P4-5 UX Polish:    ⬜ 0%
@@ -94,5 +95,5 @@ P4-6 Admin Polish: ⬜ 0%
 P4-7 Observability ⬜ 0%
 P4-8 Security/Docs ⬜ 0%
 ────────────────────────
-Overall Phase 4:   🔄 22%
+Overall Phase 4:   🔄 26%
 ```

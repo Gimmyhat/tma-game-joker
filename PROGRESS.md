@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 23:40
-**Текущий статус:** 🔄 Phase 4: deploy hotfix выполнен, P4-2 на финальном manual smoke в Telegram
+**Последнее обновление:** 2026-02-07 23:59
+**Текущий статус:** 🔄 Phase 4: frontend hotfix задеплоен, ожидается повторный manual smoke в Telegram
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -26,7 +26,7 @@
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
 | 3 | Tournaments & Meta | ✅ Done | 100% |
-| 4 | Integration & Polish | 🔄 In Progress | 22% |
+| 4 | Integration & Polish | 🔄 In Progress | 26% |
 
 ---
 
@@ -57,6 +57,24 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 23:59] - OpenCode
+
+### Выполнено
+- ✅ Исправлен production-path для лидерборда: `apps/frontend/src/lib/leaderboard-api.ts` теперь использует `/api` fallback в prod (вместо прямого `origin`).
+- ✅ Усилено получение Telegram initData: `apps/frontend/src/lib/telegram.ts` (raw parsing `tgWebAppData` из search/hash + session cache), чтобы уменьшить auth-сбои в REST-запросах.
+- ✅ Проверки: `pnpm --filter @joker/frontend lint` и `pnpm --filter @joker/frontend build` — green.
+- ✅ Коммит `ec74d48` отправлен в `main`; production deploy run `21781711536` — `success` (`https://github.com/Gimmyhat/tma-game-joker/actions/runs/21781711536`).
+- ✅ Post-deploy API smoke: `/api/leaderboard?page=1&pageSize=20` -> `200`, `/api/tournaments?pageSize=20` -> `200`, `/api/referral/stats` -> `401` без initData (ожидаемо).
+
+### В процессе
+- 🔄 `P4-2`: повторный ручной smoke в Telegram Mini App (Tournament/Referral/Leaderboard) после нового деплоя.
+
+### Следующие шаги
+- [ ] Перепроверить модалки в Telegram Mini App на production.
+- [ ] Если ошибка referral сохранится — снять payload/headers в runtime и добавить целевой guard-лог для точной диагностики.
 
 ---
 
