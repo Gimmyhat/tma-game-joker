@@ -59,25 +59,43 @@ export type TournamentListResponse = {
 };
 
 function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_SOCKET_URL;
-  if (envUrl) {
+  const normalizeApiUrl = (url: string): string => {
     try {
-      const parsed = new URL(envUrl);
+      const parsed = new URL(url);
+      if (parsed.protocol === 'ws:') parsed.protocol = 'http:';
+      if (parsed.protocol === 'wss:') parsed.protocol = 'https:';
+      return parsed.toString().replace(/\/$/, '');
+    } catch {
+      return url.replace(/\/$/, '');
+    }
+  };
+
+  const apiEnvUrl = import.meta.env.VITE_API_URL;
+  if (apiEnvUrl) {
+    return normalizeApiUrl(apiEnvUrl);
+  }
+
+  const socketEnvUrl = import.meta.env.VITE_SOCKET_URL;
+  if (socketEnvUrl) {
+    const normalized = normalizeApiUrl(socketEnvUrl);
+    try {
+      const parsed = new URL(normalized);
       const host = window.location.hostname;
       const isLoopbackHost = host === 'localhost' || host === '127.0.0.1';
       const isLoopbackEnv = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
 
       if (isLoopbackHost && isLoopbackEnv && parsed.hostname !== host) {
-        return window.location.origin;
+        return window.location.origin.replace(/\/$/, '');
       }
     } catch {
-      return envUrl;
+      return normalized;
     }
 
-    return envUrl;
+    return normalized;
   }
 
-  return window.location.origin;
+  const origin = window.location.origin.replace(/\/$/, '');
+  return import.meta.env.DEV ? origin : `${origin}/api`;
 }
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
@@ -233,7 +251,11 @@ function normalizeTournamentItem(value: unknown): TournamentApiItem {
 export async function fetchTournaments(signal?: AbortSignal): Promise<TournamentListResponse> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/tournaments?pageSize=20`, { signal });
-  const payload = await parseJson<TournamentListResponse>(response);
+  const payload = await parseJson<unknown>(response);
+
+  if (!isRecord(payload)) {
+    throw new Error('Invalid tournaments response');
+  }
 
   return {
     ...payload,
@@ -249,7 +271,12 @@ export async function fetchTournament(
 ): Promise<TournamentApiItem> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/tournaments/${id}`, { signal });
-  const payload = await parseJson<TournamentApiItem>(response);
+  const payload = await parseJson<unknown>(response);
+
+  if (!isRecord(payload)) {
+    throw new Error('Invalid tournament response');
+  }
+
   return normalizeTournamentItem(payload);
 }
 
