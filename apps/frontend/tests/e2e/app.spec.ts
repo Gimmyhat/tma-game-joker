@@ -51,3 +51,211 @@ test('verifies application root element', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#root')).toBeAttached();
 });
+
+test('opens tournament details and performs join/leave flow', async ({ page }) => {
+  await page.route('**/tournaments?pageSize=20', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            id: 't-001',
+            title: 'Weekly Cup',
+            status: 'REGISTRATION',
+            config: { maxPlayers: 16 },
+            registrationStart: '2026-02-10T10:00:00.000Z',
+            startTime: '2026-02-10T12:00:00.000Z',
+            currentStage: 1,
+            bracketState: null,
+            _count: { participants: 1 },
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.route('**/tournaments/t-001', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 't-001',
+        title: 'Weekly Cup',
+        status: 'REGISTRATION',
+        config: { maxPlayers: 16 },
+        registrationStart: '2026-02-10T10:00:00.000Z',
+        startTime: '2026-02-10T12:00:00.000Z',
+        currentStage: 1,
+        bracketState: {
+          format: 'single_elimination',
+          size: 16,
+          currentStage: 1,
+          finished: false,
+          winnerUserId: null,
+          updatedAt: '2026-02-10T12:00:00.000Z',
+          stages: [
+            {
+              stage: 1,
+              matches: [
+                {
+                  id: 's1m1',
+                  stage: 1,
+                  index: 0,
+                  player1UserId: '111111111',
+                  player2UserId: '777777777',
+                  winnerUserId: null,
+                  status: 'PENDING',
+                },
+              ],
+            },
+          ],
+        },
+        _count: { participants: 1 },
+      }),
+    });
+  });
+
+  await page.route('**/tournaments/t-001/join', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.route('**/tournaments/t-001/leave', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/');
+
+  const tournamentsButton = page.getByRole('button', { name: /tournaments|турниры/i }).first();
+  await expect(tournamentsButton).toBeVisible();
+  await tournamentsButton.click();
+
+  await expect(page.getByTestId('tournament-details-t-001')).toBeVisible();
+  await page.getByTestId('tournament-details-t-001').click();
+
+  await expect(page.getByTestId('tournament-bracket')).toBeVisible();
+  await expect(page.getByTestId('tournament-match-s1m1')).toBeVisible();
+
+  await page.getByTestId('tournament-join').click();
+  await expect(
+    page.getByText(/registered for this tournament|успешно зарегистрированы на турнир/i),
+  ).toBeVisible();
+
+  await page.getByTestId('tournament-leave').click();
+  await expect(
+    page.getByText(/registration has been cancelled|регистрация в турнире отменена/i),
+  ).toBeVisible();
+});
+
+test('opens leaderboard and refreshes entries', async ({ page }) => {
+  let leaderboardRequests = 0;
+
+  await page.route('**/leaderboard?*', async (route) => {
+    leaderboardRequests += 1;
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [
+          {
+            rank: 1,
+            userId: 'u-1',
+            tgId: '111111111',
+            username: 'AcePlayer',
+            countryCode: 'RU',
+            rating: 1720,
+            wins: 14,
+            games: 20,
+            winRate: 70,
+            balanceCj: '2450.00',
+            places: { first: 5, second: 4, third: 2 },
+          },
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        sortBy: 'rating',
+        order: 'desc',
+      }),
+    });
+  });
+
+  page.on('console', (msg) => console.log(`[Browser Console] ${msg.text()}`));
+
+  await page.goto('/');
+
+  // Wait for application to mount
+  await expect(page.locator('#root')).toBeAttached();
+
+  // Ensure we are not stuck in loading state or telegram-only screen
+  await expect(page.getByText('This game is available only inside Telegram')).toBeHidden();
+
+  // Debug: Wait for status indicator to show connected
+  // This will help us identify if the socket connection is the bottleneck
+  await expect(page.getByText('connected')).toBeVisible({ timeout: 30000 });
+
+  // Wait for the lobby to be ready (tournaments button is a good indicator)
+  const tournamentsButton = page.getByRole('button', { name: /tournaments|турниры/i }).first();
+  await expect(tournamentsButton).toBeVisible({ timeout: 10000 });
+
+  // Wait for the leaderboard button to appear (it's in the lobby)
+  const leaderboardButton = page.getByTestId('leaderboard-open');
+  await expect(leaderboardButton).toBeVisible({ timeout: 15000 });
+  await leaderboardButton.click();
+
+  await expect(page.getByTestId('leaderboard-panel')).toBeVisible();
+  await expect(page.getByTestId('leaderboard-row-u-1')).toBeVisible();
+  await expect(page.getByText(/AcePlayer/)).toBeVisible();
+
+  await page.getByTestId('leaderboard-refresh').click();
+  await expect.poll(() => leaderboardRequests).toBeGreaterThan(1);
+});
+
+test('opens referral panel and copies link', async ({ page }) => {
+  await page.route('**/referral/stats', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        totalEarnings: '150.00',
+        referrals: 5,
+      }),
+    });
+  });
+
+  await page.route('**/referral/link', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        link: 'https://t.me/joker_bot?start=ref123',
+      }),
+    });
+  });
+
+  // Grant clipboard permissions
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await page.goto('/');
+
+  // Wait for application to mount and connect
+  await expect(page.locator('#root')).toBeAttached();
+
+  // Wait for connection to be established (buttons are hidden until connected)
+  await expect(page.getByText('connected')).toBeVisible({ timeout: 30000 });
+
+  // Open referral panel
+  const referralButton = page.getByTestId('referral-open');
+  await expect(referralButton).toBeVisible({ timeout: 15000 });
+  await referralButton.click();
+
+  // Check visibility
+  await expect(page.getByText('Referral Program')).toBeVisible();
+  await expect(page.getByText('150.00 CJ')).toBeVisible();
+  await expect(page.getByText('5 friends invited')).toBeVisible();
+
+  // Test copy link
+  await page.getByText('Copy').click();
+  await expect(page.getByText('Copied!')).toBeVisible();
+});

@@ -12,6 +12,33 @@ export type TournamentCount = {
   tables?: number;
 };
 
+export type TournamentBracketMatchStatus = 'PENDING' | 'COMPLETED';
+
+export type TournamentBracketMatch = {
+  id: string;
+  stage: number;
+  index: number;
+  player1UserId: string | null;
+  player2UserId: string | null;
+  winnerUserId: string | null;
+  status: TournamentBracketMatchStatus;
+};
+
+export type TournamentBracketStage = {
+  stage: number;
+  matches: TournamentBracketMatch[];
+};
+
+export type TournamentBracketState = {
+  format: 'single_elimination';
+  size: number;
+  currentStage: number;
+  finished: boolean;
+  winnerUserId: string | null;
+  stages: TournamentBracketStage[];
+  updatedAt: string;
+};
+
 export type TournamentApiItem = {
   id: string;
   title?: string | null;
@@ -20,7 +47,7 @@ export type TournamentApiItem = {
   registrationStart?: string | null;
   startTime?: string | null;
   currentStage?: number;
-  bracketState?: unknown;
+  bracketState?: TournamentBracketState | null;
   _count?: TournamentCount;
 };
 
@@ -85,10 +112,135 @@ async function parseJson<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toStringOrNull(value: unknown): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return null;
+}
+
+function parseBracketMatch(value: unknown): TournamentBracketMatch | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = typeof value.id === 'string' ? value.id : null;
+  const stage = Number(value.stage);
+  const index = Number(value.index);
+  const status = value.status;
+
+  if (
+    !id ||
+    !Number.isInteger(stage) ||
+    !Number.isInteger(index) ||
+    (status !== 'PENDING' && status !== 'COMPLETED')
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    stage,
+    index,
+    player1UserId: toStringOrNull(value.player1UserId),
+    player2UserId: toStringOrNull(value.player2UserId),
+    winnerUserId: toStringOrNull(value.winnerUserId),
+    status,
+  };
+}
+
+function parseBracketStage(value: unknown): TournamentBracketStage | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const stage = Number(value.stage);
+  if (!Number.isInteger(stage) || !Array.isArray(value.matches)) {
+    return null;
+  }
+
+  const matches = value.matches
+    .map((entry) => parseBracketMatch(entry))
+    .filter((entry): entry is TournamentBracketMatch => entry !== null)
+    .sort((left, right) => left.index - right.index);
+
+  return {
+    stage,
+    matches,
+  };
+}
+
+export function parseTournamentBracketState(value: unknown): TournamentBracketState | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (value.format !== 'single_elimination') {
+    return null;
+  }
+
+  const size = Number(value.size);
+  const currentStage = Number(value.currentStage);
+  const finished = value.finished === true;
+  const winnerUserId = toStringOrNull(value.winnerUserId);
+  const updatedAt = typeof value.updatedAt === 'string' ? value.updatedAt : null;
+
+  if (!Number.isInteger(size) || !Number.isInteger(currentStage) || !updatedAt) {
+    return null;
+  }
+
+  if (!Array.isArray(value.stages)) {
+    return null;
+  }
+
+  const stages = value.stages
+    .map((entry) => parseBracketStage(entry))
+    .filter((entry): entry is TournamentBracketStage => entry !== null)
+    .sort((left, right) => left.stage - right.stage);
+
+  return {
+    format: 'single_elimination',
+    size,
+    currentStage,
+    finished,
+    winnerUserId,
+    stages,
+    updatedAt,
+  };
+}
+
+function normalizeTournamentItem(value: unknown): TournamentApiItem {
+  const item = value as TournamentApiItem;
+  return {
+    ...item,
+    bracketState: parseTournamentBracketState(item.bracketState),
+  };
+}
+
 export async function fetchTournaments(signal?: AbortSignal): Promise<TournamentListResponse> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/tournaments?pageSize=20`, { signal });
-  return parseJson<TournamentListResponse>(response);
+  const payload = await parseJson<TournamentListResponse>(response);
+
+  return {
+    ...payload,
+    items: Array.isArray(payload.items)
+      ? payload.items.map((item) => normalizeTournamentItem(item))
+      : [],
+  };
 }
 
 export async function fetchTournament(
@@ -97,7 +249,8 @@ export async function fetchTournament(
 ): Promise<TournamentApiItem> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/tournaments/${id}`, { signal });
-  return parseJson<TournamentApiItem>(response);
+  const payload = await parseJson<TournamentApiItem>(response);
+  return normalizeTournamentItem(payload);
 }
 
 export async function joinTournament(tournamentId: string, userId: string | number): Promise<void> {

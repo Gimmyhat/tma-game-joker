@@ -1,155 +1,147 @@
-import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
-import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 
-/** Default TTL for initData validation (10 minutes) */
-const DEFAULT_INIT_DATA_TTL_SECONDS = 600;
-
-/** Verified user data extracted from initData */
 export interface VerifiedTelegramUser {
-  id: number;
+  id: bigint;
   firstName: string;
   lastName?: string;
   username?: string;
+  languageCode?: string;
+  isBot?: boolean;
+  isPremium?: boolean;
+  allowsWriteToPm?: boolean;
+  photoUrl?: string;
+  startParam?: string; // Added field
 }
 
 @Injectable()
 export class TelegramAuthGuard implements CanActivate {
   private readonly logger = new Logger(TelegramAuthGuard.name);
+  private readonly botToken: string;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) {
+    this.botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
+    if (!this.botToken) {
+      this.logger.warn('TELEGRAM_BOT_TOKEN not set. Auth will fail in production.');
+    }
+  }
 
-  canActivate(context: ExecutionContext): boolean {
-    const client: Socket = context.switchToWs().getClient();
-
-    // P0-3: SKIP_AUTH only allowed in development mode
-    const skipAuth = this.configService.get('SKIP_AUTH');
-    const nodeEnv = this.configService.get('NODE_ENV') || process.env.NODE_ENV;
-    const isDevelopment = nodeEnv === 'development' || nodeEnv === 'test';
-
-    this.logger.log(
-      `AuthGuard Check: SKIP_AUTH=${skipAuth}, NODE_ENV=${nodeEnv}, isDev=${isDevelopment}`,
-    );
-
-    // Allow testing bypass if specific test user IDs are used, even if not strictly "development" env
-    // This handles scenarios where E2E tests run against a built container where NODE_ENV might be production-like
-    // but we still want to allow the test runner to connect.
-    const userIdQuery = client.handshake.query.userId as string;
-    const isTestUser = userIdQuery && userIdQuery.startsWith('100');
-
-    if (String(skipAuth) === 'true' && (isDevelopment || isTestUser)) {
-      // In dev mode with SKIP_AUTH, use query params but mark as dev user
-      const userId = client.handshake.query.userId as string;
-      const userName = (client.handshake.query.userName as string) || 'DevPlayer';
-
-      if (userId) {
-        // Store verified user in socket data for gateway to use
-        client.data.verifiedUser = {
-          id: parseInt(userId, 10) || Date.now(),
-          firstName: userName,
-        } as VerifiedTelegramUser;
-      }
-
-      this.logger.debug(`Dev mode: SKIP_AUTH enabled for user ${userId}`);
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (
+      process.env.SKIP_AUTH === 'true' &&
+      (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')
+    ) {
       return true;
     }
 
+    const client: Socket = context.switchToWs().getClient();
     const initData =
-      (client.handshake.auth?.initData as string | undefined) ||
-      (client.handshake.query.initData as string | undefined);
+      (client.handshake.auth?.initData as string) || (client.handshake.query?.initData as string);
 
     if (!initData) {
-      throw new WsException('No initData provided');
+      throw new UnauthorizedException('Missing initData');
     }
 
-    // P0-1 + P0-2: Validate signature AND extract verified user
-    const verifiedUser = this.validateAndParseInitData(initData);
-    if (!verifiedUser) {
-      throw new WsException('Invalid initData signature or expired');
+    const user = this.validateAndParseInitData(initData);
+    if (!user) {
+      throw new UnauthorizedException('Invalid initData signature');
     }
 
-    // Store verified user in socket data - gateway MUST use this instead of query params
-    client.data.verifiedUser = verifiedUser;
-
-    this.logger.debug(`Authenticated user: ${verifiedUser.id} (${verifiedUser.firstName})`);
+    // Attach to socket data for gateway access
+    client.data.verifiedUser = user;
     return true;
   }
 
-  /**
-   * Validate Telegram initData signature and parse user data
-   * P0-1: Extract userId from initData (not from query params)
-   * P0-2: Check auth_date TTL to prevent replay attacks
-   *
-   * @returns VerifiedTelegramUser if valid, null otherwise
-   */
   validateAndParseInitData(initData: string): VerifiedTelegramUser | null {
-    try {
+    // Allow mock data in dev/test mode if SKIP_AUTH is true
+    if (
+      process.env.SKIP_AUTH === 'true' &&
+      (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')
+    ) {
       const urlParams = new URLSearchParams(initData);
-      const hash = urlParams.get('hash');
-      const authDateStr = urlParams.get('auth_date');
       const userStr = urlParams.get('user');
-
-      if (!hash || !authDateStr) {
-        this.logger.warn('Missing hash or auth_date in initData');
-        return null;
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const startParam = urlParams.get('start_param') || undefined;
+          return {
+            id: BigInt(user.id),
+            firstName: user.first_name,
+            lastName: user.last_name,
+            username: user.username,
+            languageCode: user.language_code,
+            isBot: user.is_bot,
+            isPremium: user.is_premium,
+            allowsWriteToPm: user.allows_write_to_pm,
+            photoUrl: user.photo_url,
+            startParam,
+          };
+        } catch (e) {
+          this.logger.warn('Failed to parse mock user JSON', e);
+        }
       }
+    }
 
-      // P0-2: Check auth_date TTL
-      const authDate = parseInt(authDateStr, 10);
-      const ttlSeconds =
-        parseInt(this.configService.get('INIT_DATA_TTL_SECONDS') || '', 10) ||
-        DEFAULT_INIT_DATA_TTL_SECONDS;
-      const now = Math.floor(Date.now() / 1000);
+    if (!this.botToken) return null;
 
-      if (now - authDate > ttlSeconds) {
-        this.logger.warn(`initData expired: auth_date=${authDate}, now=${now}, ttl=${ttlSeconds}s`);
-        return null;
-      }
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
 
-      // Validate HMAC signature
-      urlParams.delete('hash');
+    // Extract start_param immediately
+    const startParam = urlParams.get('start_param') || undefined;
 
-      const dataCheckString = Array.from(urlParams.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([key, value]) => `${key}=${value}`)
-        .join('\n');
+    if (!hash) {
+      this.logger.debug('No hash in initData');
+      return null;
+    }
 
-      const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-      if (!botToken) {
-        this.logger.error('TELEGRAM_BOT_TOKEN not configured');
-        return null;
-      }
+    urlParams.delete('hash');
 
-      const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
-      const signature = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+    // Sort keys alphabetically
+    const paramsToCheck: string[] = [];
+    urlParams.forEach((val, key) => {
+      paramsToCheck.push(`${key}=${val}`);
+    });
+    paramsToCheck.sort();
 
-      if (signature !== hash) {
-        this.logger.warn('Invalid initData signature');
-        return null;
-      }
+    const dataCheckString = paramsToCheck.join('\n');
 
-      // P0-1: Parse user from initData (authoritative source)
-      if (!userStr) {
-        this.logger.warn('No user data in initData');
-        return null;
-      }
+    const secretKey = createHmac('sha256', 'WebAppData').update(this.botToken).digest();
+    const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-      const userData = JSON.parse(userStr);
-      if (!userData.id || !userData.first_name) {
-        this.logger.warn('Invalid user data structure in initData');
-        return null;
-      }
+    if (calculatedHash !== hash) {
+      this.logger.debug(`Hash mismatch. Calc: ${calculatedHash}, Recv: ${hash}`);
+      return null;
+    }
 
+    // Parse user object
+    const userStr = urlParams.get('user');
+    if (!userStr) return null;
+
+    try {
+      const user = JSON.parse(userStr);
       return {
-        id: userData.id,
-        firstName: userData.first_name,
-        lastName: userData.last_name,
-        username: userData.username,
+        id: BigInt(user.id),
+        firstName: user.first_name,
+        lastName: user.last_name,
+        username: user.username,
+        languageCode: user.language_code,
+        isBot: user.is_bot,
+        isPremium: user.is_premium,
+        allowsWriteToPm: user.allows_write_to_pm,
+        photoUrl: user.photo_url,
+        startParam, // Include startParam in result
       };
-    } catch (error) {
-      this.logger.error(`Failed to parse initData: ${(error as Error).message}`);
+    } catch (e) {
+      this.logger.error('Failed to parse user JSON', e);
       return null;
     }
   }

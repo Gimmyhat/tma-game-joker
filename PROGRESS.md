@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 12:48
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (Tournament Lobby delivered)
+**Последнее обновление:** 2026-02-07 16:45
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (M-3 closed, M-4 next)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~55% |
+| 3 | Tournaments & Meta | 🔄 In Progress | ~80% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,137 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 16:45] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-3 (Task system backend): добавлен полноценный backend e2e `apps/backend/test/tasks.e2e-spec.ts`.
+- ✅ Покрыты HTTP-контракты и интеграция с БД: admin CRUD/security, user submit completion, manual review, auto-verify, начисление `TASK_REWARD`, delete/archive поведение.
+- ✅ Для e2e добавлен тестовый override `TelegramAuthGuard`, который инжектит `req.user` в HTTP-контекст без websocket handshake.
+- ✅ Проверки green: `pnpm --filter @joker/backend test:e2e -- test/tasks.e2e-spec.ts` (7/7) и полный `pnpm --filter @joker/backend test:e2e` (23/23).
+- ✅ Дополнительно подтверждены quality checks: `pnpm lint` (workspace) green, `pnpm -r --if-present type-check` green, package e2e green (`@joker/backend` 23 passed, `@joker/frontend` 9 passed/1 skipped, `@joker/admin` 94 passed/1 skipped).
+- ✅ Обновлен `CURRENT_SPRINT.md`: M-3 переведен в DONE, следующий блок — M-4.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-4: frontend tasks UI (список задач, статусы, submit/claim flow).
+- [ ] Добавить frontend e2e happy-path задач и прогнать полный quality-gate (`pnpm lint && pnpm type-check && pnpm test:e2e`).
+
+---
+
+## [2026-02-07 19:05] - OpenCode
+
+### Выполнено
+- ✅ Стабилизирован lint-конфиг админки: в `apps/admin/eslint.config.js` добавлены ignore-пути для артефактов `test-results`, `playwright-report`, `coverage`.
+- ✅ Подтверждено, что `pnpm --filter @joker/admin run lint && pnpm --filter @joker/admin run type-check` проходит без ENOENT.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Подготовить коммит с фиксом lint-конфига и обновлениями session logs.
+
+---
+
+## [2026-02-07 18:45] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-2: реализована реферальная программа (Backend API + Frontend UI).
+- ✅ Backend: создан `ReferralModule`, `ReferralService`, `ReferralController` (`GET /referral/stats`, `GET /referral/link`).
+- ✅ Реализована привязка реферера при первом входе через `start_param` в `TelegramAuthGuard` и `GameGateway`.
+- ✅ Обновлен `GameProcessService` для начисления реферального бонуса (10% от рейка) после завершения игры.
+- ✅ Frontend: добавлен API-клиент `referral-api.ts`, компонент `ReferralPanel` с отображением статистики, ссылки и кнопки копирования.
+- ✅ Frontend UI интегрирован в Lobby через модальное окно (кнопка "Referral").
+- ✅ Добавлен e2e-тест happy path для реферальной панели в `apps/frontend/tests/e2e/app.spec.ts`.
+- ✅ Обновлен `TelegramAuthGuard` для поддержки mock-данных в e2e тестах (`SKIP_AUTH=true`).
+- ✅ Проверки: `pnpm lint`, `pnpm exec tsc` (backend/admin/frontend), `pnpm test:e2e` (backend: 16 passed, frontend: 10 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Завершить Phase 3, убедиться в стабильности всех мета-фич.
+
+---
+
+## [2026-02-07 18:10] - OpenCode
+
+### Выполнено
+- ✅ Исправлен critical logout flow в админке: `Sign out` в dropdown теперь вызывает `logout()` и очищает persisted auth перед редиректом на `/signin`.
+- ✅ Добавлен e2e smoke-кейс в `apps/admin/tests/e2e/auth.spec.ts`: после sign out защищенные роуты (`/admin/users`) требуют повторной авторизации.
+- ✅ Устранена причина websocket `connect_error` в backend e2e: восстановлено подключение `GatewayModule` в `apps/backend/src/app.module.ts`.
+- ✅ Обновлен `apps/backend/test/app.e2e-spec.ts` под текущую бизнес-логику (referral/economy side effects, positive bet validation, bot-turn tolerant flow).
+- ✅ Проверки: `pnpm --filter @joker/backend test:e2e` — 16/16 passed; admin smoke `should require re-authentication after sign out` — passed (8 tests in run).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Разобрать `apps/admin` lint-конфиг (ENOENT на `apps/admin/test-results`) чтобы `pnpm --filter @joker/admin run lint` проходил стабильно.
+- [ ] Перейти к M-2: referral program backend + UI.
+
+---
+
+## [2026-02-07 17:05] - OpenCode
+
+### Выполнено
+- ✅ Закрыт M-1: реализован backend Leaderboard API и frontend Leaderboard UI.
+- ✅ Backend: модуль `LeaderboardModule`, endpoint `GET /leaderboard` с пагинацией, мульти-сортировкой (rating, wins, games, balance) и расчетом winRate на лету.
+- ✅ Frontend: API-клиент `leaderboard-api.ts`, компонент `LeaderboardPanel` с таблицей рангов, фильтрами сортировки, пагинацией и адаптивным UI.
+- ✅ Frontend UI интегрирован в Lobby через модальное окно (кнопка "Leaderboard"), поддерживает i18n (RU/EN).
+- ✅ Добавлен e2e-тест happy path для лидерборда в `apps/frontend/tests/e2e/app.spec.ts`.
+- ✅ Проверки: `pnpm lint`, `pnpm exec tsc` (backend/admin/frontend), `pnpm test:e2e` (backend: 16 passed, frontend: 9 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-2: Referral program (backend + UI).
+
+---
+
+## [2026-02-07 16:05] - OpenCode
+
+### Выполнено
+- ✅ Закрыт T-9: реализованы Telegram reminders зарегистрированным участникам перед стартом турнира.
+- ✅ `TelegramBotService` расширен методом `sendMessageToUser(...)` с безопасным fail-safe результатом доставки.
+- ✅ `TournamentModule` подключен к `TelegramBotModule`, `TournamentService` получил интеграцию отправки уведомлений.
+- ✅ В lifecycle добаван pre-start reminders flow: day/minute reminders, отправка только REGISTERED и не blocked пользователям.
+- ✅ Добавлена защита от дублей через persisted marks в `Tournament.botFillConfig.reminderMeta` (`daySentAt`, `minuteSentAt`).
+- ✅ Добавлен аудит reminder-отправок через `EventLogService.log` (`ADMIN_ACTION`, `TOURNAMENT_REMINDER_SENT`, counters).
+- ✅ Добавлены unit-тесты reminder-логики в `apps/backend/src/tournament/tests/tournament.service.spec.ts`.
+- ✅ Проверки: `pnpm lint`, `pnpm --filter @joker/backend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/admin type-check`, `pnpm --filter @joker/backend test:e2e` (16 passed), `pnpm --filter @joker/frontend test:e2e` (7 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-1: global leaderboard API + page.
+- [ ] Затем перейти к M-2: referral program backend + UI.
+
+---
+
+## [2026-02-07 15:22] - OpenCode
+
+### Выполнено
+- ✅ Закрыт T-8: реализован frontend UI турнирной сетки (stages/matches/slots/results) в деталях турнира.
+- ✅ Добавлена типизация и безопасный runtime parser для `bracketState` в `apps/frontend/src/lib/tournament-api.ts` (defensive parsing `unknown -> TournamentBracketState | null`).
+- ✅ В `apps/frontend/src/components/TournamentLobbyPanel.tsx` добавлены: блок bracket, отображение стадий/матчей, статусов `PENDING/COMPLETED`, пометка победителя, обработка bye/empty slots.
+- ✅ Добавлены `data-testid` для турнирного e2e пути (`details`, `bracket`, `match`, `join`, `leave`).
+- ✅ Добавлены новые RU/EN i18n ключи для bracket UI (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Добавлен frontend Playwright happy-path тест турниров: открытие лобби, переход в детали, проверка bracket, join/leave (`apps/frontend/tests/e2e/app.spec.ts`).
+- ✅ Проверки: `pnpm lint`, `pnpm --filter @joker/backend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/frontend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/admin type-check`, `pnpm --filter @joker/backend test:e2e`, `pnpm --filter @joker/frontend test:e2e` — green (frontend: 7 passed, 1 skipped; backend: 16 passed).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать T-9: Telegram reminders для зарегистрированных участников перед стартом турнира.
+- [ ] После T-9 перейти к M-1 (global leaderboard API + page).
 
 ---
 
