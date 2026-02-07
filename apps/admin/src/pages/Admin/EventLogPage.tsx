@@ -12,6 +12,40 @@ interface EventLogItem {
   createdAt: string;
 }
 
+function normalizeEventLogItem(item: unknown): EventLogItem | null {
+  if (!item || typeof item !== 'object') return null;
+
+  const raw = item as Record<string, unknown>;
+  const detailsRaw = raw.details;
+  const createdAtRaw = raw.createdAt;
+
+  const details =
+    typeof detailsRaw === 'string'
+      ? detailsRaw
+      : detailsRaw == null
+        ? '-'
+        : JSON.stringify(detailsRaw);
+
+  const createdAt =
+    typeof createdAtRaw === 'string'
+      ? createdAtRaw
+      : createdAtRaw instanceof Date
+        ? createdAtRaw.toISOString()
+        : new Date().toISOString();
+
+  return {
+    id: String(raw.id ?? crypto.randomUUID()),
+    adminId: String(raw.adminId ?? ''),
+    admin:
+      raw.admin && typeof raw.admin === 'object'
+        ? { username: String((raw.admin as Record<string, unknown>).username ?? '') }
+        : undefined,
+    action: String(raw.action ?? 'unknown'),
+    details,
+    createdAt,
+  };
+}
+
 export default function EventLogPage() {
   const [events, setEvents] = useState<EventLogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,10 +61,24 @@ export default function EventLogPage() {
       if (actionFilter !== 'all') params.action = actionFilter;
 
       const res = await adminApi.getEventLog(params);
-      setEvents(res.data.events || res.data);
-      setTotal(res.data.total || 0);
+      const payload = (res.data ?? {}) as {
+        items?: EventLogItem[];
+        events?: EventLogItem[];
+        total?: number;
+      };
+      const fetchedEvents = payload.events ?? payload.items ?? [];
+      const normalizedEvents = Array.isArray(fetchedEvents)
+        ? fetchedEvents
+            .map(normalizeEventLogItem)
+            .filter((item): item is EventLogItem => item !== null)
+        : [];
+
+      setEvents(normalizedEvents);
+      setTotal(typeof payload.total === 'number' ? payload.total : normalizedEvents.length);
     } catch (err) {
       console.error(err);
+      setEvents([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -41,6 +89,7 @@ export default function EventLogPage() {
   }, [fetchEvents]);
 
   const totalPages = Math.ceil(total / limit);
+  const displayEvents = Array.isArray(events) ? events : [];
 
   const getActionColor = (action: string) => {
     if (action.includes('block')) return 'bg-red-100 text-red-800';
@@ -102,14 +151,14 @@ export default function EventLogPage() {
                       Loading...
                     </td>
                   </tr>
-                ) : events.length === 0 ? (
+                ) : displayEvents.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       No events found
                     </td>
                   </tr>
                 ) : (
-                  events.map((event) => (
+                  displayEvents.map((event) => (
                     <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {new Date(event.createdAt).toLocaleString()}

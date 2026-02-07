@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-06 16:40
+**Последнее обновление:** 2026-02-07 09:40
 **Текущий статус:** 🚧 Phase 2: Admin Panel & Economy (In Progress)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -59,6 +59,237 @@ cd apps/admin && pnpm dev
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
 
 ---
+
+## [2026-02-07 09:40] - OpenCode
+
+### Выполнено
+- ✅ Запушены коммиты с фиксом Settings hash views в ветку `fix/admin-eventlog-avatar-crash`.
+- ✅ Создан PR в `develop`: `https://github.com/Gimmyhat/tma-game-joker/pull/13`.
+- ✅ Добавлен ignore для локальных e2e-артефактов админки: `apps/admin/.gitignore` (`test-results/`, `tests/e2e/.auth/`).
+- ✅ Очищены локальные артефакты: `apps/admin/test-results/`, `apps/admin/tests/e2e/.auth/`.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Дождаться ревью и merge PR #13.
+- [ ] После merge проверить прод-маршруты settings hash в `/admin`.
+
+## [2026-02-07 09:27] - OpenCode
+
+### Выполнено
+- ✅ Доведён hotfix для «разных экранов» в Settings по hash-роутам: в `SettingsPage` включено условное отображение секций для `#profile`, `#account-settings`, `#support`, чтобы пункты dropdown открывали разные view, а не один и тот же длинный экран.
+- ✅ Исправлена TS-совместимость проверки якоря: `Object.hasOwn(...)` заменён на `Object.prototype.hasOwnProperty.call(...)` в `apps/admin/src/pages/Admin/SettingsPage.tsx`.
+- ✅ Обновлён e2e `apps/admin/tests/e2e/settings.spec.ts`: добавлены проверки `visible/hidden` секций для каждого hash-якоря.
+- ✅ Проверки: `pnpm lint` (ok), `pnpm --filter @joker/admin type-check` (ok), `pnpm --filter @joker/admin test:e2e` (92 passed, 1 skipped).
+- ✅ Коммит: `0375983` (`fix(admin): split settings hash views and TS-safe anchor check`).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Закоммитить hotfix и запушить в рабочую ветку.
+- [ ] После merge в `main` проверить в проде `/admin/settings#profile`, `/admin/settings#account-settings`, `/admin/settings#support`.
+
+## [2026-02-06 20:30] - OpenCode
+
+### Выполнено
+- ✅ Устранена визуальная «дубляжность» пунктов профиля в dropdown без изменения бизнес-логики: `SettingsPage` теперь меняет заголовок страницы по hash (`Edit Profile`, `Account Settings`, `Support`), поэтому переходы `/settings#profile`, `/settings#account-settings`, `/settings#support` явно различимы.
+- ✅ Обновлен e2e-тест hash-навигации в `apps/admin/tests/e2e/settings.spec.ts`: вместо хрупкой проверки геометрии скролла теперь проверяется целевой hash + соответствующий заголовок.
+- ✅ Проверки: `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/settings.spec.ts` — успешно (18 passed).
+
+### В процессе
+- 🔄 Подготовка hotfix-коммита и выката в `main`.
+
+### Следующие шаги
+- [ ] Закоммитить и запушить hotfix в рабочую ветку.
+- [ ] Смёржить в `main` и дождаться `Deploy`.
+
+## [2026-02-06 19:44] - OpenCode
+
+### Выполнено
+- ✅ Разведены пункты профиля в dropdown: `Edit profile` -> `/settings#profile`, `Account settings` -> `/settings#account-settings`, `Support` -> `/settings#support` (`apps/admin/src/components/header/UserDropdown.tsx`).
+- ✅ На `SettingsPage` добавлены якоря секций `id="profile"`, `id="account-settings"`, `id="support"` и новый блок Support, чтобы три пункта открывали разные части страницы (`apps/admin/src/pages/Admin/SettingsPage.tsx`).
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/settings.spec.ts` — успешно (17 passed).
+
+### В процессе
+- 🔄 Подготовка коммита/пуша для hotfix навигации dropdown.
+
+### Следующие шаги
+- [ ] Закоммитить и запушить hotfix в рабочую ветку.
+- [ ] Смёржить в `main` для запуска `Deploy`.
+
+## [2026-02-06 19:23] - OpenCode
+
+### Выполнено
+- ✅ Локализована причина 404 на `https://georgian-joker.ru/admin/profile`: в роутинге админки отсутствовал маршрут `/profile`, поэтому открывался fallback 404.
+- ✅ Добавлен безопасный alias-роут `/profile -> /settings` в `apps/admin/src/App.tsx` без изменения бизнес-логики.
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit` — успешно.
+
+### В процессе
+- 🔄 Подготовка коммита/пуша hotfix и выката через merge в `main`.
+
+### Следующие шаги
+- [ ] Запушить hotfix и смержить в `main` для запуска `Deploy`.
+- [ ] Подтвердить вручную, что `/admin/profile` редиректит на `/admin/settings`.
+
+## [2026-02-06 18:55] - OpenCode
+
+### Выполнено
+- ✅ Подтверждено, что `e2e` workflow в GitHub Actions — это только валидация тестами, а не деплой в прод; сам деплой выполняется отдельным workflow `Deploy` на push в `main`.
+- ✅ Добавлены устойчивые `data-testid` и безопасные guard-паттерны рендера для `UsersPage`, `UserDetailPage`, `TablesPage`, `TableDetailPage`, `NotificationsPage`, `NotificationDetailPage`, `EventLogPage`, `TransactionsPage`.
+- ✅ Обновлены e2e-спеки `users.spec.ts`, `tables.spec.ts`, `notifications.spec.ts` на стабильные локаторы и корректные URL-ожидания.
+- ✅ Локально пройдено: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, и Playwright для групп `settings/transactions/event-log/users/tables/notifications` (67 passed).
+
+### В процессе
+- 🔄 Подготовка коммита и пуша со стабилизацией админских e2e/рендера.
+
+### Следующие шаги
+- [ ] Запушить изменения и дождаться green CI.
+- [ ] После merge в `main` проверить запуск workflow `Deploy` и обновление прод-админки.
+
+## [2026-02-06 18:13] - OpenCode
+
+### Выполнено
+- ✅ Стабилизированы e2e для группы `settings+transactions`: добавлены устойчивые `data-testid`/`aria` в `SettingsPage` и `TransactionsPage`, чтобы тесты не зависели от хрупких text-only селекторов.
+- ✅ Обновлены `apps/admin/tests/e2e/settings.spec.ts` и `apps/admin/tests/e2e/transactions.spec.ts` под `getByTestId`/role локаторы и более стабильные проверки.
+- ✅ Устранён runtime краш в `TransactionsPage` при нестандартном payload API (`transactions.map is not a function`) через безопасную нормализацию ответа без изменения бизнес-правил.
+- ✅ Проверки: `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/settings.spec.ts tests/e2e/transactions.spec.ts` — успешно (25 passed).
+
+### В процессе
+- 🔄 `pnpm --filter @joker/admin lint` падает из-за окружения (`ENOENT ... apps/admin/test-results`), не из-за TS/React кода страницы.
+
+### Следующие шаги
+- [ ] Нормализовать lint-конфиг/глоб-пути для `apps/admin/test-results`, чтобы `pnpm --filter @joker/admin lint` проходил стабильно.
+- [ ] После фикса lint повторить полный пакет проверок админки.
+
+## [2026-02-06 22:05] - OpenCode
+
+### Выполнено
+- ✅ Добавлены стабильные `data-testid` для заголовков, кнопок создания, таблиц/карточек, пустых состояний и фильтров на `NotificationsPage` и `TablesPage`, чтобы UI легче находил элементы.
+- ✅ Обновлены `apps/admin/tests/e2e/notifications.spec.ts` и `apps/admin/tests/e2e/tables.spec.ts` — теперь тесты опираются на `getByTestId`/`getByRole` и не зависят от хрупких текстовых локаторов.
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/notifications.spec.ts tests/e2e/tables.spec.ts` (последний падает: 9 уведомительных тестов не проходят из-за `New Notification` в нескольких элементах и `ERR_CONNECTION_REFUSED` для `/admin/notifications`).
+
+### В процессе
+- 🔄 Стабилизация группы `notifications` e2e (нужны уникальные селекторы страницы создания/деталей + стабильный `adminPort=3002`).
+
+### Следующие шаги
+- [ ] Добавить `data-testid` на элементы страницы создания и детализации уведомлений, чтобы `getByText('New Notification')` больше не имел двух совпадений.
+- [ ] Убедиться, что `apps/admin` dev-сервер доступен на порту, который использует Playwright (`adminPort=3002`).
+- [ ] Повторно запустить `pnpm --filter @joker/admin exec playwright test tests/e2e/notifications.spec.ts tests/e2e/tables.spec.ts` после стабилизации.
+
+## [2026-02-06 21:20] - OpenCode
+
+### Выполнено
+- ✅ Исправлен белый экран на `/admin/event-log`: страница теперь корректно обрабатывает API payload c `items/events`, добавлена нормализация записей и безопасный рендер (`apps/admin/src/pages/Admin/EventLogPage.tsx`).
+- ✅ Добавлен fallback для аватаров в header dropdowns, чтобы не показывались битые изображения при 404 (`apps/admin/src/components/header/UserDropdown.tsx`, `apps/admin/src/components/header/NotificationDropdown.tsx`).
+- ✅ Проверки: `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/admin exec playwright test tests/e2e/event-log.spec.ts` — успешно.
+
+### В процессе
+- 🔄 Общая стабилизация остальных admin e2e селекторов/ожиданий (вне event-log).
+
+### Следующие шаги
+- [ ] Допривести остальные failing admin e2e группы (notifications/settings/tables/transactions/users).
+
+## [2026-02-06 21:05] - OpenCode
+
+## [2026-02-06 21:05] - OpenCode
+
+### Выполнено
+- ✅ T-2: реализован Tournament admin CRUD на backend (`apps/backend/src/admin/admin.controller.ts`, `apps/backend/src/admin/admin.service.ts`) с endpoint-ами list/get/create/update/delete/publish/add-bots/tables/participants.
+- ✅ Добавлен frontend CRUD в админке: страницы `TournamentsPage`, `TournamentCreatePage`, `TournamentDetailPage`, роуты и пункт меню (`apps/admin/src/App.tsx`, `apps/admin/src/layout/AppSidebar.tsx`).
+- ✅ Расширен API-клиент админки методами турниров (`apps/admin/src/lib/api.ts`).
+- ✅ Проверки: `pnpm --filter @joker/backend lint`, `pnpm --filter @joker/admin lint`, `pnpm --filter @joker/backend exec tsc --noEmit`, `pnpm --filter @joker/admin exec tsc --noEmit`, `pnpm --filter @joker/frontend test:e2e` — успешно.
+
+### В процессе
+- 🔄 Проверка стабильности admin e2e окружения (existing issue в Playwright webServer: `vite --port 3001` vs `adminPort=3002`).
+
+### Следующие шаги
+- [ ] Стабилизировать `pnpm --filter @joker/admin test:e2e` (унифицировать dev script/admin port в `apps/admin/playwright.config.ts` и `apps/admin/package.json`).
+- [ ] После фикса прогнать admin e2e повторно.
+
+## [2026-02-06 20:18] - OpenCode
+
+### Выполнено
+- ✅ F-4: добавлены mock-модалки пополнения/вывода с вводом суммы и подтверждением (`apps/frontend/src/App.tsx`).
+- ✅ В mock-режиме операции сразу отражаются в локальном балансе и добавляются в историю транзакций.
+- ✅ Добавлены i18n ключи для F-4 (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Повторные проверки: `pnpm --filter @joker/{frontend,backend} lint`, `pnpm --filter @joker/{frontend,backend} exec tsc --noEmit`, `pnpm --filter @joker/frontend test:e2e` — успешно.
+
+### В процессе
+- 🔄 T-2: Tournament admin CRUD.
+
+### Следующие шаги
+- [ ] Начать T-2: реализовать CRUD турниров в админке.
+
+## [2026-02-06 20:02] - OpenCode
+
+### Выполнено
+- ✅ Исправлен backend economy userId mismatch: добавлен резолв `UUID | Telegram ID` в `apps/backend/src/economy/economy.service.ts`.
+- ✅ Обновлен endpoint истории: `apps/backend/src/economy/economy.controller.ts` теперь резолвит Telegram ID в internal UUID перед `getUserHistory`.
+- ✅ F-3: добавлена история операций в player UI (`apps/frontend/src/App.tsx`) + i18n ключи в `apps/frontend/src/locales/ru.json` и `apps/frontend/src/locales/en.json`.
+- ✅ Проверки: backend/frontend lint и `tsc --noEmit` (ok), `pnpm --filter @joker/frontend test:e2e` (6 passed, 1 skipped).
+
+### В процессе
+- 🔄 F-4: Deposit/Withdraw modals.
+
+### Следующие шаги
+- [ ] Реализовать F-4: Deposit/Withdraw modals (mock).
+- [ ] После F-4 прогнать `pnpm lint` и пакетные type-check/e2e повторно.
+
+## [2026-02-06 19:41] - OpenCode
+
+### Выполнено
+- ✅ F-2: реализован mock UI кошелька в лобби (`apps/frontend/src/App.tsx`) с привязкой/отвязкой и сохранением mock-адреса в `localStorage`.
+- ✅ Добавлены i18n ключи `wallet.*` для RU/EN (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Проверки: `pnpm lint` (ok), `pnpm --filter @joker/{shared,backend,frontend,admin} exec tsc --noEmit` (ok).
+
+### В процессе
+- 🔄 E2E в фронтенде: `pnpm --filter @joker/frontend test:e2e` падает на существующем backend 500 в `/economy/balance/:userId` из-за Prisma UUID validation (`apps/backend/src/economy/economy.service.ts:32`).
+
+### Следующие шаги
+- [ ] Исправить backend обработку `userId` для economy endpoints (нормализовать/валидировать Telegram id до UUID-совместимой схемы или сменить тип идентификатора в запросах к Prisma).
+- [ ] Повторно запустить `pnpm --filter @joker/frontend test:e2e`.
+- [ ] Перейти к F-3: Transaction history page.
+
+## [2026-02-06 19:10] - OpenCode
+
+### Выполнено
+- ✅ Привёл все admin e2e тесты и фикстуру к вызову `page.goto('/admin/...')`, чтобы они запускались на подкаталоге админки, не трогая остальную логику.
+
+### В процессе
+- 🔄 Нет
+
+### Следующие шаги
+- [ ] Запустить `pnpm --filter @joker/admin test:e2e` или `pnpm test` для подтверждения стабильности путей.
+
+## [2026-02-06 17:25] - OpenCode
+
+### Выполнено
+- ✅ F-1: показ баланса в лобби (App.tsx + i18n)
+
+### В процессе
+- 🔄 Тесты: `pnpm lint` падает в `apps/admin/tests/e2e/*` (unused vars, hooks rule)
+
+### Следующие шаги
+- [ ] Починить lint в admin e2e тестах или исключить их из lint
+- [ ] Перезапустить `pnpm lint && pnpm type-check && pnpm test:e2e`
+
+## [2026-02-06 13:13] - OpenCode
+
+### Выполнено
+- ✅ Добавлены операционные макросы для `opencode-pty` в `AGENTS.md`
+
+### Следующие шаги
+- [ ] Нет
+
+## [2026-02-06 16:50] - OpenCode
+
+### Выполнено
+- ✅ Обновлены guardrails для `opencode-pty` в `AGENTS.md`
+
+### Следующие шаги
+- [ ] Нет
 
 ## [2026-02-06 16:40] - OpenCode
 

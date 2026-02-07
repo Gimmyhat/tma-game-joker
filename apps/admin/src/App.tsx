@@ -12,6 +12,9 @@ import EventLogPage from './pages/Admin/EventLogPage';
 import SettingsPage from './pages/Admin/SettingsPage';
 import TablesPage from './pages/Admin/TablesPage';
 import TableDetailPage from './pages/Admin/TableDetailPage';
+import TournamentsPage from './pages/Admin/TournamentsPage';
+import TournamentCreatePage from './pages/Admin/TournamentCreatePage';
+import TournamentDetailPage from './pages/Admin/TournamentDetailPage';
 import TasksPage from './pages/Admin/TasksPage';
 import TaskDetailPage from './pages/Admin/TaskDetailPage';
 import TaskCreatePage from './pages/Admin/TaskCreatePage';
@@ -53,8 +56,12 @@ export default function App() {
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/event-log" element={<EventLogPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<Navigate to="/settings" replace />} />
             <Route path="/tables" element={<TablesPage />} />
             <Route path="/tables/:id" element={<TableDetailPage />} />
+            <Route path="/tournaments" element={<TournamentsPage />} />
+            <Route path="/tournaments/new" element={<TournamentCreatePage />} />
+            <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/tasks/new" element={<TaskCreatePage />} />
             <Route path="/tasks/:id" element={<TaskDetailPage />} />

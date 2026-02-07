@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import PageMeta from '../../components/common/PageMeta';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { useAuthStore } from '../../lib/auth';
@@ -58,6 +58,7 @@ const SETTINGS_CONFIG: Record<
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { admin, logout } = useAuthStore();
 
   const [settings, setSettings] = useState<GlobalSetting[]>([]);
@@ -66,6 +67,21 @@ export default function SettingsPage() {
   const [editedSettings, setEditedSettings] = useState<Record<string, unknown>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const activeAnchor = location.hash.startsWith('#') ? location.hash.slice(1) : '';
+
+  const sectionTitles: Record<string, string> = {
+    profile: 'Edit Profile',
+    'account-settings': 'Account Settings',
+    support: 'Support',
+  };
+
+  const hasAnchorView = Object.prototype.hasOwnProperty.call(sectionTitles, activeAnchor);
+  const showGlobalSettings = !hasAnchorView || activeAnchor === 'account-settings';
+  const showProfileSection = !hasAnchorView || activeAnchor === 'profile';
+  const showAccountActionsSection = !hasAnchorView || activeAnchor === 'account-settings';
+  const showSupportSection = !hasAnchorView || activeAnchor === 'support';
+
+  const pageTitle = sectionTitles[activeAnchor] || 'Settings';
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -182,122 +198,186 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageMeta title="Settings | Joker Admin" description="Admin settings" />
-      <PageBreadcrumb pageTitle="Settings" />
+      <PageMeta title={`${pageTitle} | Joker Admin`} description="Admin settings" />
+      <PageBreadcrumb pageTitle={pageTitle} />
 
       <div className="space-y-6">
         {/* Global Settings */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Global Settings</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddSetting}
-                className="rounded bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600"
-              >
-                Add Setting
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
+        {showGlobalSettings && (
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="global-settings-section"
+            aria-label="Global settings"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                Global Settings
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddSetting}
+                  className="rounded bg-gray-500 px-4 py-2 text-sm text-white hover:bg-gray-600"
+                  data-testid="add-setting-button"
+                  aria-label="Add setting"
+                >
+                  Add Setting
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
+                  data-testid="save-settings-button"
+                  aria-label="Save settings"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
+
+            {error && (
+              <div
+                className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-800/20 dark:text-red-400"
+                data-testid="settings-error"
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div
+                className="mb-4 rounded bg-green-100 p-3 text-sm text-green-700 dark:bg-green-800/20 dark:text-green-400"
+                data-testid="settings-success"
+                role="status"
+                aria-live="polite"
+              >
+                {success}
+              </div>
+            )}
+
+            {loading ? (
+              <div className="py-8 text-center text-gray-500" data-testid="settings-loading">
+                Loading settings...
+              </div>
+            ) : settings.length === 0 ? (
+              <div className="py-8 text-center text-gray-500" data-testid="settings-empty-state">
+                No settings configured. Click "Add Setting" to create one.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {settings.map((setting) => {
+                  const config = SETTINGS_CONFIG[setting.key];
+                  return (
+                    <div
+                      key={setting.key}
+                      className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700"
+                      data-testid={`setting-row-${setting.key}`}
+                    >
+                      <div>
+                        <div className="font-medium text-gray-800 dark:text-white">
+                          {config?.label || setting.key}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {setting.description || config?.description || setting.key}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {renderSettingInput(setting.key, setting.value)}
+                        <span className="text-xs text-gray-400">
+                          {new Date(setting.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-
-          {error && (
-            <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-800/20 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 rounded bg-green-100 p-3 text-sm text-green-700 dark:bg-green-800/20 dark:text-green-400">
-              {success}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="py-8 text-center text-gray-500">Loading settings...</div>
-          ) : settings.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">
-              No settings configured. Click "Add Setting" to create one.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {settings.map((setting) => {
-                const config = SETTINGS_CONFIG[setting.key];
-                return (
-                  <div
-                    key={setting.key}
-                    className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700"
-                  >
-                    <div>
-                      <div className="font-medium text-gray-800 dark:text-white">
-                        {config?.label || setting.key}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {setting.description || config?.description || setting.key}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {renderSettingInput(setting.key, setting.value)}
-                      <span className="text-xs text-gray-400">
-                        {new Date(setting.updatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Profile Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
-            Profile Information
-          </h2>
+        {showProfileSection && (
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="profile-section"
+            aria-label="Profile information"
+            id="profile"
+          >
+            <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+              Profile Information
+            </h2>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
-              <span className="text-gray-500">Username</span>
-              <span className="font-medium text-gray-800 dark:text-white">
-                {admin?.username || '-'}
-              </span>
-            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
+                <span className="text-gray-500" data-testid="profile-username-label">
+                  Username
+                </span>
+                <span
+                  className="font-medium text-gray-800 dark:text-white"
+                  data-testid="profile-username-value"
+                >
+                  {admin?.username || '-'}
+                </span>
+              </div>
 
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
-              <span className="text-gray-500">Role</span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-800/20 dark:text-blue-400">
-                {admin?.role || '-'}
-              </span>
-            </div>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-700">
+                <span className="text-gray-500" data-testid="profile-role-label">
+                  Role
+                </span>
+                <span
+                  className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-800/20 dark:text-blue-400"
+                  data-testid="profile-role-value"
+                >
+                  {admin?.role || '-'}
+                </span>
+              </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">User ID</span>
-              <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                {admin?.id || '-'}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">User ID</span>
+                <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                  {admin?.id || '-'}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
-            Account Actions
-          </h2>
-
-          <button
-            onClick={handleLogout}
-            className="rounded-lg bg-red-500 px-6 py-2 text-white transition hover:bg-red-600"
+        {showAccountActionsSection && (
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="account-actions-section"
+            aria-label="Account actions"
+            id="account-settings"
           >
-            Logout
-          </button>
-        </div>
+            <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+              Account Actions
+            </h2>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-lg bg-red-500 px-6 py-2 text-white transition hover:bg-red-600"
+              data-testid="logout-button"
+              aria-label="Logout"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+
+        {showSupportSection && (
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            data-testid="support-section"
+            aria-label="Support information"
+            id="support"
+          >
+            <h2 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">Support</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              For admin assistance, contact platform support via your internal support channel.
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

@@ -24,11 +24,25 @@
 - **micode**: запускать только по явному запросу или при повторяемом рефакторе.
 - **@tarquinen/opencode-dcp**: не использовать без явного запроса.
 - **opencode-pty**:
-  - Разрешено по умолчанию: `pnpm dev*`, `pnpm lint`, `pnpm type-check`, `pnpm test*`, `docker compose logs -f`.
-  - Только по явному запросу: `docker compose up -d`/`docker compose down`, Prisma migrate/seed, `docker compose -f docker-compose.prod.yml ...`, SSH.
-  - Запрещено без запроса: разрушительные команды (`rm -rf`, `git reset --hard`, `docker compose down -v`).
-  - Именование: `pty:<scope>:<task>` (пример: `pty:dev:frontend`).
-  - Закрывать PTY после задачи; держать только активные dev-серверы.
+  - **Когда использовать PTY**: только долгоживущие процессы (dev/watch, `docker compose logs -f`, Playwright UI, `prisma studio`).
+  - **Короткие команды**: выполнять через Bash (lint/type-check/test/build, Prisma migrate/generate/seed, `docker compose up/down/ps`).
+  - **Разрешено по умолчанию (PTY)**: `pnpm dev*`, `pnpm --filter @joker/* dev`, `pnpm -r dev`, `docker compose logs -f`.
+  - **Только по явному запросу**: `docker compose up -d`/`docker compose down`, Prisma migrate/seed/reset, `docker compose -f docker-compose.prod.yml ...`, SSH.
+  - **Запрещено без запроса**: разрушительные команды (`rm -rf`, `git reset --hard`, `docker compose down -v`, `prisma migrate reset`, `prisma db push --force-reset`).
+  - **Именование**: `pty:<scope>:<task>`; стандартные: `pty:compose:logs`, `pty:dev:backend`, `pty:dev:frontend`, `pty:dev:admin`, `pty:e2e:frontend`, `pty:e2e:admin`, `pty:prisma:studio`.
+  - **Read/Monitor**: `pty_read` с `pattern` и лимитом (обычно 200 строк). Готовность по логам: Nest — `Nest application successfully started`, Vite — `ready in`, Postgres — `ready to accept connections`, Redis — `Ready to accept connections`.
+  - **Доп. readiness**: если известен health endpoint/порт — проверять через Bash (`curl`, `Test-NetConnection`).
+  - **Cleanup**: перед запуском окружения — `pty_list` и остановить конфликтующие. В конце задачи — закрыть лишние PTY, оставлять только активные dev-серверы.
+
+### opencode-pty macros (операционные)
+
+- Подними compose и жди готовность Postgres/Redis: Bash `docker compose up -d`, затем PTY `pty:compose:logs` с `docker compose logs -f`, ждать `ready to accept connections`.
+- Запусти backend: PTY `pty:dev:backend`, команда `pnpm dev:backend`, готовность по `Nest application successfully started`.
+- Запусти player frontend: PTY `pty:dev:frontend`, команда `pnpm dev:frontend`, готовность по `ready in`.
+- Запусти admin frontend: PTY `pty:dev:admin`, команда `pnpm dev:admin`, готовность по `ready in`.
+- Запусти e2e: PTY `pty:e2e:frontend` или `pty:e2e:admin`, команда `pnpm --filter @joker/<app> test:e2e`; при падении — `pty_read` с `pattern=ERROR|Exception` + последние 200 строк backend.
+- Статус/очистка: `pty_list`, затем `pty_kill` для лишних; оставить только активные dev-сервисы.
+- Логи по regex: `pty_read` с `pattern='ERROR|Exception'` и `limit=200`.
 
 ### При завершении сессии ОБЯЗАТЕЛЬНО:
 

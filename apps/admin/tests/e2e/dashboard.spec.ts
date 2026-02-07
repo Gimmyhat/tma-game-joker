@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard', () => {
   test('should display dashboard with metrics', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     // Should display dashboard title or heading
     await expect(page.locator('h1, h2, [data-testid="dashboard-title"]').first()).toBeVisible();
@@ -15,21 +15,20 @@ test.describe('Dashboard', () => {
   });
 
   test('should display admin avatar in header', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     // Check for admin avatar/profile in header
     const header = page.locator('header, [data-testid="header"]').first();
     await expect(header).toBeVisible();
 
     // Avatar could be an img, div with initials, or icon
-    const avatar = header
+    header
       .locator('img[alt*="avatar" i], img[alt*="admin" i], [data-testid="avatar"], .avatar')
       .first();
-    // Avatar might not be required, so we just check header is visible
   });
 
   test('should have working sidebar navigation', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     // Check sidebar is visible
     const sidebar = page.locator('nav, aside, [data-testid="sidebar"]').first();
@@ -46,15 +45,16 @@ test.describe('Dashboard', () => {
     ];
 
     for (const link of navLinks) {
-      const navLink = sidebar
-        .locator(`a:has-text("${link.text.source.replace(/[\/\\^$*+?.()|[\]{}]/g, '')}")`)
-        .first();
+      const sanitized = link.text.source
+        .replace(/[\\^$*+?.()|[\]{}]/g, '')
+        .replace(new RegExp('/', 'g'), '');
+      await sidebar.locator(`a:has-text("${sanitized}")`).first().count();
       // Just check at least some links exist
     }
   });
 
   test('should navigate to Users page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     // Click on Users link
     await page
@@ -67,7 +67,7 @@ test.describe('Dashboard', () => {
   });
 
   test('should navigate to Transactions page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     await page
       .locator('a[href*="transactions"], a:has-text("Transactions"), a:has-text("Транзакции")')
@@ -78,7 +78,7 @@ test.describe('Dashboard', () => {
   });
 
   test('should navigate to Tables page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     await page
       .locator('a[href*="tables"], a:has-text("Tables"), a:has-text("Столы")')
@@ -89,7 +89,7 @@ test.describe('Dashboard', () => {
   });
 
   test('should navigate to Tasks page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     await page
       .locator('a[href*="tasks"], a:has-text("Tasks"), a:has-text("Задания")')
@@ -100,7 +100,7 @@ test.describe('Dashboard', () => {
   });
 
   test('should navigate to Settings page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     await page
       .locator('a[href*="settings"], a:has-text("Settings"), a:has-text("Настройки")')
@@ -111,12 +111,13 @@ test.describe('Dashboard', () => {
   });
 
   test('should display quick action cards on dashboard', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/admin/');
 
     // Check for quick action links/cards
     const quickActions = page
       .locator('[data-testid="quick-actions"], .quick-actions, .card a')
       .first();
+    await quickActions.count();
     // Quick actions are optional, main check is page loads
   });
 });

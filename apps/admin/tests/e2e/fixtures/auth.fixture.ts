@@ -35,7 +35,7 @@ export async function waitForAppReady(page: Page): Promise<void> {
  * Login to admin panel and save storage state
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
-  await page.goto('/signin');
+  await page.goto('/admin/signin');
   await waitForAppReady(page);
 
   // Wait for login form using data-testid
@@ -50,7 +50,7 @@ export async function loginAsAdmin(page: Page): Promise<void> {
   await page.getByRole('button', { name: /sign in/i }).click();
 
   // Wait for redirect to dashboard
-  await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/admin\/?$/, { timeout: 15_000 });
 
   // Verify we're authenticated - check for sidebar or main content
   await expect(page.locator('aside, nav, [role="navigation"]').first()).toBeVisible({
@@ -59,11 +59,24 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
+ * Ensure the current test context has an authenticated admin session.
+ * Navigates to `/admin` and logs in only if the router still points to signin.
+ */
+export async function ensureAdminSession(page: Page): Promise<void> {
+  await page.goto('/admin');
+  await waitForAppReady(page);
+
+  if (page.url().includes('/signin')) {
+    await loginAsAdmin(page);
+  }
+}
+
+/**
  * Logout from admin panel
  */
 export async function logout(page: Page): Promise<void> {
   // Navigate to settings where logout button is
-  await page.goto('/settings');
+  await page.goto('/admin/settings');
   await waitForAppReady(page);
 
   // Click logout button
@@ -78,13 +91,13 @@ export async function logout(page: Page): Promise<void> {
  * Extended test with admin authentication
  */
 export const test = base.extend<{ adminPage: Page }>({
-  adminPage: async ({ page }, use) => {
+  adminPage: async ({ page }, runFixture) => {
     // If storage state doesn't exist, login first
     if (!fs.existsSync(AUTH_STORAGE_PATH)) {
       await loginAsAdmin(page);
       await page.context().storageState({ path: AUTH_STORAGE_PATH });
     }
-    await use(page);
+    await runFixture(page);
   },
 });
 

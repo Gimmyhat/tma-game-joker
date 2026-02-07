@@ -30,7 +30,15 @@ import {
   parseFiltersParam,
   parseSortParam,
 } from './utils/query-builder';
-import { User, AdminRole, TxType, TxStatus, NotificationStatus } from '@prisma/client';
+import {
+  User,
+  AdminRole,
+  Prisma,
+  TxType,
+  TxStatus,
+  NotificationStatus,
+  TournamentStatus,
+} from '@prisma/client';
 import { AdjustBalanceDto } from '../economy/dto';
 
 const userFilterSchema: FieldSchema = {
@@ -114,6 +122,15 @@ const notificationDeliveryFilterSchema: FieldSchema = {
   deliveryStatus: { type: 'enum' },
   deliveredAt: { type: 'date' },
   readAt: { type: 'date' },
+};
+
+const tournamentFilterSchema: FieldSchema = {
+  id: { type: 'id' },
+  title: { type: 'string' },
+  status: { type: 'enum' },
+  registrationStart: { type: 'date' },
+  startTime: { type: 'date' },
+  createdAt: { type: 'date' },
 };
 
 @Controller('admin')
@@ -517,6 +534,147 @@ export class AdminController {
   ) {
     await this.adminService.rejectTaskCompletion(id, admin.id, dto.reason);
     return { success: true };
+  }
+
+  // ===== Tournaments Management =====
+
+  @Get('tournaments')
+  @Roles('OPERATOR')
+  async listTournaments(
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('filters') filters?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const advancedWhere = buildWhereFromFilter(parseFiltersParam(filters), tournamentFilterSchema);
+    const orderBy = buildOrderBy(parseSortParam(sort), tournamentFilterSchema);
+    return this.adminService.listTournaments(
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+      status as TournamentStatus | undefined,
+      search,
+      advancedWhere,
+      orderBy,
+    );
+  }
+
+  @Get('tournaments/:id')
+  @Roles('OPERATOR')
+  async getTournament(@Param('id') id: string) {
+    return this.adminService.getTournament(id);
+  }
+
+  @Post('tournaments')
+  @Roles('MODERATOR')
+  async createTournament(
+    @Body()
+    dto: {
+      title?: string;
+      config?: Record<string, unknown>;
+      status?: TournamentStatus;
+      registrationStart?: string;
+      startTime?: string;
+      botFillConfig?: Record<string, unknown>;
+      currentStage?: number;
+    },
+    @CurrentAdmin() admin: User,
+  ) {
+    return this.adminService.createTournament(
+      {
+        title: dto.title,
+        config: dto.config as Prisma.InputJsonValue | undefined,
+        status: dto.status,
+        registrationStart: dto.registrationStart ? new Date(dto.registrationStart) : undefined,
+        startTime: dto.startTime ? new Date(dto.startTime) : undefined,
+        botFillConfig: dto.botFillConfig as Prisma.InputJsonValue | undefined,
+        currentStage: dto.currentStage,
+      },
+      admin.id,
+    );
+  }
+
+  @Put('tournaments/:id')
+  @Roles('MODERATOR')
+  async updateTournament(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      title?: string;
+      config?: Record<string, unknown>;
+      status?: TournamentStatus;
+      registrationStart?: string | null;
+      startTime?: string | null;
+      botFillConfig?: Record<string, unknown>;
+      currentStage?: number;
+    },
+    @CurrentAdmin() admin: User,
+  ) {
+    return this.adminService.updateTournament(
+      id,
+      {
+        title: dto.title,
+        config: dto.config as Prisma.InputJsonValue | undefined,
+        status: dto.status,
+        registrationStart:
+          dto.registrationStart === null
+            ? null
+            : dto.registrationStart
+              ? new Date(dto.registrationStart)
+              : undefined,
+        startTime:
+          dto.startTime === null ? null : dto.startTime ? new Date(dto.startTime) : undefined,
+        botFillConfig: dto.botFillConfig as Prisma.InputJsonValue | undefined,
+        currentStage: dto.currentStage,
+      },
+      admin.id,
+    );
+  }
+
+  @Post('tournaments/:id/delete')
+  @Roles('ADMIN')
+  async deleteTournament(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    return this.adminService.deleteTournament(id, admin.id);
+  }
+
+  @Post('tournaments/:id/publish')
+  @Roles('MODERATOR')
+  async publishTournament(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    return this.adminService.publishTournament(id, admin.id);
+  }
+
+  @Post('tournaments/:id/add-bots')
+  @Roles('MODERATOR')
+  async addTournamentBots(
+    @Param('id') id: string,
+    @Body() dto: { count: number },
+    @CurrentAdmin() admin: User,
+  ) {
+    if (!Number.isFinite(dto.count) || dto.count <= 0) {
+      throw new BadRequestException('count must be a positive number');
+    }
+    return this.adminService.addTournamentBots(id, Math.floor(dto.count), admin.id);
+  }
+
+  @Get('tournaments/:id/tables')
+  @Roles('OPERATOR')
+  async getTournamentTables(@Param('id') id: string) {
+    return this.adminService.getTournamentTables(id);
+  }
+
+  @Get('tournaments/:id/participants')
+  @Roles('OPERATOR')
+  async getTournamentParticipants(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.adminService.getTournamentParticipants(
+      id,
+      page ? parseInt(page, 10) : 1,
+      pageSize ? parseInt(pageSize, 10) : 20,
+    );
   }
 
   // ===== Notifications Management =====

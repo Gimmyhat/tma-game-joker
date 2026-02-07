@@ -10,9 +10,14 @@ const parsePort = (value: string | undefined, fallback: number) => {
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
-const backendPort = parsePort(process.env.PLAYWRIGHT_BACKEND_PORT, 3001);
+const backendPort = parsePort(process.env.PLAYWRIGHT_BACKEND_PORT, 3000);
 const adminPort = parsePort(process.env.PLAYWRIGHT_ADMIN_PORT, 3002);
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${adminPort}`;
+const rawBaseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${adminPort}`;
+const baseURL = rawBaseURL.endsWith('/admin')
+  ? rawBaseURL
+  : rawBaseURL.endsWith('/admin/')
+    ? rawBaseURL.slice(0, -1)
+    : `${rawBaseURL.replace(/\/$/, '')}/admin`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -60,7 +65,7 @@ export default defineConfig({
           },
         },
         {
-          command: `pnpm --filter @joker/admin dev -- --host 127.0.0.1 --port ${adminPort} --strictPort`,
+          command: `pnpm --filter @joker/admin exec vite --host 127.0.0.1 --port ${adminPort} --strictPort`,
           port: adminPort,
           reuseExistingServer: true,
           cwd: repoRoot,

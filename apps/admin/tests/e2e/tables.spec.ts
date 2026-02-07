@@ -6,85 +6,84 @@ test.describe('Tables Management (God Mode)', () => {
   });
 
   test('should display tables list', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Tables' })).toBeVisible();
-    await expect(page.getByText(/Active Tables/)).toBeVisible();
-    await page
-      .getByText('Loading tables...')
-      .count()
-      .catch(() => 0);
-    await page
-      .getByText('No active tables')
-      .count()
-      .catch(() => 0);
+    await expect(page.getByTestId('tables-header')).toBeVisible();
+    await expect(page.getByTestId('tables-active-heading')).toBeVisible();
+    await page.locator('[data-testid="tables-loading"]').count();
+    await page.locator('[data-testid="tables-empty-state"]').count();
   });
 
   test('should auto-refresh tables data', async ({ page }) => {
-    await expect(page.getByText(/Active Tables/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    await expect(page.getByTestId('tables-active-heading')).toBeVisible();
+    await expect(page.getByTestId('tables-refresh')).toBeVisible();
   });
 
   test('should display table cards with status', async ({ page }) => {
-    const statusIndicator = page.locator('.status, .badge').first();
-    await statusIndicator.count().catch(() => 0);
+    const statusIndicator = page.getByTestId('table-phase').first();
+    await statusIndicator.count();
   });
 
   test('should navigate to table detail (God Mode)', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      await expect(page).toHaveURL(/\/tables\//);
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      await expect(page).toHaveURL(/\/admin\/tables\/[^/]+/);
+      await expect(page.getByTestId('table-detail-heading')).toBeVisible();
     }
   });
 
   test('should display God Mode view with all player cards', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      await page.waitForTimeout(1000);
-
-      const playerHands = page.locator('.player-cards, .hand, .player').first();
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      const playerHands = page.getByTestId('table-player-hand').first();
       await playerHands.count().catch(() => 0);
     }
   });
 
   test('should display current game phase', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      const phaseIndicator = page.locator('text=/phase|фаза|раунд/i').first();
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      const phaseIndicator = page.getByTestId('table-phase-indicator');
       await phaseIndicator.count().catch(() => 0);
     }
   });
 
   test('should display table metadata', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      const tableInfo = page.locator('.table-info, .meta').first();
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      const tableInfo = page.getByTestId('table-meta');
       await tableInfo.count().catch(() => 0);
     }
   });
 
   test('should display cards on table (trick)', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      const tableCards = page.locator('.table-cards, .trick-cards, .center-cards').first();
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      const tableCards = page.getByTestId('table-cards').first();
       await tableCards.count().catch(() => 0);
     }
   });
 
   test('should show player information', async ({ page }) => {
-    const tableLink = page.locator('a[href*="/tables/"]').first();
+    const tableCard = page.getByTestId('table-card').first();
 
-    if (await tableLink.isVisible()) {
-      await tableLink.click();
-      const playerInfo = page.locator('.player-name, .player').first();
+    if (await tableCard.isVisible()) {
+      await tableCard.click();
+      await page.waitForURL(/\/admin\/tables\/[^/]+/);
+      const playerInfo = page.getByTestId('table-player-card').first();
       await playerInfo.count().catch(() => 0);
     }
   });

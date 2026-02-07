@@ -11,6 +11,51 @@ const GameScreen = lazy(() =>
 );
 // import { RotateDeviceOverlay } from './components/RotateDeviceOverlay';
 
+type BalanceResponse = {
+  balance?: string;
+  currency?: string;
+};
+
+type TransactionItem = {
+  id: string;
+  amount: string | number;
+  type: string;
+  status: string;
+  createdAt: string;
+};
+
+type TransactionsResponse = {
+  items?: TransactionItem[];
+};
+
+function createMockWalletAddress(): string {
+  const randomHex = Array.from({ length: 40 }, () =>
+    Math.floor(Math.random() * 16).toString(16),
+  ).join('');
+  return `0x${randomHex}`;
+}
+
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_SOCKET_URL;
+  if (envUrl) {
+    try {
+      const parsed = new URL(envUrl);
+      const host = window.location.hostname;
+      const isLoopbackHost = host === 'localhost' || host === '127.0.0.1';
+      const isLoopbackEnv = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+
+      if (isLoopbackHost && isLoopbackEnv && parsed.hostname !== host) {
+        return window.location.origin;
+      }
+    } catch {
+      return envUrl;
+    }
+
+    return envUrl;
+  }
+  return window.location.origin;
+}
+
 /**
  * Lobby screen - shown before game starts
  */
@@ -18,6 +63,170 @@ function LobbyScreen() {
   const { t } = useTranslation();
   const { user, isTelegram } = useTelegram();
   const { connectionStatus, lobbyStatus, findGame, leaveQueue } = useGameStore();
+  const [balance, setBalance] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<string | null>(null);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [transferAmount, setTransferAmount] = useState('100');
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let isActive = true;
+    const controller = new AbortController();
+
+    const loadBalance = async () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const response = await fetch(`${baseUrl}/economy/balance/${userId}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Balance request failed');
+        }
+
+        const data = (await response.json()) as BalanceResponse;
+        if (isActive) {
+          const value =
+            typeof data.balance === 'string'
+              ? data.balance
+              : data.balance != null
+                ? String(data.balance)
+                : null;
+          setBalance(value);
+          setCurrency(typeof data.currency === 'string' ? data.currency : null);
+        }
+      } catch (error) {
+        if (isActive) {
+          setBalance(null);
+          setCurrency(null);
+        }
+      }
+    };
+
+    loadBalance();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setWalletAddress(null);
+      return;
+    }
+
+    const key = `joker:wallet:mock:${userId}`;
+    const savedAddress = window.localStorage.getItem(key);
+    setWalletAddress(savedAddress);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isHistoryModalOpen || !userId) return;
+
+    let isActive = true;
+    const controller = new AbortController();
+
+    const loadTransactions = async () => {
+      setIsHistoryLoading(true);
+      setHistoryError(null);
+
+      try {
+        const baseUrl = getApiBaseUrl();
+        const response = await fetch(`${baseUrl}/economy/transactions/user/${userId}?pageSize=15`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Transactions request failed');
+        }
+
+        const data = (await response.json()) as TransactionsResponse;
+        if (isActive) {
+          setTransactions(Array.isArray(data.items) ? data.items : []);
+        }
+      } catch {
+        if (isActive) {
+          setHistoryError(t('wallet.historyLoadError'));
+          setTransactions([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsHistoryLoading(false);
+        }
+      }
+    };
+
+    loadTransactions();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [isHistoryModalOpen, userId, t]);
+
+  const connectMockWallet = () => {
+    if (!userId) return;
+
+    const key = `joker:wallet:mock:${userId}`;
+    const nextAddress = createMockWalletAddress();
+    window.localStorage.setItem(key, nextAddress);
+    setWalletAddress(nextAddress);
+  };
+
+  const disconnectMockWallet = () => {
+    if (!userId) return;
+
+    const key = `joker:wallet:mock:${userId}`;
+    window.localStorage.removeItem(key);
+    setWalletAddress(null);
+  };
+
+  const applyMockTransfer = (txType: 'DEPOSIT' | 'WITHDRAW') => {
+    const amount = Number(transferAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTransferError(t('wallet.amountInvalid'));
+      return;
+    }
+
+    const currentBalance = Number(balance ?? '0');
+    if (txType === 'WITHDRAW' && amount > currentBalance) {
+      setTransferError(t('wallet.insufficientFunds'));
+      return;
+    }
+
+    setTransferError(null);
+
+    const nextBalance = txType === 'DEPOSIT' ? currentBalance + amount : currentBalance - amount;
+    setBalance(nextBalance.toFixed(2));
+
+    const mockTransaction: TransactionItem = {
+      id: `mock-${Date.now()}`,
+      amount: txType === 'DEPOSIT' ? amount : -amount,
+      type: txType,
+      status: txType === 'DEPOSIT' ? 'SUCCESS' : 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+    setTransactions((prev) => [mockTransaction, ...prev]);
+
+    setTransferAmount('100');
+    if (txType === 'DEPOSIT') {
+      setIsDepositModalOpen(false);
+    } else {
+      setIsWithdrawModalOpen(false);
+    }
+  };
 
   return (
     <div
@@ -64,6 +273,32 @@ function LobbyScreen() {
             {connectionStatus}
           </span>
         </div>
+
+        {user && (
+          <div className="mb-4 flex items-center justify-center">
+            <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm">
+              <span className="text-[9px] font-medium text-white/60 uppercase tracking-widest">
+                {t('lobby.balance')}
+              </span>
+              <span className="text-[11px] font-semibold text-amber-200">
+                {balance ?? '—'}
+                {currency ? ` ${currency}` : ''}
+              </span>
+              <button
+                onClick={() => setIsWalletModalOpen(true)}
+                className="ml-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 transition-colors hover:border-amber-300/50 hover:text-amber-100"
+              >
+                {walletAddress ? t('wallet.connectedShort') : t('wallet.connectShort')}
+              </button>
+              <button
+                onClick={() => setIsHistoryModalOpen(true)}
+                className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 transition-colors hover:border-sky-300/50 hover:text-sky-100"
+              >
+                {t('wallet.historyShort')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Action Area */}
         <div className="w-full flex flex-col items-center justify-center flex-1 min-h-0">
@@ -123,6 +358,222 @@ function LobbyScreen() {
           )}
         </div>
       </div>
+
+      {isWalletModalOpen && (
+        <div className="absolute inset-0 z-[70] flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Wallet</p>
+                <h3 className="text-lg font-black tracking-tight text-amber-300">
+                  {t('wallet.title')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsWalletModalOpen(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+              {t('wallet.mockDisclaimer')}
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/50">
+                {t('wallet.status')}
+              </p>
+
+              {walletAddress ? (
+                <>
+                  <p className="mb-2 text-sm font-semibold text-emerald-300">
+                    {t('wallet.connected')}
+                  </p>
+                  <p className="mb-3 break-all rounded-lg bg-black/40 px-2 py-1 font-mono text-[11px] text-white/80">
+                    {walletAddress}
+                  </p>
+                  <button
+                    onClick={disconnectMockWallet}
+                    className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-red-200 transition-colors hover:bg-red-500/20"
+                  >
+                    {t('wallet.disconnect')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm text-white/80">{t('wallet.notConnected')}</p>
+                  <button
+                    onClick={connectMockWallet}
+                    className="w-full rounded-lg border border-amber-400/40 bg-gradient-to-b from-amber-400 to-orange-600 px-3 py-2 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-amber-900/30 transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    {t('wallet.connectAction')}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setTransferAmount('100');
+                  setTransferError(null);
+                  setIsDepositModalOpen(true);
+                }}
+                className="rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-200 transition-colors hover:bg-emerald-500/25"
+              >
+                {t('wallet.depositAction')}
+              </button>
+              <button
+                onClick={() => {
+                  setTransferAmount('100');
+                  setTransferError(null);
+                  setIsWithdrawModalOpen(true);
+                }}
+                className="rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sky-100 transition-colors hover:bg-sky-500/25"
+              >
+                {t('wallet.withdrawAction')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isHistoryModalOpen && (
+        <div className="absolute inset-0 z-[75] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Ledger</p>
+                <h3 className="text-lg font-black tracking-tight text-sky-200">
+                  {t('wallet.historyTitle')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 hover:bg-white/10"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-white/10 bg-black/30">
+              {isHistoryLoading ? (
+                <div className="p-4 text-center text-sm text-white/70">
+                  {t('wallet.historyLoading')}
+                </div>
+              ) : historyError ? (
+                <div className="p-4 text-center text-sm text-rose-300">{historyError}</div>
+              ) : transactions.length === 0 ? (
+                <div className="p-4 text-center text-sm text-white/60">
+                  {t('wallet.historyEmpty')}
+                </div>
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {transactions.map((tx) => {
+                    const amountValue = Number(tx.amount);
+                    const isIncome = Number.isFinite(amountValue) ? amountValue > 0 : false;
+                    const signedAmount = Number.isFinite(amountValue)
+                      ? `${isIncome ? '+' : ''}${amountValue.toFixed(2)} CJ`
+                      : `${tx.amount} CJ`;
+
+                    return (
+                      <div
+                        key={tx.id}
+                        className="flex items-start justify-between gap-3 p-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold uppercase tracking-wide text-white/90">
+                            {tx.type.replace(/_/g, ' ')}
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/50">
+                            {new Date(tx.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`font-bold ${
+                              isIncome ? 'text-emerald-300' : 'text-amber-300'
+                            }`}
+                          >
+                            {signedAmount}
+                          </p>
+                          <p className="mt-1 text-[10px] uppercase tracking-wide text-white/50">
+                            {tx.status}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDepositModalOpen && (
+        <div className="absolute inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-sm rounded-2xl border border-emerald-400/20 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <h3 className="mb-3 text-lg font-black text-emerald-300">{t('wallet.depositTitle')}</h3>
+            <p className="mb-2 text-xs text-white/70">{t('wallet.amountLabel')}</p>
+            <input
+              type="number"
+              min="1"
+              value={transferAmount}
+              onChange={(event) => setTransferAmount(event.target.value)}
+              className="mb-3 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none ring-0 focus:border-emerald-300/60"
+            />
+            {transferError && <p className="mb-3 text-xs text-rose-300">{transferError}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIsDepositModalOpen(false)}
+                className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/80"
+              >
+                {t('common.close')}
+              </button>
+              <button
+                onClick={() => applyMockTransfer('DEPOSIT')}
+                className="rounded-lg border border-emerald-300/50 bg-emerald-500/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100"
+              >
+                {t('wallet.confirmAction')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isWithdrawModalOpen && (
+        <div className="absolute inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-sm rounded-2xl border border-sky-400/20 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 shadow-2xl shadow-black/50">
+            <h3 className="mb-3 text-lg font-black text-sky-200">{t('wallet.withdrawTitle')}</h3>
+            <p className="mb-2 text-xs text-white/70">{t('wallet.amountLabel')}</p>
+            <input
+              type="number"
+              min="1"
+              value={transferAmount}
+              onChange={(event) => setTransferAmount(event.target.value)}
+              className="mb-3 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none ring-0 focus:border-sky-300/60"
+            />
+            {transferError && <p className="mb-3 text-xs text-rose-300">{transferError}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIsWithdrawModalOpen(false)}
+                className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/80"
+              >
+                {t('common.close')}
+              </button>
+              <button
+                onClick={() => applyMockTransfer('WITHDRAW')}
+                className="rounded-lg border border-sky-300/50 bg-sky-500/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sky-100"
+              >
+                {t('wallet.confirmAction')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
