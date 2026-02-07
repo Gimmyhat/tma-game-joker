@@ -60,6 +60,23 @@ cd apps/admin && pnpm dev
 
 ---
 
+## [2026-02-07 19:02] - OpenCode
+
+### Выполнено
+- ✅ Исправлен баг ставок для живого игрока: `EconomyService.holdForBet` теперь резолвит `userId` как Telegram numeric ID -> UUID перед Prisma-запросами.
+- ✅ Добавлен такой же резолв в `EconomyService.releaseBetHold`, чтобы rollback ставки не падал на non-UUID `userId`.
+- ✅ Сохранена совместимость backend e2e с тестовыми synthetic player IDs (`E2E_TEST=true`) в `resolveUserId`.
+- ✅ Проверки: `pnpm --filter @joker/backend lint && pnpm --filter @joker/backend build && pnpm --filter @joker/backend test:e2e` — green (24/24).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Прогнать frontend e2e smoke для сценария живой ставки в Telegram Mini App.
+- [ ] Подготовить коммит с hotfix (economy userId resolve + sprint/progress updates).
+
+---
+
 ## [2026-02-07 20:35] - OpenCode
 
 ### Выполнено
