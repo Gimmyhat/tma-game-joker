@@ -1,6 +1,6 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 20:35
+**Последнее обновление:** 2026-02-07 21:20
 **Текущий статус:** ✅ Phase 3: Tournaments & Meta complete (M-4 closed)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~80% |
+| 3 | Tournaments & Meta | ✅ Done | 100% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,25 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 21:20] - OpenCode
+
+### Выполнено
+- ✅ Исправлены runtime-ошибки в player модалках Tournament/Referral: устранено падение `Cannot read properties of null (reading 'items')` и ошибка загрузки реферальных данных.
+- ✅ `apps/frontend/src/lib/tournament-api.ts`: добавлен корректный резолв API base URL (`VITE_API_URL`/`VITE_SOCKET_URL` + `/api` fallback в prod), defensive parsing payload и явные ошибки вместо падения.
+- ✅ `apps/frontend/src/lib/referral-api.ts`: добавлены auth headers с Telegram initData, совместимость по `/referral/link` + fallback на `/referral/stats`, нормализация ответа.
+- ✅ `apps/backend/src/auth/guards/telegram-auth.guard.ts`: guard расширен на HTTP-контекст (помимо WS), чтение initData из `Authorization`/`x-telegram-init-data`.
+- ✅ Проверки: `pnpm lint`, `pnpm --filter @joker/backend build`, `pnpm --filter @joker/frontend build`, `pnpm --filter @joker/backend test:e2e`, `pnpm --filter @joker/frontend test:e2e` — green; отдельный smoke по grep (`referral|tournament`) — 2/2 passed.
+- ✅ Коммит: `b4dab90` (`fix(frontend): stabilize referral and tournament API loading`).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Подготовить PR с hotfix в рабочую ветку и прогнать CI.
+- [ ] После деплоя проверить в Telegram Mini App: открытие Tournament и Referral модалок на production-домене.
 
 ---
 

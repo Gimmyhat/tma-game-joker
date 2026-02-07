@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 20:35  
+**Last Updated:** 2026-02-07 21:20  
 **Sprint:** Phase 3 - Tournaments & Meta
 
 ---
@@ -130,6 +130,7 @@
 | FIX-7    | Fix bets for Telegram IDs in Economy hold/release   | 2026-02-07 | (pending commit) |
 | FIX-8    | Frontend smoke e2e stabilized with testids          | 2026-02-07 | (pending commit) |
 | FIX-9    | Disable per-bid wallet hold in live joker bets      | 2026-02-07 | (pending commit) |
+| FIX-10   | Fix referral/tournament modal API runtime errors    | 2026-02-07 | b4dab90          |
 
 ---
 
@@ -176,6 +177,7 @@
 - Hotfix: в `EconomyService` исправлен резолв `userId` для ставок живых игроков (numeric Telegram ID -> UUID), устранена ошибка Prisma UUID при `INVALID_BET`; backend e2e green
 - Frontend smoke e2e стабилизирован: удалена хрупкая проверка emoji `🃏`, добавлены стабильные `data-testid` для лобби и статуса соединения
 - Hotfix live-game: `processUserBet` больше не списывает CJ по значению заявки (0/1/...), hold вынесен в отдельную конфигурацию `GAME_BET_HOLD_COST_CJ` (по умолчанию 0)
+- Hotfix modal API: исправлены ошибки в Tournament/Referral модалках (`null.items` и `Не удалось загрузить данные`) за счет корректного base API URL (`/api` в prod), defensive parsing и HTTP-поддержки `TelegramAuthGuard`
 
 ---
 

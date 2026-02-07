@@ -9,6 +9,14 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { Socket } from 'socket.io';
 
+type HeaderValue = string | string[] | undefined;
+
+type HttpRequestWithUser = {
+  headers?: Record<string, HeaderValue>;
+  query?: Record<string, unknown>;
+  user?: VerifiedTelegramUser;
+};
+
 export interface VerifiedTelegramUser {
   id: bigint;
   firstName: string;
@@ -42,22 +50,85 @@ export class TelegramAuthGuard implements CanActivate {
       return true;
     }
 
-    const client: Socket = context.switchToWs().getClient();
-    const initData =
-      (client.handshake.auth?.initData as string) || (client.handshake.query?.initData as string);
+    const contextType = context.getType<'http' | 'ws'>();
 
-    if (!initData) {
-      throw new UnauthorizedException('Missing initData');
+    if (contextType === 'ws') {
+      const client: Socket = context.switchToWs().getClient();
+      const initData =
+        (client.handshake.auth?.initData as string | undefined) ||
+        (client.handshake.query?.initData as string | undefined);
+
+      if (!initData) {
+        throw new UnauthorizedException('Missing initData');
+      }
+
+      const user = this.validateAndParseInitData(initData);
+      if (!user) {
+        throw new UnauthorizedException('Invalid initData signature');
+      }
+
+      client.data.verifiedUser = user;
+      return true;
     }
 
-    const user = this.validateAndParseInitData(initData);
-    if (!user) {
-      throw new UnauthorizedException('Invalid initData signature');
+    if (contextType === 'http') {
+      const request = context.switchToHttp().getRequest<HttpRequestWithUser>();
+      const initData = this.extractHttpInitData(request);
+
+      if (!initData) {
+        throw new UnauthorizedException('Missing initData');
+      }
+
+      const user = this.validateAndParseInitData(initData);
+      if (!user) {
+        throw new UnauthorizedException('Invalid initData signature');
+      }
+
+      request.user = user;
+      return true;
     }
 
-    // Attach to socket data for gateway access
-    client.data.verifiedUser = user;
-    return true;
+    throw new UnauthorizedException('Unsupported context');
+  }
+
+  private extractHttpInitData(request: HttpRequestWithUser): string | null {
+    const initDataHeader =
+      this.pickHeaderValue(request.headers?.['x-telegram-init-data']) ||
+      this.pickHeaderValue(request.headers?.['x-init-data']);
+
+    if (initDataHeader) {
+      return initDataHeader;
+    }
+
+    const authorization = this.pickHeaderValue(request.headers?.authorization);
+    if (authorization) {
+      const [scheme, ...parts] = authorization.trim().split(' ');
+      const token = parts.join(' ').trim();
+      const normalizedScheme = scheme.toLowerCase();
+
+      if ((normalizedScheme === 'tma' || normalizedScheme === 'bearer') && token.length > 0) {
+        return token;
+      }
+    }
+
+    const queryInitData = request.query?.initData;
+    if (typeof queryInitData === 'string' && queryInitData.trim().length > 0) {
+      return queryInitData;
+    }
+
+    return null;
+  }
+
+  private pickHeaderValue(value: HeaderValue): string | null {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+
+    if (Array.isArray(value) && typeof value[0] === 'string' && value[0].trim().length > 0) {
+      return value[0];
+    }
+
+    return null;
   }
 
   validateAndParseInitData(initData: string): VerifiedTelegramUser | null {
