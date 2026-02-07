@@ -128,6 +128,36 @@
     "copied": "Copied!",
     "description": "Share this link with your friends. You will receive 10% of the commission from every game they play."
   },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Daily missions",
+    "open": "Tasks",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "loading": "Loading tasks...",
+    "empty": "No active tasks right now",
+    "loadError": "Failed to load tasks",
+    "actionError": "Could not submit task completion",
+    "claim": "Claim",
+    "claiming": "Claiming...",
+    "claimSubmitted": "Task submitted for review",
+    "claimApproved": "Task approved and reward issued",
+    "needUser": "Sign in via Telegram to access tasks",
+    "reward": "Reward",
+    "verificationLabel": "Verification",
+    "statuses": {
+      "AVAILABLE": "Available",
+      "PENDING": "Pending",
+      "APPROVED": "Completed",
+      "REJECTED": "Rejected"
+    },
+    "verification": {
+      "AUTO": "Automatic",
+      "MANUAL": "Manual",
+      "LINK_CLICK": "Link click",
+      "CODE_ENTRY": "Code entry"
+    }
+  },
   "game": {
     "loading": "Loading Game...",
     "trickWon": "{{player}} Wins!",
