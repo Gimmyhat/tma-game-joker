@@ -93,7 +93,10 @@ export function setInitData(initData: string): void {
  */
 function getSocketUrl(): string {
   const envUrl = import.meta.env.VITE_SOCKET_URL;
-  if (envUrl) return envUrl;
+  if (envUrl) {
+    console.log('[Socket] Using VITE_SOCKET_URL:', envUrl);
+    return envUrl;
+  }
 
   // In development, use localhost
   if (
@@ -101,7 +104,8 @@ function getSocketUrl(): string {
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'
   ) {
-    return 'http://localhost:3000';
+    console.log('[Socket] Using default localhost:3001');
+    return 'http://localhost:3001';
   }
   // In production, use same origin
   return window.location.origin;

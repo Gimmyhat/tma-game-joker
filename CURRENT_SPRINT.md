@@ -1,6 +1,6 @@
 # CURRENT SPRINT
 
-**Last Updated:** 2026-02-07 18:45  
+**Last Updated:** 2026-02-07 19:05  
 **Sprint:** Phase 3 - Tournaments & Meta
 
 ---
@@ -64,6 +64,8 @@
 | T-9 | Telegram reminders before start                   | ✅ DONE | `apps/backend/src/telegram-bot/`        | Напоминания зарегистрированным участникам                   |
 | M-1 | Meta: global leaderboard API + page               | ✅ DONE | `apps/backend/src`, `apps/frontend/src` | Рейтинг игроков по REQ-11                                   |
 | M-2 | Meta: referral program backend + UI               | ✅ DONE | `apps/backend/src`, `apps/frontend/src` | Реферальная ссылка, начисления, история                     |
+| M-3 | Meta: Task system backend (CRUD + verification)   | ⬜ TODO | `apps/backend/src/tasks/`               | Создание задач, проверка выполнения (mock)                  |
+| M-4 | Meta: Frontend tasks UI (list, status, claim)     | ⬜ TODO | `apps/frontend/src/`                    | Экран заданий, клейм награды                                |
 
 ---
 
@@ -122,6 +124,7 @@
 | M-1      | Meta: global leaderboard API + page                 | 2026-02-07 | (pending commit) |
 | M-2      | Meta: referral program backend + UI                 | 2026-02-07 | (pending commit) |
 | FIX-5    | Admin sign-out invalidation + websocket e2e restore | 2026-02-07 | (pending commit) |
+| FIX-6    | Admin lint ENOENT guard for generated dirs          | 2026-02-07 | (pending commit) |
 
 ---
 
@@ -164,6 +167,7 @@
 - Критический разрыв регистрации закрыт: при websocket connect backend теперь гарантирует `getOrCreateUser` для Telegram ID; frontend поддерживает `VITE_API_URL` и нормализацию `ws(s) -> http(s)` для economy fetch
 - Hotfix: Sign out в admin dropdown теперь очищает auth store перед redirect; добавлен e2e smoke `should require re-authentication after sign out`
 - Backend e2e снова green после восстановления регистрации websocket gateway через `GatewayModule` в `AppModule` и стабилизации `app.e2e` (Prisma mock + bet flow)
+- Admin lint стабилизирован: в `apps/admin/eslint.config.js` добавлены ignore для `test-results`, `playwright-report`, `coverage` (устранен риск ENOENT)
 
 ---
 

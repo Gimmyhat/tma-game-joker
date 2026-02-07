@@ -56,7 +56,12 @@ export const useGameStore = create<GameStore>()(
       cleanupSocketListeners(socket);
       setupSocketListeners(socket, set, get);
 
-      set({ connectionStatus: 'connecting' });
+      // Check immediate connection status to avoid race conditions
+      if (socket.connected) {
+        set({ connectionStatus: 'connected' });
+      } else {
+        set({ connectionStatus: 'connecting' });
+      }
     },
 
     _reset: () => {

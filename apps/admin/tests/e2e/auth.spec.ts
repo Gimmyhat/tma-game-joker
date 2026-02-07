@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { AUTH_STORAGE_PATH, loginAsAdmin, waitForAppReady } from './fixtures/auth.fixture';
+import { AUTH_STORAGE_PATH, loginAsAdmin, logout, waitForAppReady } from './fixtures/auth.fixture';
 
 test.describe('Admin Authentication', () => {
   test.beforeEach(async ({ page }) => {
@@ -109,5 +109,25 @@ test.describe('Admin Authentication', () => {
       // If no logout button visible, test passes (might be different UI)
       test.skip();
     }
+  });
+
+  test('should require re-authentication after sign out', async ({ page }) => {
+    await loginAsAdmin(page);
+
+    await logout(page);
+
+    await page.goto('/admin/users');
+    await waitForAppReady(page);
+
+    const redirectedToSignin = page.url().includes('/signin');
+    const hasLoginForm = await page
+      .getByTestId('username-input')
+      .isVisible()
+      .catch(() => false);
+
+    expect(redirectedToSignin || hasLoginForm).toBeTruthy();
+
+    await loginAsAdmin(page);
+    await expect(page).toHaveURL(/\/admin\/?$/);
   });
 });
