@@ -43,7 +43,8 @@ export class ReferralService {
   /**
    * Get referral stats for a user
    */
-  async getReferralStats(userId: string) {
+  async getReferralStats(userIdOrTgId: string | bigint) {
+    const userId = await this.economyService.resolveUserId(userIdOrTgId.toString(), true);
     const code = await this.ensureReferralCode(userId);
     const botName = this.configService.get('TELEGRAM_BOT_NAME') || 'JokerGameBot';
     const referralLink = `https://t.me/${botName}?startapp=${code}`;
