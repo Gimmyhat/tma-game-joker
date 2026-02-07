@@ -1,7 +1,7 @@
 # 🚀 Project Progress
 
-**Последнее обновление:** 2026-02-07 12:48
-**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (Tournament Lobby delivered)
+**Последнее обновление:** 2026-02-07 16:05
+**Текущий статус:** 🚧 Phase 3: Tournaments & Meta (T-9 reminders delivered)
 
 > **📋 Текущие задачи см. в [`CURRENT_SPRINT.md`](CURRENT_SPRINT.md)**
 
@@ -25,7 +25,7 @@
 |-------|----------|--------|----------|
 | 1 | Core & Network | ✅ Done | 100% |
 | 2 | Economy & Admin | ✅ Done | 100% |
-| 3 | Tournaments & Meta | 🔄 In Progress | ~55% |
+| 3 | Tournaments & Meta | 🔄 In Progress | ~62% |
 | 4 | Integration & Polish | ⏳ Not Started | 0% |
 
 ---
@@ -57,6 +57,47 @@ cd apps/admin && pnpm dev
 
 > Все агенты обязаны добавлять записи сюда при завершении сессии.
 > Формат: `## [YYYY-MM-DD HH:MM] - [Agent Name]`
+
+---
+
+## [2026-02-07 16:05] - OpenCode
+
+### Выполнено
+- ✅ Закрыт T-9: реализованы Telegram reminders зарегистрированным участникам перед стартом турнира.
+- ✅ `TelegramBotService` расширен методом `sendMessageToUser(...)` с безопасным fail-safe результатом доставки.
+- ✅ `TournamentModule` подключен к `TelegramBotModule`, `TournamentService` получил интеграцию отправки уведомлений.
+- ✅ В lifecycle добаван pre-start reminders flow: day/minute reminders, отправка только REGISTERED и не blocked пользователям.
+- ✅ Добавлена защита от дублей через persisted marks в `Tournament.botFillConfig.reminderMeta` (`daySentAt`, `minuteSentAt`).
+- ✅ Добавлен аудит reminder-отправок через `EventLogService.log` (`ADMIN_ACTION`, `TOURNAMENT_REMINDER_SENT`, counters).
+- ✅ Добавлены unit-тесты reminder-логики в `apps/backend/src/tournament/tests/tournament.service.spec.ts`.
+- ✅ Проверки: `pnpm lint`, `pnpm --filter @joker/backend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/admin type-check`, `pnpm --filter @joker/backend test:e2e` (16 passed), `pnpm --filter @joker/frontend test:e2e` (7 passed, 1 skipped) — green.
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать M-1: global leaderboard API + page.
+- [ ] Затем перейти к M-2: referral program backend + UI.
+
+---
+
+## [2026-02-07 15:22] - OpenCode
+
+### Выполнено
+- ✅ Закрыт T-8: реализован frontend UI турнирной сетки (stages/matches/slots/results) в деталях турнира.
+- ✅ Добавлена типизация и безопасный runtime parser для `bracketState` в `apps/frontend/src/lib/tournament-api.ts` (defensive parsing `unknown -> TournamentBracketState | null`).
+- ✅ В `apps/frontend/src/components/TournamentLobbyPanel.tsx` добавлены: блок bracket, отображение стадий/матчей, статусов `PENDING/COMPLETED`, пометка победителя, обработка bye/empty slots.
+- ✅ Добавлены `data-testid` для турнирного e2e пути (`details`, `bracket`, `match`, `join`, `leave`).
+- ✅ Добавлены новые RU/EN i18n ключи для bracket UI (`apps/frontend/src/locales/ru.json`, `apps/frontend/src/locales/en.json`).
+- ✅ Добавлен frontend Playwright happy-path тест турниров: открытие лобби, переход в детали, проверка bracket, join/leave (`apps/frontend/tests/e2e/app.spec.ts`).
+- ✅ Проверки: `pnpm lint`, `pnpm --filter @joker/backend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/frontend exec tsc --noEmit -p tsconfig.json`, `pnpm --filter @joker/admin type-check`, `pnpm --filter @joker/backend test:e2e`, `pnpm --filter @joker/frontend test:e2e` — green (frontend: 7 passed, 1 skipped; backend: 16 passed).
+
+### В процессе
+- 🔄 Нет.
+
+### Следующие шаги
+- [ ] Начать T-9: Telegram reminders для зарегистрированных участников перед стартом турнира.
+- [ ] После T-9 перейти к M-1 (global leaderboard API + page).
 
 ---
 

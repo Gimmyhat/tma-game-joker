@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma, TournamentStatus } from '@prisma/client';
 import { EventLogService } from '../event-log/event-log.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramBotService } from '../telegram-bot/telegram-bot.service';
 import { ListTournamentsDto } from './dto';
 
 const ACTIVE_TOURNAMENT_STATUSES: TournamentStatus[] = [
@@ -12,6 +13,15 @@ const ACTIVE_TOURNAMENT_STATUSES: TournamentStatus[] = [
 ];
 
 const ALLOWED_BRACKET_SIZES = [16, 32, 64];
+const TOURNAMENT_REMINDER_DAYS_BEFORE = 1;
+const TOURNAMENT_REMINDER_MINUTES_BEFORE = 15;
+
+type ReminderType = 'DAY' | 'MINUTE';
+
+type TournamentReminderMeta = {
+  daySentAt?: string;
+  minuteSentAt?: string;
+};
 
 type BracketMatchStatus = 'PENDING' | 'COMPLETED';
 
@@ -49,6 +59,7 @@ export class TournamentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventLogService: EventLogService,
+    private readonly telegramBotService: TelegramBotService,
   ) {}
 
   async listTournaments(query: ListTournamentsDto) {
@@ -370,6 +381,8 @@ export class TournamentService {
       },
     });
 
+    await this.processPreStartReminders(now);
+
     const dueToStart = await tournamentDelegate.findMany({
       where: {
         status: TournamentStatus.REGISTRATION,
@@ -406,6 +419,206 @@ export class TournamentService {
       registrationToStarted,
       startedToFinished,
     };
+  }
+
+  private async processPreStartReminders(now: Date): Promise<void> {
+    const tournamentDelegate = this.getTournamentDelegate();
+    if (!tournamentDelegate) {
+      return;
+    }
+
+    const candidates = await tournamentDelegate.findMany({
+      where: {
+        status: TournamentStatus.REGISTRATION,
+        startTime: {
+          gt: now,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        botFillConfig: true,
+      },
+    });
+
+    for (const tournament of candidates) {
+      if (!tournament.startTime) {
+        continue;
+      }
+
+      const reminderMeta = this.getReminderMeta(tournament.botFillConfig);
+      const reminderTypes = this.resolveDueReminderTypes(tournament.startTime, reminderMeta, now);
+      if (reminderTypes.length === 0) {
+        continue;
+      }
+
+      const participants = await this.prisma.tournamentParticipant.findMany({
+        where: {
+          tournamentId: tournament.id,
+          status: 'REGISTERED',
+        },
+        select: {
+          user: {
+            select: {
+              tgId: true,
+              blockedAt: true,
+            },
+          },
+        },
+      });
+
+      const tgIds = participants
+        .filter((participant) => participant.user && !participant.user.blockedAt)
+        .map((participant) => participant.user.tgId.toString());
+
+      for (const reminderType of reminderTypes) {
+        const reminderText = this.formatReminderMessage(
+          reminderType,
+          tournament.title,
+          tournament.startTime,
+        );
+        let deliveredCount = 0;
+        let failedCount = 0;
+
+        for (const tgId of tgIds) {
+          const delivery = await this.telegramBotService.sendMessageToUser(tgId, reminderText);
+          if (delivery.delivered) {
+            deliveredCount += 1;
+          } else {
+            failedCount += 1;
+          }
+        }
+
+        const sentAt = now.toISOString();
+        if (reminderType === 'DAY') {
+          reminderMeta.daySentAt = sentAt;
+        } else {
+          reminderMeta.minuteSentAt = sentAt;
+        }
+
+        await this.eventLogService.log({
+          eventType: 'ADMIN_ACTION',
+          actorType: 'SYSTEM',
+          targetId: tournament.id,
+          targetType: 'TOURNAMENT',
+          contextTournamentId: tournament.id,
+          details: {
+            action: 'TOURNAMENT_REMINDER_SENT',
+            reminderType,
+            participants: tgIds.length,
+            deliveredCount,
+            failedCount,
+            startTime: tournament.startTime.toISOString(),
+          },
+        });
+      }
+
+      await tournamentDelegate.update({
+        where: { id: tournament.id },
+        data: {
+          botFillConfig: this.buildBotFillConfigWithReminderMeta(
+            tournament.botFillConfig,
+            reminderMeta,
+          ) as Prisma.InputJsonValue,
+        },
+      });
+    }
+  }
+
+  private resolveDueReminderTypes(
+    startTime: Date,
+    reminderMeta: TournamentReminderMeta,
+    now: Date,
+  ): ReminderType[] {
+    const dueTypes: ReminderType[] = [];
+    const dayReminderTime = new Date(
+      startTime.getTime() - TOURNAMENT_REMINDER_DAYS_BEFORE * 24 * 60 * 60 * 1000,
+    );
+    const minuteReminderTime = new Date(
+      startTime.getTime() - TOURNAMENT_REMINDER_MINUTES_BEFORE * 60 * 1000,
+    );
+
+    if (!reminderMeta.daySentAt && now >= dayReminderTime) {
+      dueTypes.push('DAY');
+    }
+
+    if (!reminderMeta.minuteSentAt && now >= minuteReminderTime) {
+      dueTypes.push('MINUTE');
+    }
+
+    return dueTypes;
+  }
+
+  private formatReminderMessage(
+    reminderType: ReminderType,
+    title: string | null,
+    startTime: Date,
+  ): string {
+    const tournamentTitle = title?.trim() || 'Турнир Joker';
+    const startLabel = startTime.toLocaleString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    if (reminderType === 'DAY') {
+      return `Напоминание: турнир "${tournamentTitle}" начнется через ${TOURNAMENT_REMINDER_DAYS_BEFORE} день(дней).\nСтарт: ${startLabel}.`;
+    }
+
+    return `Напоминание: турнир "${tournamentTitle}" начнется через ${TOURNAMENT_REMINDER_MINUTES_BEFORE} минут.\nСтарт: ${startLabel}.`;
+  }
+
+  private getReminderMeta(config: Prisma.JsonValue | null): TournamentReminderMeta {
+    const root = this.asJsonObject(config);
+    const reminderRaw = root.reminderMeta;
+    if (!reminderRaw || typeof reminderRaw !== 'object' || Array.isArray(reminderRaw)) {
+      return {};
+    }
+
+    const reminderObject = reminderRaw as Record<string, unknown>;
+    const reminderMeta: TournamentReminderMeta = {};
+
+    if (typeof reminderObject.daySentAt === 'string') {
+      reminderMeta.daySentAt = reminderObject.daySentAt;
+    }
+
+    if (typeof reminderObject.minuteSentAt === 'string') {
+      reminderMeta.minuteSentAt = reminderObject.minuteSentAt;
+    }
+
+    return reminderMeta;
+  }
+
+  private buildBotFillConfigWithReminderMeta(
+    config: Prisma.JsonValue | null,
+    reminderMeta: TournamentReminderMeta,
+  ): Prisma.JsonObject {
+    const root = this.asJsonObject(config);
+    const previousReminderMeta =
+      root.reminderMeta &&
+      typeof root.reminderMeta === 'object' &&
+      !Array.isArray(root.reminderMeta)
+        ? (root.reminderMeta as Prisma.JsonObject)
+        : {};
+
+    return {
+      ...root,
+      reminderMeta: {
+        ...previousReminderMeta,
+        ...reminderMeta,
+      },
+    };
+  }
+
+  private asJsonObject(value: Prisma.JsonValue | null): Prisma.JsonObject {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as Prisma.JsonObject;
   }
 
   private getTournamentDelegate(): PrismaService['tournament'] | null {

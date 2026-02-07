@@ -2,6 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bot, InlineKeyboard } from 'grammy';
 
+type TelegramMessageOptions = {
+  parse_mode?: 'Markdown' | 'MarkdownV2' | 'HTML';
+  disable_web_page_preview?: boolean;
+};
+
+type TelegramDeliveryResult =
+  | {
+      delivered: true;
+      messageId?: number;
+    }
+  | {
+      delivered: false;
+      errorMessage: string;
+    };
+
 @Injectable()
 export class TelegramBotService {
   private readonly logger = new Logger(TelegramBotService.name);
@@ -87,5 +102,35 @@ export class TelegramBotService {
 
   getBot(): Bot | null {
     return this.bot;
+  }
+
+  async sendMessageToUser(
+    tgId: bigint | number | string,
+    text: string,
+    options?: TelegramMessageOptions,
+  ): Promise<TelegramDeliveryResult> {
+    const bot = this.getBot();
+    if (!bot) {
+      return {
+        delivered: false,
+        errorMessage: 'Telegram bot is not initialized',
+      };
+    }
+
+    try {
+      const message = await bot.api.sendMessage(String(tgId), text, options ?? {});
+      return {
+        delivered: true,
+        messageId: message.message_id,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to send Telegram message';
+      this.logger.warn(`Telegram delivery failed for tgId=${String(tgId)}: ${errorMessage}`);
+      return {
+        delivered: false,
+        errorMessage,
+      };
+    }
   }
 }

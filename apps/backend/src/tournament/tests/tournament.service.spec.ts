@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TournamentStatus } from '@prisma/client';
 import { EventLogService } from '../../event-log/event-log.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TelegramBotService } from '../../telegram-bot/telegram-bot.service';
 import { TournamentService } from '../tournament.service';
 
 describe('TournamentService', () => {
@@ -26,6 +27,7 @@ describe('TournamentService', () => {
     },
     user: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
     },
     $transaction: jest.fn(),
@@ -33,6 +35,11 @@ describe('TournamentService', () => {
 
   const mockEventLogService = {
     logTournamentEvent: jest.fn().mockResolvedValue(undefined),
+    log: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockTelegramBotService = {
+    sendMessageToUser: jest.fn().mockResolvedValue({ delivered: true }),
   };
 
   beforeEach(async () => {
@@ -46,6 +53,10 @@ describe('TournamentService', () => {
         {
           provide: EventLogService,
           useValue: mockEventLogService,
+        },
+        {
+          provide: TelegramBotService,
+          useValue: mockTelegramBotService,
         },
       ],
     }).compile();
@@ -263,7 +274,9 @@ describe('TournamentService', () => {
   describe('processLifecycleTransitions', () => {
     it('should update statuses and start bracket by time', async () => {
       mockPrismaService.tournament.updateMany.mockResolvedValueOnce({ count: 2 });
-      mockPrismaService.tournament.findMany.mockResolvedValueOnce([{ id: 't-1' }]);
+      mockPrismaService.tournament.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 't-1' }]);
 
       mockPrismaService.$transaction.mockImplementation(
         async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -300,7 +313,127 @@ describe('TournamentService', () => {
       expect(result.registrationToStarted).toBe(1);
       expect(result.startedToFinished).toBe(0);
       expect(mockPrismaService.tournament.updateMany).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.tournament.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.tournament.findMany).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('tournament reminders', () => {
+    it('should send day reminder and persist reminder mark', async () => {
+      const now = new Date('2026-02-07T12:00:00.000Z');
+      mockPrismaService.tournament.updateMany.mockResolvedValueOnce({ count: 0 });
+      mockPrismaService.tournament.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 't-rem-1',
+            title: 'Weekly Cup',
+            startTime: new Date('2026-02-08T12:00:00.000Z'),
+            botFillConfig: null,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      mockPrismaService.tournamentParticipant.findMany.mockResolvedValueOnce([
+        { user: { tgId: BigInt(123456789), blockedAt: null } },
+      ]);
+      mockPrismaService.tournament.update.mockResolvedValue({ id: 't-rem-1' });
+
+      await service.processLifecycleTransitions(now);
+
+      expect(mockTelegramBotService.sendMessageToUser).toHaveBeenCalledTimes(1);
+      expect(mockEventLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contextTournamentId: 't-rem-1',
+          details: expect.objectContaining({
+            action: 'TOURNAMENT_REMINDER_SENT',
+            reminderType: 'DAY',
+          }),
+        }),
+      );
+      expect(mockPrismaService.tournament.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 't-rem-1' },
+          data: {
+            botFillConfig: expect.objectContaining({
+              reminderMeta: expect.objectContaining({
+                daySentAt: now.toISOString(),
+              }),
+            }),
+          },
+        }),
+      );
+    });
+
+    it('should send minute reminder and not resend already sent day reminder', async () => {
+      const now = new Date('2026-02-08T11:45:00.000Z');
+      mockPrismaService.tournament.updateMany.mockResolvedValueOnce({ count: 0 });
+      mockPrismaService.tournament.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 't-rem-2',
+            title: 'Weekly Cup',
+            startTime: new Date('2026-02-08T12:00:00.000Z'),
+            botFillConfig: {
+              reminderMeta: {
+                daySentAt: '2026-02-07T12:00:00.000Z',
+              },
+            },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      mockPrismaService.tournamentParticipant.findMany.mockResolvedValueOnce([
+        { user: { tgId: BigInt(123456789), blockedAt: null } },
+      ]);
+      mockPrismaService.tournament.update.mockResolvedValue({ id: 't-rem-2' });
+
+      await service.processLifecycleTransitions(now);
+
+      expect(mockTelegramBotService.sendMessageToUser).toHaveBeenCalledTimes(1);
+      expect(mockEventLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contextTournamentId: 't-rem-2',
+          details: expect.objectContaining({
+            action: 'TOURNAMENT_REMINDER_SENT',
+            reminderType: 'MINUTE',
+          }),
+        }),
+      );
+      expect(mockPrismaService.tournament.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            botFillConfig: expect.objectContaining({
+              reminderMeta: expect.objectContaining({
+                daySentAt: '2026-02-07T12:00:00.000Z',
+                minuteSentAt: now.toISOString(),
+              }),
+            }),
+          },
+        }),
+      );
+    });
+
+    it('should skip reminders when both marks already exist', async () => {
+      const now = new Date('2026-02-08T11:50:00.000Z');
+      mockPrismaService.tournament.updateMany.mockResolvedValueOnce({ count: 0 });
+      mockPrismaService.tournament.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 't-rem-3',
+            title: 'Weekly Cup',
+            startTime: new Date('2026-02-08T12:00:00.000Z'),
+            botFillConfig: {
+              reminderMeta: {
+                daySentAt: '2026-02-07T12:00:00.000Z',
+                minuteSentAt: '2026-02-08T11:45:00.000Z',
+              },
+            },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      await service.processLifecycleTransitions(now);
+
+      expect(mockTelegramBotService.sendMessageToUser).not.toHaveBeenCalled();
+      expect(mockPrismaService.tournamentParticipant.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.tournament.update).not.toHaveBeenCalled();
     });
   });
 

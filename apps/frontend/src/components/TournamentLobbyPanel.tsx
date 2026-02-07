@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   type TournamentApiItem,
+  type TournamentBracketMatch,
+  type TournamentBracketState,
   fetchTournament,
   fetchTournaments,
   joinTournament,
@@ -60,6 +62,32 @@ function formatDate(dateValue?: string | null): string {
   }
 
   return parsed.toLocaleString();
+}
+
+function normalizeComparableUserId(value: string | number | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function toUserLabel(
+  slotUserId: string | null,
+  currentUserId: string | number | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (!slotUserId) {
+    return t('tournament.slotEmpty');
+  }
+
+  const normalizedCurrentUserId = normalizeComparableUserId(currentUserId);
+  if (normalizedCurrentUserId && normalizedCurrentUserId === slotUserId) {
+    return t('tournament.youShort');
+  }
+
+  return `#${slotUserId}`;
 }
 
 export function TournamentLobbyPanel({ userId }: TournamentLobbyPanelProps) {
@@ -140,6 +168,87 @@ export function TournamentLobbyPanel({ userId }: TournamentLobbyPanelProps) {
   const selectedParticipantsCount = selectedTournament?._count?.participants ?? 0;
   const selectedStatus = selectedTournament?.status ?? '';
   const selectedIsJoined = selectedId ? joinedMap[selectedId] === true : false;
+  const selectedBracket: TournamentBracketState | null = selectedTournament?.bracketState ?? null;
+  const selectedBracketStages = selectedBracket?.stages ?? [];
+  const selectedBracketCurrentStage =
+    selectedBracket?.currentStage ?? selectedTournament?.currentStage ?? 0;
+  const selectedBracketWinnerId = selectedBracket?.winnerUserId ?? null;
+  const selectedBracketFinished = selectedBracket?.finished ?? false;
+
+  const renderMatchCard = (match: TournamentBracketMatch) => {
+    const isCompleted = match.status === 'COMPLETED';
+    const hasAnyPlayer = Boolean(match.player1UserId || match.player2UserId);
+    const isBye = hasAnyPlayer && (!match.player1UserId || !match.player2UserId);
+    const firstPlayerLabel = toUserLabel(match.player1UserId, userId, t);
+    const secondPlayerLabel = toUserLabel(match.player2UserId, userId, t);
+
+    return (
+      <article
+        key={match.id}
+        className="rounded-lg border border-white/10 bg-black/25 p-2"
+        data-testid={`tournament-match-${match.id}`}
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-wider text-white/60">
+            {t('tournament.tableLabel', { index: match.index + 1 })}
+          </p>
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+              isCompleted
+                ? 'border-emerald-400/40 bg-emerald-500/20 text-emerald-100'
+                : 'border-amber-400/40 bg-amber-500/20 text-amber-100'
+            }`}
+          >
+            {t(isCompleted ? 'tournament.matchCompleted' : 'tournament.matchPending')}
+          </span>
+        </div>
+
+        <div className="space-y-1.5 text-xs text-white/90">
+          <div
+            className={`flex items-center justify-between rounded-md border px-2 py-1 ${
+              match.winnerUserId && match.winnerUserId === match.player1UserId
+                ? 'border-emerald-400/50 bg-emerald-500/20'
+                : 'border-white/10 bg-black/30'
+            }`}
+          >
+            <span>{firstPlayerLabel}</span>
+            {match.winnerUserId && match.winnerUserId === match.player1UserId && (
+              <span className="text-[10px] uppercase tracking-wider text-emerald-200">
+                {t('tournament.winnerTag')}
+              </span>
+            )}
+          </div>
+
+          <div
+            className={`flex items-center justify-between rounded-md border px-2 py-1 ${
+              match.winnerUserId && match.winnerUserId === match.player2UserId
+                ? 'border-emerald-400/50 bg-emerald-500/20'
+                : 'border-white/10 bg-black/30'
+            }`}
+          >
+            <span>{secondPlayerLabel}</span>
+            {match.winnerUserId && match.winnerUserId === match.player2UserId && (
+              <span className="text-[10px] uppercase tracking-wider text-emerald-200">
+                {t('tournament.winnerTag')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {isBye && (
+          <p className="mt-2 text-[10px] uppercase tracking-wider text-sky-200">
+            {t('tournament.byeRound')}
+          </p>
+        )}
+
+        {!hasAnyPlayer && (
+          <p className="mt-2 text-[10px] uppercase tracking-wider text-white/45">
+            {t('tournament.matchPending')}
+          </p>
+        )}
+      </article>
+    );
+  };
 
   const handleJoin = async () => {
     if (!userId || !selectedId) {
@@ -278,6 +387,7 @@ export function TournamentLobbyPanel({ userId }: TournamentLobbyPanelProps) {
                         setActionMessage(null);
                         setSelectedId(item.id);
                       }}
+                      data-testid={`tournament-details-${item.id}`}
                       className="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-amber-100 transition-colors hover:bg-amber-500/30"
                     >
                       {t('tournament.details')}
@@ -338,12 +448,69 @@ export function TournamentLobbyPanel({ userId }: TournamentLobbyPanelProps) {
                 </p>
               </div>
 
+              <section
+                className="mb-4 rounded-xl border border-white/10 bg-black/30 p-3"
+                data-testid="tournament-bracket"
+              >
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-white/80">
+                    {t('tournament.bracketTitle')}
+                  </h5>
+                  <span className="text-[10px] uppercase tracking-wider text-white/50">
+                    {t('tournament.stage')}: {selectedBracketCurrentStage}
+                  </span>
+                </div>
+
+                {selectedBracket && (
+                  <div className="mb-3 space-y-1 text-[11px] text-white/70">
+                    <p>
+                      {t('tournament.bracketFormat')}: {selectedBracket.format}
+                    </p>
+                    <p>
+                      {t('tournament.players')}: {selectedParticipantsCount}/{selectedBracket.size}
+                    </p>
+                    <p>
+                      {selectedBracketFinished
+                        ? t('tournament.bracketFinished')
+                        : t('tournament.bracketPending')}
+                    </p>
+                    {selectedBracketWinnerId && (
+                      <p>
+                        {t('tournament.bracketWinner')}:{' '}
+                        {toUserLabel(selectedBracketWinnerId, userId, t)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!selectedBracket || selectedBracketStages.length === 0 ? (
+                  <p className="text-xs text-white/60">{t('tournament.bracketNotAvailable')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedBracketStages.map((stage) => (
+                      <div
+                        key={stage.stage}
+                        className="rounded-lg border border-white/10 bg-black/20 p-2"
+                      >
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/75">
+                          {t('tournament.roundLabel', { stage: stage.stage })}
+                        </p>
+                        <div className="space-y-2">
+                          {stage.matches.map((match) => renderMatchCard(match))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     void handleJoin();
                   }}
+                  data-testid="tournament-join"
                   disabled={
                     isActionLoading ||
                     selectedStatus !== 'REGISTRATION' ||
@@ -359,6 +526,7 @@ export function TournamentLobbyPanel({ userId }: TournamentLobbyPanelProps) {
                   onClick={() => {
                     void handleLeave();
                   }}
+                  data-testid="tournament-leave"
                   disabled={isActionLoading || !selectedIsJoined}
                   className="rounded-lg border border-sky-300/50 bg-sky-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sky-100 transition-colors hover:bg-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
                 >
